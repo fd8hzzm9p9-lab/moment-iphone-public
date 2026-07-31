@@ -46,7 +46,7 @@ type MemoryInput = {
 const STORAGE_KEY = 'moment_memory_events';
 const [reponseMemoire, setReponseMemoire] = useState('');
 const [rappelEnCours, setRappelEnCours] = useState(false);
-const SERVER_URL = 'http://192.168.1.12:3000';
+const SERVER_URL = 'https://moment-iphone.onrender.com';
 
 function normalize(text: string) {
   return text
