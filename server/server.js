@@ -333,17 +333,23 @@ app.post('/recall', async (req, res) => {
       `✅ ${validatedMemories.length} événement(s) validé(s) par l'utilisateur`
     );
 
+    /*
+     * DEBUG IMPORTANT
+     *
+     * Permet de vérifier exactement ce que contient
+     * l'événement validé utilisé par le moteur.
+     */
+
     if (validatedMemories.length > 0) {
       console.log(
-        '📌 Validations trouvées :',
-        validatedMemories.map(
-          (memory) => ({
-            id: memory.id,
-            description:
-              memory.description,
-            facts:
-              memory.facts,
-          })
+        '🔐 MÉMOIRES VALIDÉES UTILISÉES :'
+      );
+
+      console.log(
+        JSON.stringify(
+          validatedMemories,
+          null,
+          2
         )
       );
     }
@@ -462,34 +468,20 @@ Il ne doit JAMAIS être classé "implied".
 
 Il ne doit JAMAIS être classé "not_confirmed".
 
-IMPORTANT :
+source_text peut contenir l'historique de la déduction
+ayant conduit à la validation.
 
-Lorsqu'une preuve provient d'un événement validé,
-le claim doit décrire UNIQUEMENT le contenu factuel
-confirmé par cet événement.
+source_text ne doit JAMAIS annuler la validation.
 
-Ne transforme pas le claim en déduction.
-
-Ne formule jamais un claim comme :
-
-"Chloe pourrait être..."
-
-"Il est possible que..."
-
-"Chloe semble être..."
-
-si l'événement correspondant est validé.
-
-La formulation du claim doit être cohérente avec
-status: "explicit".
+description et facts représentent la formulation confirmée.
 
 ============================================================
 RÈGLE IMPORTANTE SUR LES QUESTIONS
 ============================================================
 
 Une validation utilisateur ne signifie PAS que toutes les
-questions contenant les mêmes mots doivent être automatiquement
-considérées comme une confirmation.
+questions contenant les mêmes mots doivent automatiquement
+être considérées comme une confirmation.
 
 Exemple de validation :
 
@@ -497,31 +489,14 @@ Exemple de validation :
 
 Question :
 
-"Est-ce que Chloe est la fille dont Mireille et Élise
-sont les marraines ?"
-
-→ EXPLICITE.
-
-Mais :
-
 "Qui sont les marraines de Chloe ?"
 
-→ Il faut répondre à la question en recherchant l'information
-dans la mémoire.
+→ Il faut répondre à la question en recherchant
+l'information dans la mémoire.
 
-La validation peut servir de preuve pour construire la réponse,
-mais il ne faut pas remplacer la question par le texte de
-la question elle-même.
+La validation peut servir de preuve pour construire la réponse.
 
-Autre exemple :
-
-"Chloe est-elle la fille de Mireille ?"
-
-→ La validation concernant les marraines ne permet PAS
-de conclure que Mireille est la mère de Chloe.
-
-Ne déduis jamais une relation différente de celle qui a
-été validée.
+Elle ne doit pas être utilisée pour remplacer la question.
 
 ============================================================
 RÈGLE DES DÉDUCTIONS
@@ -687,7 +662,7 @@ Utilise les événements validés comme des faits confirmés.
 
 Mais réponds TOUJOURS à la question réellement posée.
 
-Ne remplace jamais une question par le texte de la question.
+Ne remplace jamais une question par le texte d'un souvenir.
 
 Si la question demande :
 
@@ -702,22 +677,6 @@ alors réponds naturellement :
 "Les marraines de Chloe sont Mireille et Élise."
 
 avec une evidence explicit correspondant à l'événement validé.
-
-Le claim de cette evidence doit être factuel, par exemple :
-
-"Chloe est la fille dont Mireille et Élise sont les marraines."
-
-Il ne doit pas dire :
-
-"Chloe pourrait être..."
-
-ou :
-
-"Chloe semble être..."
-
-ou :
-
-"Chloe est peut-être..."
 
 Si la question demande :
 
@@ -809,10 +768,6 @@ Avant de répondre, vérifie :
 9. Ne considère jamais le simple partage de mots entre
    une question et un souvenir comme une preuve suffisante
    pour reformuler automatiquement la question.
-
-10. Lorsqu'un événement validé est utilisé comme preuve,
-    son claim doit rester factuel et correspondre
-    directement au contenu confirmé de cet événement.
 
 Si aucun événement ne permet de répondre :
 
@@ -936,6 +891,10 @@ Si aucun événement ne permet de répondre :
         )
       );
 
+    console.log(
+      '🔐 Vérification des preuves validées...'
+    );
+
     result.evidence =
       result.evidence.map(
         (item) => {
@@ -947,57 +906,34 @@ Si aucun événement ne permet de répondre :
           if (
             validatedMemory
           ) {
-            /*
-             * Une mémoire validée est une preuve explicite.
-             *
-             * IMPORTANT :
-             * On remplace complètement le claim produit
-             * par GPT par le contenu factuel confirmé.
-             *
-             * Cela empêche un claim du type :
-             *
-             * "Chloe pourrait être..."
-             *
-             * d'être associé à :
-             *
-             * status: "explicit"
-             */
-
-            const validatedFacts =
+            const validatedClaim =
               Array.isArray(
                 validatedMemory.facts
-              )
-                ? validatedMemory.facts
-                    .filter(
-                      (fact) =>
-                        typeof fact ===
-                        'string'
-                    )
-                    .join(' ')
-                : '';
+              ) &&
+              validatedMemory.facts.length >
+                0
+                ? validatedMemory.facts.join(
+                    ' '
+                  )
+                : validatedMemory.description;
 
-            const validatedDescription =
-              typeof validatedMemory.description ===
-              'string'
-                ? validatedMemory.description
-                : '';
+            console.log(
+              '✅ Preuve validée forcée en explicit :',
+              validatedMemory.id
+            );
 
-            const validatedSource =
-              typeof validatedMemory.source_text ===
-              'string'
-                ? validatedMemory.source_text
-                : '';
-
-            const confirmedClaim =
-              validatedFacts ||
-              validatedDescription ||
-              validatedSource ||
-              item.claim;
+            console.log(
+              '📌 Contenu validé :',
+              validatedClaim
+            );
 
             return {
               ...item,
-              status: 'explicit',
-              claim: confirmedClaim,
+              status:
+                'explicit',
+              claim:
+                validatedClaim ||
+                item.claim,
             };
           }
 
