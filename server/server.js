@@ -333,23 +333,17 @@ app.post('/recall', async (req, res) => {
       `✅ ${validatedMemories.length} événement(s) validé(s) par l'utilisateur`
     );
 
-    /*
-     * DEBUG IMPORTANT
-     *
-     * Permet de vérifier exactement ce que contient
-     * l'événement validé utilisé par le moteur.
-     */
-
     if (validatedMemories.length > 0) {
       console.log(
-        '🔐 MÉMOIRES VALIDÉES UTILISÉES :'
-      );
-
-      console.log(
-        JSON.stringify(
-          validatedMemories,
-          null,
-          2
+        '📌 Validations trouvées :',
+        validatedMemories.map(
+          (memory) => ({
+            id: memory.id,
+            description:
+              memory.description,
+            facts:
+              memory.facts,
+          })
         )
       );
     }
@@ -392,41 +386,50 @@ L'information est directement présente dans un événement.
 
 Exemple :
 
-"Chloe est ma fille."
+"Thierry est le parrain du fils de l'utilisateur."
 
-→ Chloe est explicitement la fille de l'utilisateur.
+Cette information est EXPLICITE.
 
 ============================================================
 2. IMPLIQUÉ
 ============================================================
 
 L'information n'est pas directement écrite mais découle
-logiquement de plusieurs informations.
+logiquement de plusieurs informations explicites.
 
 Exemple :
 
 Événement A :
-"Chloe est ma fille."
+"Thierry est le parrain de mon fils."
 
 Événement B :
-"Mes deux sœurs sont les marraines de ma fille."
+"Léo est mon enfant."
 
 Événement C :
-"Mireille est ma sœur."
+"Chloe est ma fille."
 
 Événement D :
-"Élise est ma sœur."
+"Je n'ai que deux enfants."
 
 Question :
 
-"Est-ce que Chloe est la fille dont Mireille et Élise
-sont les marraines ?"
+"Qui est le parrain de Léo ?"
 
-La conclusion est logique mais n'est pas écrite explicitement.
+Si les informations permettent de déterminer que Léo
+est le fils de l'utilisateur, alors :
 
-Elle est donc :
+"Thierry est le parrain de Léo"
 
-"implied"
+est une conclusion IMPLIQUÉE.
+
+IMPORTANT :
+
+Les événements A, B, C et D restent des preuves EXPLICITES.
+
+La conclusion "Thierry est le parrain de Léo"
+est une conclusion IMPLIQUÉE.
+
+Ne transforme jamais une preuve source en conclusion.
 
 ============================================================
 3. NON CONFIRMÉ
@@ -483,35 +486,96 @@ Une validation utilisateur ne signifie PAS que toutes les
 questions contenant les mêmes mots doivent automatiquement
 être considérées comme une confirmation.
 
-Exemple de validation :
-
-"Chloe est la fille dont Mireille et Élise sont les marraines."
-
-Question :
-
-"Qui sont les marraines de Chloe ?"
-
-→ Il faut répondre à la question en recherchant
-l'information dans la mémoire.
-
-La validation peut servir de preuve pour construire la réponse.
-
-Elle ne doit pas être utilisée pour remplacer la question.
+Réponds toujours à la question réellement posée.
 
 ============================================================
 RÈGLE DES DÉDUCTIONS
 ============================================================
 
-Si tu construis une conclusion qui n'est pas directement
-présente dans un événement :
+Lorsqu'une conclusion est construite à partir de plusieurs
+événements :
 
-evidence DOIT contenir au moins une entrée :
+- les événements sources restent "explicit" ;
+- la conclusion construite est "implied".
 
-"status": "implied"
+IMPORTANT :
 
-Les preuves sources restent explicit.
+Une evidence "implied" DOIT représenter la conclusion
+déduite.
 
-La conclusion construite reste implied.
+Elle ne doit PAS simplement recopier la phrase d'un événement
+source.
+
+Une evidence "implied" ne doit JAMAIS utiliser comme
+event_id un événement source uniquement parce que cet
+événement contient l'une des informations nécessaires.
+
+Les event_id des sources doivent rester associés
+uniquement aux preuves explicites.
+
+============================================================
+RÈGLE DES SOURCES ET DES CONCLUSIONS
+============================================================
+
+Lorsque tu utilises plusieurs événements pour construire
+une conclusion :
+
+Exemple :
+
+Événement 1 :
+{
+  "id": "A",
+  "description": "Thierry est le parrain du fils."
+}
+
+Événement 2 :
+{
+  "id": "B",
+  "description": "Léo est mon enfant."
+}
+
+Événement 3 :
+{
+  "id": "C",
+  "description": "Chloe est ma fille."
+}
+
+Événement 4 :
+{
+  "id": "D",
+  "description": "Je n'ai que deux enfants."
+}
+
+Tu peux produire :
+
+{
+  "event_id": "A",
+  "status": "explicit",
+  "claim": "Thierry est le parrain du fils de l'utilisateur."
+}
+
+{
+  "event_id": "B",
+  "status": "explicit",
+  "claim": "Léo est l'enfant de l'utilisateur."
+}
+
+Puis une conclusion :
+
+{
+  "event_id": "",
+  "status": "implied",
+  "claim": "Léo est le fils de l'utilisateur et Thierry est donc son parrain."
+}
+
+IMPORTANT :
+
+Pour une conclusion "implied", event_id peut être une
+chaîne vide.
+
+N'invente JAMAIS un event_id qui n'existe pas dans la mémoire.
+
+Les événements sources restent identifiés séparément.
 
 ============================================================
 RÈGLE DES ACTIONS PHYSIQUES
@@ -660,38 +724,54 @@ INSTRUCTIONS FINALES
 
 Utilise les événements validés comme des faits confirmés.
 
-Mais réponds TOUJOURS à la question réellement posée.
+Réponds toujours à la question réellement posée.
 
-Ne remplace jamais une question par le texte d'un souvenir.
+Si la réponse est directement présente dans un événement
+ou dans un événement validé :
 
-Si la question demande :
+→ réponds directement.
 
-"Qui sont les marraines de Chloe ?"
+Si la réponse nécessite de combiner plusieurs événements :
 
-et qu'un événement validé indique :
+→ distingue les sources explicites de la conclusion impliquée.
 
-"Chloe est la fille dont Mireille et Élise sont les marraines."
+Exemple :
 
-alors réponds naturellement :
+Question :
+"Qui est le parrain de Léo ?"
 
-"Les marraines de Chloe sont Mireille et Élise."
+Si la mémoire contient :
 
-avec une evidence explicit correspondant à l'événement validé.
+"Thierry est le parrain de mon fils."
 
-Si la question demande :
+et :
 
-"Chloe est-elle la fille dont Mireille et Élise
-sont les marraines ?"
+"Léo est mon enfant."
 
-alors réponds :
+alors tu peux répondre :
 
-"Oui. Tu as confirmé que Chloe est la fille dont
-Mireille et Élise sont les marraines."
+"Le parrain de Léo est Thierry."
 
-avec une evidence explicit.
+Mais la preuve doit rester structurée ainsi :
 
-Si la question demande une information différente
-qui ne découle pas de la validation, ne l'invente pas.
+- source "Thierry est le parrain du fils" → explicit
+- source "Léo est ton enfant" → explicit
+- conclusion "Léo est le fils et Thierry est donc son parrain" → implied
+
+IMPORTANT :
+
+Ne donne jamais à une evidence "implied"
+l'identifiant d'un événement source.
+
+Pour une conclusion "implied", utilise :
+
+"event_id": ""
+
+Cela signifie que la conclusion est construite à partir
+de plusieurs événements sources.
+
+Les event_ids des sources doivent apparaître séparément
+dans les evidence "explicit".
 
 ============================================================
 FORMAT DE RÉPONSE
@@ -712,7 +792,12 @@ Réponse naturelle à la question.
 
 event_ids :
 
-Identifiants des événements utilisés.
+Identifiants des événements réellement utilisés comme sources.
+
+Pour une conclusion impliquée, ajoute les event_ids des
+événements sources utilisés.
+
+N'ajoute jamais un event_id inventé.
 
 confidence :
 
@@ -736,6 +821,19 @@ status doit être exactement :
 "implied"
 "not_confirmed"
 
+Pour "explicit" :
+
+event_id DOIT correspondre à un événement existant.
+
+Pour "implied" :
+
+event_id DOIT être une chaîne vide.
+
+Pour "not_confirmed" :
+
+event_id peut être l'identifiant d'un événement pertinent
+ou une chaîne vide.
+
 ============================================================
 RÈGLE FINALE
 ============================================================
@@ -746,28 +844,35 @@ Avant de répondre, vérifie :
    validated_by_user: true
    → explicit.
 
-2. Si la conclusion est déduite
-   → implied obligatoire.
+2. Si l'information est directement présente dans un événement
+   → explicit.
 
-3. Si la mémoire ne permet pas de confirmer
-   → not_confirmed.
+3. Si la conclusion nécessite plusieurs événements
+   → implied.
 
-4. Ne transforme jamais une déduction en fait
+4. Une evidence "implied" doit représenter la conclusion,
+   pas simplement recopier une source.
+
+5. Une evidence "implied" doit avoir :
+   "event_id": ""
+
+6. Les sources utilisées pour la déduction doivent être
+   présentes séparément comme "explicit".
+
+7. Ne transforme jamais une déduction en fait
    sauf validation explicite de l'utilisateur.
 
-5. Ne fabrique jamais d'information.
+8. Ne fabrique jamais d'information.
 
-6. Ne crée jamais de nouveau souvenir pendant
-   le rappel.
+9. Ne crée jamais de nouveau souvenir pendant le rappel.
 
-7. Une validation utilisateur est plus forte que
-   toute ancienne formulation présente dans source_text.
+10. Une validation utilisateur est plus forte que toute
+    ancienne formulation présente dans source_text.
 
-8. Réponds toujours à la question réellement posée.
+11. Réponds toujours à la question réellement posée.
 
-9. Ne considère jamais le simple partage de mots entre
-   une question et un souvenir comme une preuve suffisante
-   pour reformuler automatiquement la question.
+12. Ne considère jamais le simple partage de mots entre
+    une question et un souvenir comme une preuve suffisante.
 
 Si aucun événement ne permet de répondre :
 
@@ -869,12 +974,52 @@ Si aucun événement ne permet de répondre :
           )
       );
 
+    /*
+     * Pour une evidence "implied", event_id doit
+     * obligatoirement être vide.
+     *
+     * Si GPT a malgré tout fourni un event_id,
+     * on le retire afin d'éviter qu'une conclusion
+     * soit faussement attribuée à une source.
+     */
+    result.evidence =
+      result.evidence.map(
+        (item) => {
+          if (
+            item.status ===
+            'implied'
+          ) {
+            return {
+              ...item,
+              event_id: '',
+            };
+          }
+
+          return item;
+        }
+      );
+
+    /*
+     * Les preuves explicites et non confirmées
+     * doivent référencer un véritable événement.
+     */
     result.evidence =
       result.evidence.filter(
-        (item) =>
-          validEventIds.has(
-            item.event_id
-          )
+        (item) => {
+          if (
+            item.status ===
+            'implied'
+          ) {
+            return true;
+          }
+
+          return (
+            item.event_id === '' ||
+            validEventIds.has(
+              item.event_id
+            )
+          );
+        }
       );
 
     /* ===================================================== */
@@ -891,13 +1036,21 @@ Si aucun événement ne permet de répondre :
         )
       );
 
-    console.log(
-      '🔐 Vérification des preuves validées...'
-    );
-
     result.evidence =
       result.evidence.map(
         (item) => {
+          /*
+           * Une conclusion implied ne peut jamais
+           * devenir explicit simplement parce qu'elle
+           * possède un event_id vide.
+           */
+          if (
+            item.status ===
+            'implied'
+          ) {
+            return item;
+          }
+
           const validatedMemory =
             validatedById.get(
               item.event_id
@@ -916,16 +1069,6 @@ Si aucun événement ne permet de répondre :
                     ' '
                   )
                 : validatedMemory.description;
-
-            console.log(
-              '✅ Preuve validée forcée en explicit :',
-              validatedMemory.id
-            );
-
-            console.log(
-              '📌 Contenu validé :',
-              validatedClaim
-            );
 
             return {
               ...item,
@@ -946,10 +1089,12 @@ Si aucun événement ne permet de répondre :
     /* ===================================================== */
 
     const evidenceIds =
-      result.evidence.map(
-        (item) =>
-          item.event_id
-      );
+      result.evidence
+        .map(
+          (item) =>
+            item.event_id
+        )
+        .filter(Boolean);
 
     result.event_ids = [
       ...new Set([
