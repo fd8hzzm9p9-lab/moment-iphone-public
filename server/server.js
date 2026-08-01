@@ -462,12 +462,26 @@ Il ne doit JAMAIS être classé "implied".
 
 Il ne doit JAMAIS être classé "not_confirmed".
 
-source_text peut contenir l'historique de la déduction
-ayant conduit à la validation.
+IMPORTANT :
 
-source_text ne doit JAMAIS annuler la validation.
+Lorsqu'une preuve provient d'un événement validé,
+le claim doit décrire UNIQUEMENT le contenu factuel
+confirmé par cet événement.
 
-description et facts représentent la formulation confirmée.
+Ne transforme pas le claim en déduction.
+
+Ne formule jamais un claim comme :
+
+"Chloe pourrait être..."
+
+"Il est possible que..."
+
+"Chloe semble être..."
+
+si l'événement correspondant est validé.
+
+La formulation du claim doit être cohérente avec
+status: "explicit".
 
 ============================================================
 RÈGLE IMPORTANTE SUR LES QUESTIONS
@@ -689,6 +703,22 @@ alors réponds naturellement :
 
 avec une evidence explicit correspondant à l'événement validé.
 
+Le claim de cette evidence doit être factuel, par exemple :
+
+"Chloe est la fille dont Mireille et Élise sont les marraines."
+
+Il ne doit pas dire :
+
+"Chloe pourrait être..."
+
+ou :
+
+"Chloe semble être..."
+
+ou :
+
+"Chloe est peut-être..."
+
 Si la question demande :
 
 "Chloe est-elle la fille dont Mireille et Élise
@@ -779,6 +809,10 @@ Avant de répondre, vérifie :
 9. Ne considère jamais le simple partage de mots entre
    une question et un souvenir comme une preuve suffisante
    pour reformuler automatiquement la question.
+
+10. Lorsqu'un événement validé est utilisé comme preuve,
+    son claim doit rester factuel et correspondre
+    directement au contenu confirmé de cet événement.
 
 Si aucun événement ne permet de répondre :
 
@@ -913,55 +947,63 @@ Si aucun événement ne permet de répondre :
           if (
             validatedMemory
           ) {
-            const validatedClaim =
+            /*
+             * Une mémoire validée est une preuve explicite.
+             *
+             * IMPORTANT :
+             * On remplace complètement le claim produit
+             * par GPT par le contenu factuel confirmé.
+             *
+             * Cela empêche un claim du type :
+             *
+             * "Chloe pourrait être..."
+             *
+             * d'être associé à :
+             *
+             * status: "explicit"
+             */
+
+            const validatedFacts =
               Array.isArray(
                 validatedMemory.facts
-              ) &&
-              validatedMemory.facts.length >
-                0
-                ? validatedMemory.facts.join(
-                    ' '
-                  )
-                : validatedMemory.description;
+              )
+                ? validatedMemory.facts
+                    .filter(
+                      (fact) =>
+                        typeof fact ===
+                        'string'
+                    )
+                    .join(' ')
+                : '';
+
+            const validatedDescription =
+              typeof validatedMemory.description ===
+              'string'
+                ? validatedMemory.description
+                : '';
+
+            const validatedSource =
+              typeof validatedMemory.source_text ===
+              'string'
+                ? validatedMemory.source_text
+                : '';
+
+            const confirmedClaim =
+              validatedFacts ||
+              validatedDescription ||
+              validatedSource ||
+              item.claim;
 
             return {
               ...item,
-              status:
-                'explicit',
-              claim:
-                validatedClaim ||
-                item.claim,
+              status: 'explicit',
+              claim: confirmedClaim,
             };
           }
 
           return item;
         }
       );
-
-    /* ===================================================== */
-    /* CORRECTION DES RÉPONSES DE VALIDATION                */
-    /* ===================================================== */
-
-    /*
-     * IMPORTANT :
-     *
-     * Nous ne remplaçons PLUS automatiquement la réponse
-     * de GPT simplement parce qu'un événement validé partage
-     * plusieurs mots avec la question.
-     *
-     * Cela évite le bug :
-     *
-     * Question :
-     * "Qui sont les marraines de Chloe ?"
-     *
-     * Réponse incorrecte :
-     * "Oui. Tu as confirmé que Qui sont les marraines de Chloe."
-     *
-     * GPT reste responsable de répondre à la question.
-     *
-     * Le serveur intervient uniquement pour garantir qu'une
-     * preuve provenant d'un événement validé reste explicit.
-     */
 
     /* ===================================================== */
     /* COHÉRENCE DES EVENT IDS                              */
