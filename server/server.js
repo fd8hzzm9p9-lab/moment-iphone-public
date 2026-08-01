@@ -292,7 +292,7 @@ ${text.trim()}
 });
 
 /* ========================================================= */
-/* RAPPEL                                                     */
+/* RAPPEL                                                    */
 /* ========================================================= */
 
 app.post('/recall', async (req, res) => {
@@ -477,6 +477,8 @@ Lorsqu'un claim apparaît dans cette liste :
 
 → le CLAIM lui-même est EXPLICITEMENT CONFIRMÉ.
 
+Il doit être considéré comme un fait confirmé.
+
 Dans evidence :
 
 → status DOIT être "explicit".
@@ -489,6 +491,41 @@ Elle ne valide pas automatiquement tout le contenu
 de l'événement source.
 
 Elle ne modifie pas l'événement source.
+
+============================================================
+RÈGLE ABSOLUE : PAS DE PREUVE INUTILE
+============================================================
+
+N'ajoute dans evidence QUE les informations réellement
+nécessaires pour répondre à la question.
+
+Ne cite PAS une information simplement parce qu'elle concerne
+une personne mentionnée dans la question.
+
+Ne déduis PAS le sexe, la relation familiale ou toute autre
+propriété d'une personne à partir d'une information qui
+n'est pas nécessaire à la réponse.
+
+Exemple :
+
+Si la question est :
+
+"Qui sont les frères de Léo ?"
+
+et que la mémoire permet de déterminer que Léo et Chloé
+sont les deux enfants de l'utilisateur, alors les informations
+pertinentes sont :
+
+- Léo est un enfant de l'utilisateur.
+- Chloé est un enfant de l'utilisateur.
+- L'utilisateur a deux enfants.
+
+Il est inutile d'ajouter :
+
+"Chloé est la marraine de Mia."
+
+Cette information ne sert pas à établir la relation
+frère/sœur.
 
 ============================================================
 RÈGLE DES DÉDUCTIONS
@@ -655,6 +692,9 @@ Elle devient explicitement confirmée uniquement si :
 OU
 2. elle apparaît dans les claims explicitement validés.
 
+N'ajoute aucune evidence qui n'est pas nécessaire
+à la construction de la réponse.
+
 ============================================================
 FORMAT DE RÉPONSE
 ============================================================
@@ -668,7 +708,7 @@ Retourne UNIQUEMENT un objet JSON valide.
   "evidence": []
 }
 
-Chaque evidence doit avoir :
+Chaque evidence doit avoir EXACTEMENT :
 
 {
   "event_id": "",
@@ -676,7 +716,9 @@ Chaque evidence doit avoir :
   "claim": ""
 }
 
-status :
+AUCUN AUTRE CHAMP N'EST AUTORISÉ.
+
+status doit être exactement :
 
 "explicit"
 "implied"
@@ -707,17 +749,35 @@ RÈGLE FINALE
 
 4. Evidence implied → event_id vide.
 
-5. Ne fabrique jamais d'information.
+5. Une evidence doit être réellement utile à la réponse.
 
-6. Ne crée jamais de nouveau souvenir.
+6. Ne fabrique jamais d'information.
 
-7. Une validation porte uniquement sur le claim précis.
+7. Ne crée jamais de nouveau souvenir.
 
-8. La validation ne modifie jamais l'événement source.
+8. Une validation porte uniquement sur le claim précis.
 
-9. Respecte les dates.
+9. La validation ne modifie jamais l'événement source.
 
-10. Conserve les événements distincts.
+10. Respecte les dates.
+
+11. Conserve les événements distincts.
+
+12. N'ajoute jamais de champ "validated" dans evidence.
+
+13. N'utilise jamais une information inutile comme preuve.
+
+14. Ne déduis jamais une propriété d'une personne
+uniquement parce qu'une autre information la suggère.
+
+Si aucun événement ne permet de répondre :
+
+{
+  "answer": "Je n'ai pas suffisamment d'informations dans ma mémoire.",
+  "event_ids": [],
+  "confidence": 0,
+  "evidence": []
+}
 `,
       });
 
@@ -790,53 +850,52 @@ RÈGLE FINALE
       );
 
     /* ===================================================== */
-    /* NETTOYAGE EVIDENCES                                  */
+    /* NETTOYAGE STRICT DES EVIDENCES                       */
     /* ===================================================== */
 
     result.evidence =
-      result.evidence.filter(
-        (item) =>
-          item &&
-          typeof item.event_id ===
-            'string' &&
-          typeof item.claim ===
-            'string' &&
-          [
-            'explicit',
-            'implied',
-            'not_confirmed',
-          ].includes(
-            item.status
-          )
-      );
+      result.evidence
+        .filter(
+          (item) =>
+            item &&
+            typeof item.event_id ===
+              'string' &&
+            typeof item.claim ===
+              'string' &&
+            [
+              'explicit',
+              'implied',
+              'not_confirmed',
+            ].includes(
+              item.status
+            )
+        )
+        .map(
+          (item) => {
+            /*
+             * On reconstruit volontairement chaque objet
+             * afin qu'aucun champ supplémentaire envoyé
+             * par GPT ne puisse être conservé.
+             */
 
-    /* ===================================================== */
-    /* CORRECTION DES DÉDUCTIONS                            */
-    /* ===================================================== */
-
-    result.evidence =
-      result.evidence.map(
-        (item) => {
-          if (
-            item.status ===
-            'implied'
-          ) {
             return {
-              ...item,
-              event_id: '',
-              validated: false,
+              event_id:
+                item.status ===
+                'implied'
+                  ? ''
+                  : item.event_id,
+
+              status:
+                item.status,
+
+              claim:
+                item.claim.trim(),
             };
           }
-
-          return {
-            ...item,
-            validated: false,
-          };
-        }
-      );
+        );
 
     /* ===================================================== */
-    /* IDS DES EVIDENCES                                    */
+    /* VALIDATION DES IDS                                    */
     /* ===================================================== */
 
     result.evidence =
@@ -849,17 +908,26 @@ RÈGLE FINALE
             return true;
           }
 
-          return (
-            item.event_id === '' ||
-            validEventIds.has(
-              item.event_id
-            )
+          if (
+            item.status ===
+            'not_confirmed'
+          ) {
+            return (
+              item.event_id === '' ||
+              validEventIds.has(
+                item.event_id
+              )
+            );
+          }
+
+          return validEventIds.has(
+            item.event_id
           );
         }
       );
 
     /* ===================================================== */
-    /* SÉCURITÉ DES CLAIMS VALIDÉS                          */
+    /* COHÉRENCE DES CLAIMS VALIDÉS                         */
     /* ===================================================== */
 
     const validatedClaimsByEvent =
@@ -885,50 +953,26 @@ RÈGLE FINALE
     );
 
     /*
-     * Pour chaque evidence, on vérifie maintenant
-     * si son claim correspond exactement à un claim
-     * déjà validé par l'utilisateur.
+     * IMPORTANT :
      *
-     * Si oui :
+     * Les claims validés servent au modèle comme faits
+     * explicitement confirmés.
      *
-     * validated = true
+     * Nous ne rajoutons PAS de champ "validated"
+     * dans evidence.
      *
-     * et status = explicit.
-     *
-     * Cela permet à l'application de savoir qu'il ne
-     * s'agit PAS d'une nouvelle déduction à valider.
+     * Si GPT reprend exactement un claim validé,
+     * son statut doit être explicit.
      */
 
     result.evidence =
       result.evidence.map(
         (item) => {
-
-          /*
-           * Une conclusion implied non validée
-           * reste une déduction.
-           */
           if (
             item.status ===
             'implied'
           ) {
-            return {
-              ...item,
-              validated: false,
-            };
-          }
-
-          /*
-           * Aucun claim validé pour cet événement.
-           */
-          if (
-            !validatedClaimsByEvent.has(
-              item.event_id
-            )
-          ) {
-            return {
-              ...item,
-              validated: false,
-            };
+            return item;
           }
 
           const claims =
@@ -936,9 +980,13 @@ RÈGLE FINALE
               item.event_id
             );
 
-          /*
-           * Recherche d'une correspondance exacte.
-           */
+          if (
+            !claims ||
+            claims.length === 0
+          ) {
+            return item;
+          }
+
           const matchingClaim =
             claims.find(
               (claim) =>
@@ -950,26 +998,18 @@ RÈGLE FINALE
             matchingClaim
           ) {
             return {
-              ...item,
+              event_id:
+                item.event_id,
+
               status:
                 'explicit',
+
               claim:
                 matchingClaim,
-              validated: true,
             };
           }
 
-          /*
-           * L'événement contient bien un claim validé,
-           * mais le claim utilisé par GPT est différent.
-           *
-           * On ne considère donc PAS automatiquement
-           * cette evidence comme validée.
-           */
-          return {
-            ...item,
-            validated: false,
-          };
+          return item;
         }
       );
 
@@ -1032,12 +1072,6 @@ RÈGLE FINALE
           'explicit'
       ).length;
 
-    const validatedCount =
-      result.evidence.filter(
-        (item) =>
-          item.validated === true
-      ).length;
-
     const notConfirmedCount =
       result.evidence.filter(
         (item) =>
@@ -1051,10 +1085,6 @@ RÈGLE FINALE
 
     console.log(
       `🧠 Déductions détectées : ${impliedCount}`
-    );
-
-    console.log(
-      `✅ Déductions déjà validées : ${validatedCount}`
     );
 
     console.log(
@@ -1077,7 +1107,7 @@ RÈGLE FINALE
 });
 
 /* ========================================================= */
-/* SERVEUR                                                    */
+/* SERVEUR                                                   */
 /* ========================================================= */
 
 const PORT =
