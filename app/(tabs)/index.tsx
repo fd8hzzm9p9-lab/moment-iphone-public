@@ -1,8 +1,10 @@
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +12,43 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
+/* ========================================================= */
+/* CONFIGURATION                                             */
+/* ========================================================= */
+
+const STORAGE_KEY = 'moment_memory_events';
+const SERVER_URL = 'https://moment-iphone.onrender.com';
+
+/* ========================================================= */
+/* TEXTES DE L'APPLICATION                                   */
+/* ========================================================= */
+
+const APP_NAME = 'Moment';
+
+const APP_TAGLINE = 'Votre mémoire, simplement.';
+
+const MEMORY_PLACEHOLDER =
+  'Racontez-moi quelque chose...';
+
+const MEMORY_BUTTON = 'Souviens-toi';
+
+const MEMORY_TITLE = 'Ma mémoire';
+
+const UNDERSTOOD_LABEL =
+  '🧠 Moment a compris';
+
+const CLEAR_MEMORY_LABEL =
+  'Effacer la mémoire';
+
+const FORGET_MEMORY_LABEL =
+  '🗑️ Oublier ce souvenir';
+
+const CLEAR_INPUT_LABEL = '×';
+
+/* ========================================================= */
+/* TYPES                                                     */
+/* ========================================================= */
 
 type Relation = {
   from: string;
@@ -43,17 +82,9 @@ type MemoryInput = {
   events: MemoryEvent[];
 };
 
-const STORAGE_KEY = 'moment_memory_events';
-const [reponseMemoire, setReponseMemoire] = useState('');
-const [rappelEnCours, setRappelEnCours] = useState(false);
-const SERVER_URL = 'https://moment-iphone.onrender.com';
-
-function normalize(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
+/* ========================================================= */
+/* NORMALISATION                                             */
+/* ========================================================= */
 
 function normalizeEvent(
   event: Partial<MemoryEvent>,
@@ -61,87 +92,66 @@ function normalizeEvent(
 ): MemoryEvent {
   return {
     id: `memory_${Date.now()}_${Math.random()
-  .toString(36)
-  .substring(2, 9)}`,
+      .toString(36)
+      .substring(2, 9)}`,
+
     type: event.type || 'event',
-    description: event.description || input,
-    date_reference: event.date_reference || '',
-    date_precision: event.date_precision || 'unknown',
-    context: event.context || '',
-    people: event.people || [],
-    places: event.places || [],
-    objects: event.objects || [],
-    subjects: event.subjects || [],
-    thoughts: event.thoughts || [],
-    actions: event.actions || [],
-    intentions: event.intentions || [],
-    facts: event.facts || [],
-    relations: event.relations || [],
-    source_text: event.source_text || input,
+
+    description:
+      event.description || input,
+
+    date_reference:
+      event.date_reference || '',
+
+    date_precision:
+      event.date_precision || 'unknown',
+
+    context:
+      event.context || '',
+
+    people:
+      event.people || [],
+
+    places:
+      event.places || [],
+
+    objects:
+      event.objects || [],
+
+    subjects:
+      event.subjects || [],
+
+    thoughts:
+      event.thoughts || [],
+
+    actions:
+      event.actions || [],
+
+    intentions:
+      event.intentions || [],
+
+    facts:
+      event.facts || [],
+
+    relations:
+      event.relations || [],
+
+    source_text:
+      event.source_text || input,
+
     confidence:
       typeof event.confidence === 'number'
         ? event.confidence
         : 0,
-    created_at: new Date().toISOString(),
+
+    created_at:
+      new Date().toISOString(),
   };
 }
 
-function searchableEvent(event: MemoryEvent): string {
-  return normalize(
-    [
-      event.description,
-      event.date_reference,
-      event.context,
-      ...event.people,
-      ...event.places,
-      ...event.objects,
-      ...event.subjects,
-      ...event.thoughts,
-      ...event.actions,
-      ...event.intentions,
-      ...event.facts,
-    ]
-      .filter(Boolean)
-      .join(' ')
-  );
-}
-
-function searchMemoryEvents(
-  events: MemoryEvent[],
-  question: string
-): MemoryEvent[] {
-  const q = normalize(question);
-
-  if (!q.trim()) {
-    return events;
-  }
-
-  const words = q
-    .split(/\s+/)
-    .filter((word) => word.length > 2);
-
-  const scored = events
-    .map((event) => {
-      const searchable = searchableEvent(event);
-
-      let score = 0;
-
-      for (const word of words) {
-        if (searchable.includes(word)) {
-          score++;
-        }
-      }
-
-      return {
-        event,
-        score,
-      };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score);
-
-  return scored.map((item) => item.event);
-}
+/* ========================================================= */
+/* DÉTAILS D'UN SOUVENIR                                    */
+/* ========================================================= */
 
 function EventDetails({
   event,
@@ -225,25 +235,41 @@ function EventDetails({
   );
 }
 
-export default function HomeScreen() {
-  const [souvenir, setSouvenir] = useState('');
-  const [recherche, setRecherche] = useState('');
-  const [evenements, setEvenements] = useState<MemoryEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [memorisationEnCours, setMemorisationEnCours] =
-    useState(false);
-  const [rechercheLancee, setRechercheLancee] =
-    useState(false);
-  const [reponseMemoire, setReponseMemoire] = useState('');
-  const [rappelEnCours, setRappelEnCours] = useState(false);
+/* ========================================================= */
+/* ÉCRAN SOUVIENS-TOI                                       */
+/* ========================================================= */
+
+export default function MemoryScreen() {
+  const [souvenir, setSouvenir] =
+    useState('');
+
+  const [evenements, setEvenements] =
+    useState<MemoryEvent[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [
+    souvenirEnCours,
+    setSouvenirEnCours,
+  ] = useState(false);
+
+  /* ======================================================= */
+  /* CHARGEMENT DE LA MÉMOIRE                                */
+  /* ======================================================= */
 
   useEffect(() => {
     const loadMemory = async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        const saved =
+          await AsyncStorage.getItem(
+            STORAGE_KEY
+          );
 
         if (saved) {
-          setEvenements(JSON.parse(saved));
+          setEvenements(
+            JSON.parse(saved)
+          );
         }
       } catch (error) {
         console.log(
@@ -257,6 +283,10 @@ export default function HomeScreen() {
 
     loadMemory();
   }, []);
+
+  /* ======================================================= */
+  /* SAUVEGARDE DE LA MÉMOIRE                                */
+  /* ======================================================= */
 
   useEffect(() => {
     if (loading) {
@@ -278,32 +308,47 @@ export default function HomeScreen() {
     };
 
     saveMemory();
-  }, [evenements, loading]);
+  }, [
+    evenements,
+    loading,
+  ]);
 
-  const memoriser = async () => {
-    if (!souvenir.trim() || memorisationEnCours) {
+  /* ======================================================= */
+  /* SOUVIENS-TOI                                            */
+  /* ======================================================= */
+
+  const souviensToi = async () => {
+    if (
+      !souvenir.trim() ||
+      souvenirEnCours
+    ) {
       return;
     }
 
-    const texte = souvenir.trim();
+    const texte =
+      souvenir.trim();
 
-    setMemorisationEnCours(true);
+    setSouvenirEnCours(true);
 
     try {
-      console.log('📤 Envoi à Moment...');
-
-      const response = await fetch(
-        `${SERVER_URL}/understand`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: texte,
-          }),
-        }
+      console.log(
+        '📤 Envoi à Moment...'
       );
+
+      const response =
+        await fetch(
+          `${SERVER_URL}/understand`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              text: texte,
+            }),
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -311,420 +356,631 @@ export default function HomeScreen() {
         );
       }
 
-      const data: MemoryInput = await response.json();
+      const data: MemoryInput =
+        await response.json();
 
       console.log(
         '🧠 Événements reçus :',
         data.events
       );
 
-      const nouveauxEvenements = (data.events || []).map(
-        (event) => normalizeEvent(event, texte)
-      );
+      const nouveauxEvenements =
+        (data.events || []).map(
+          (event) =>
+            normalizeEvent(
+              event,
+              texte
+            )
+        );
 
-      if (nouveauxEvenements.length === 0) {
+      if (
+        nouveauxEvenements.length === 0
+      ) {
         throw new Error(
           'Moment n’a produit aucun événement'
         );
       }
 
-      setEvenements((current) => [
-        ...nouveauxEvenements,
-        ...current,
-      ]);
+      setEvenements(
+        (current) => [
+          ...nouveauxEvenements,
+          ...current,
+        ]
+      );
 
       setSouvenir('');
-      setRechercheLancee(false);
-
     } catch (error) {
       console.log(
         '❌ Impossible de contacter Moment :',
         error
       );
     } finally {
-      setMemorisationEnCours(false);
+      setSouvenirEnCours(
+        false
+      );
     }
   };
 
+  /* ======================================================= */
+  /* OUBLIER UN SOUVENIR                                     */
+  /* ======================================================= */
 
-const lancerRecherche = async () => {
-  if (!recherche.trim() || rappelEnCours) {
-    return;
-  }
-
-  setRechercheLancee(true);
-  setRappelEnCours(true);
-  setReponseMemoire('');
-
-  try {
-    console.log('🔎 Question envoyée à Moment...');
-
-    const response = await fetch(
-      `${SERVER_URL}/recall`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: recherche.trim(),
-          memories: evenements,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Serveur Moment : ${response.status}`
+  const oublierSouvenir = (
+    eventId: string
+  ) => {
+    const supprimer = () => {
+      setEvenements(
+        (current) =>
+          current.filter(
+            (event) =>
+              event.id !== eventId
+          )
       );
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmation =
+        window.confirm(
+          'Ce souvenir sera supprimé de la mémoire de Moment. Cette action est irréversible.'
+        );
+
+      if (confirmation) {
+        supprimer();
+      }
+
+      return;
     }
 
-    const data = await response.json();
+    Alert.alert(
+      'Oublier ce souvenir ?',
 
-    console.log(
-      '🧠 Réponse de Moment :',
-      data
+      'Cette information sera supprimée de la mémoire de Moment. Cette action est irréversible.',
+
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+
+        {
+          text: 'Oublier',
+          style: 'destructive',
+          onPress:
+            supprimer,
+        },
+      ]
     );
+  };
 
-    setReponseMemoire(
-      data.answer ||
-        "Je n'ai pas trouvé suffisamment d'informations."
-    );
+  /* ======================================================= */
+  /* EFFACER LA MÉMOIRE                                      */
+  /* ======================================================= */
 
-  } catch (error) {
-    console.log(
-      '❌ Erreur pendant le rappel :',
-      error
-    );
+  const effacerMemoire =
+    async () => {
+      const supprimer =
+        async () => {
+          try {
+            await AsyncStorage.removeItem(
+              STORAGE_KEY
+            );
 
-    setReponseMemoire(
-      "Je n'arrive pas à consulter ma mémoire pour le moment."
-    );
+            setEvenements([]);
+            setSouvenir('');
 
-  } finally {
-    setRappelEnCours(false);
-  }
-};
+            if (
+              Platform.OS === 'web'
+            ) {
+              window.alert(
+                'Mémoire effacée'
+              );
+            } else {
+              Alert.alert(
+                'Mémoire effacée',
+                'Tous les souvenirs ont été supprimés.'
+              );
+            }
+          } catch (error) {
+            console.log(
+              "Erreur lors de l'effacement de la mémoire :",
+              error
+            );
 
+            if (
+              Platform.OS === 'web'
+            ) {
+              window.alert(
+                "Impossible d'effacer la mémoire."
+              );
+            } else {
+              Alert.alert(
+                'Erreur',
+                "Impossible d'effacer la mémoire."
+              );
+            }
+          }
+        };
 
-  const resultats = rechercheLancee
-    ? searchMemoryEvents(evenements, recherche)
-    : evenements;
+      if (
+        Platform.OS === 'web'
+      ) {
+        const confirmation =
+          window.confirm(
+            'Tous les souvenirs enregistrés sur cet appareil seront supprimés. Cette action est irréversible.'
+          );
+
+        if (confirmation) {
+          await supprimer();
+        }
+
+        return;
+      }
+
+      Alert.alert(
+        'Effacer la mémoire',
+
+        'Tous les souvenirs enregistrés sur cet appareil seront supprimés. Cette action est irréversible.',
+
+        [
+          {
+            text: 'Annuler',
+            style: 'cancel',
+          },
+
+          {
+            text: 'Effacer',
+            style: 'destructive',
+            onPress:
+              supprimer,
+          },
+        ]
+      );
+    };
+
+  /* ======================================================= */
+  /* AFFICHAGE                                               */
+  /* ======================================================= */
 
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={
+          styles.content
+        }
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.logo}>Moment</Text>
+        {/* ================================================= */}
+        {/* EN-TÊTE                                           */}
+        {/* ================================================= */}
 
-        <Text style={styles.title}>
-          Qu'est-ce que vous voulez mémoriser ?
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Racontez simplement ce qui vous passe par la tête.
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Parlez naturellement à Moment..."
-          placeholderTextColor="#999999"
-          value={souvenir}
-          onChangeText={setSouvenir}
-          multiline
-        />
-
-        <Pressable
-          style={[
-            styles.button,
-            memorisationEnCours &&
-              styles.buttonDisabled,
-          ]}
-          onPress={memoriser}
-          disabled={memorisationEnCours}
-        >
-          {memorisationEnCours ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>
-              Mémoriser
-            </Text>
-          )}
-        </Pressable>
-
-        <View style={styles.searchSection}>
-          <Text style={styles.searchTitle}>
-            🔎 Parler à ma mémoire
+        <View style={styles.header}>
+          <Text style={styles.logo}>
+            {APP_NAME}
           </Text>
 
-          <View style={styles.searchInputContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Exemple : qu'est-ce que j'ai fait hier ?"
-              placeholderTextColor="#999999"
-              value={recherche}
-              onChangeText={setRecherche}
-              onSubmitEditing={lancerRecherche}
-              returnKeyType="search"
-            />
+          <Text
+            style={styles.subtitle}
+          >
+            {APP_TAGLINE}
+          </Text>
 
-            {recherche.length > 0 && (
-              <Pressable
-                style={styles.clearSearchButton}
-                onPress={() => {
-                  setRecherche('');
-                  setRechercheLancee(false);
-                }}
-              >
-                <Text style={styles.clearSearchText}>
-                  ×
-                </Text>
-              </Pressable>
+          <Image
+            source={require(
+              '../../assets/images/moment-memory-banner.png'
             )}
-          </View>
+            style={
+              styles.memoryBanner
+            }
+            resizeMode="cover"
+          />
+        </View>
+
+        {/* ================================================= */}
+        {/* SAISIE MÉMOIRE                                    */}
+        {/* ================================================= */}
+
+        <View
+          style={
+            styles.memoryInputContainer
+          }
+        >
+          <TextInput
+            style={styles.input}
+            placeholder={
+              MEMORY_PLACEHOLDER
+            }
+            placeholderTextColor="#999999"
+            value={souvenir}
+            onChangeText={
+              setSouvenir
+            }
+            multiline
+          />
+
+          {souvenir.length > 0 && (
+            <Pressable
+              style={
+                styles.clearMemoryInputButton
+              }
+              onPress={() => {
+                setSouvenir('');
+              }}
+            >
+              <Text
+                style={
+                  styles.clearMemoryInputText
+                }
+              >
+                {CLEAR_INPUT_LABEL}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* ================================================= */}
+        {/* ACTIONS                                           */}
+        {/* ================================================= */}
+
+        <View
+          style={
+            styles.memoryActions
+          }
+        >
+          <Pressable
+            style={[
+              styles.button,
+              souvenirEnCours &&
+                styles.buttonDisabled,
+            ]}
+            onPress={
+              souviensToi
+            }
+            disabled={
+              souvenirEnCours
+            }
+          >
+            {souvenirEnCours ? (
+              <ActivityIndicator
+                color="#FFFFFF"
+              />
+            ) : (
+              <Text
+                style={
+                  styles.buttonText
+                }
+              >
+                {MEMORY_BUTTON}
+              </Text>
+            )}
+          </Pressable>
 
           <Pressable
-            style={styles.searchButton}
-            onPress={lancerRecherche}
+            style={
+              styles.microButton
+            }
+            onPress={() => {}}
           >
-            <Text style={styles.searchButtonText}>
-              Rechercher
+            <Text
+              style={
+                styles.microIcon
+              }
+            >
+              🎙️
             </Text>
           </Pressable>
         </View>
 
-        {rechercheLancee && (
-          <View style={styles.memorySection}>
-<Text style={styles.memoryTitle}>
-  {rappelEnCours
-    ? '🧠 Moment réfléchit...'
-    : reponseMemoire || 'Résultats'}
-</Text>
+        {/* ================================================= */}
+        {/* EFFACEMENT                                       */}
+        {/* ================================================= */}
 
-            {resultats.map((event) => (
-              <View
-                style={styles.memoryCard}
-                key={event.id}
+        <Pressable
+          style={
+            styles.clearMemoryButton
+          }
+          onPress={
+            effacerMemoire
+          }
+        >
+          <Text
+            style={
+              styles.clearMemoryButtonText
+            }
+          >
+            {CLEAR_MEMORY_LABEL}
+          </Text>
+        </Pressable>
+
+        {/* ================================================= */}
+        {/* MA MÉMOIRE                                       */}
+        {/* ================================================= */}
+
+        {!loading &&
+          evenements.length > 0 && (
+            <View
+              style={
+                styles.memorySection
+              }
+            >
+              <Text
+                style={
+                  styles.memoryTitle
+                }
               >
-                <Text style={styles.memoryText}>
-                  {event.description}
-                </Text>
+                {MEMORY_TITLE}
+              </Text>
 
-                <View style={styles.divider} />
+              {evenements.map(
+                (event) => (
+                  <View
+                    style={
+                      styles.memoryCard
+                    }
+                    key={event.id}
+                  >
+                    <Text
+                      style={
+                        styles.memoryText
+                      }
+                    >
+                      {
+                        event.description
+                      }
+                    </Text>
 
-                <EventDetails event={event} />
-              </View>
-            ))}
-          </View>
-        )}
+                    <View
+                      style={
+                        styles.divider
+                      }
+                    />
 
-        {!rechercheLancee && evenements.length > 0 && (
-          <View style={styles.memorySection}>
-            <Text style={styles.memoryTitle}>
-              Ma mémoire
-            </Text>
+                    <Text
+                      style={
+                        styles.understoodLabel
+                      }
+                    >
+                      {
+                        UNDERSTOOD_LABEL
+                      }
+                    </Text>
 
-            {evenements.map((event) => (
-              <View
-                style={styles.memoryCard}
-                key={event.id}
-              >
-                <Text style={styles.memoryText}>
-                  {event.description}
-                </Text>
+                    <EventDetails
+                      event={event}
+                    />
 
-                <View style={styles.divider} />
-
-                <Text style={styles.understoodLabel}>
-                  🧠 Moment a compris
-                </Text>
-
-                <EventDetails event={event} />
-              </View>
-            ))}
-          </View>
-        )}
+                    <Pressable
+                      style={
+                        styles.forgetButton
+                      }
+                      onPress={() =>
+                        oublierSouvenir(
+                          event.id
+                        )
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.forgetButtonText
+                        }
+                      >
+                        {
+                          FORGET_MEMORY_LABEL
+                        }
+                      </Text>
+                    </Pressable>
+                  </View>
+                )
+              )}
+            </View>
+          )}
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  searchInputContainer: {
-    width: '100%',
-    position: 'relative',
-  },
+/* ========================================================= */
+/* STYLES                                                    */
+/* ========================================================= */
 
-  clearSearchButton: {
-    position: 'absolute',
-    right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
+const styles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor:
+        '#F7F5F2',
+    },
 
-  clearSearchText: {
-    fontSize: 20,
-    color: '#999999',
-  },
+    content: {
+      flexGrow: 1,
+      alignItems: 'center',
+      padding: 25,
+      paddingTop: 70,
+      paddingBottom: 50,
+    },
 
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F5F2',
-  },
+    header: {
+      alignItems: 'center',
+      width: '100%',
+    },
 
-  content: {
-    flexGrow: 1,
-    alignItems: 'center',
-    padding: 25,
-    paddingTop: 70,
-    paddingBottom: 50,
-  },
+    logo: {
+      fontSize: 42,
+      fontWeight: '700',
+      textAlign: 'center',
+      marginBottom: 12,
+      letterSpacing: -1,
+    },
 
-  logo: {
-    fontSize: 42,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 40,
-  },
+    subtitle: {
+      fontSize: 17,
+      color: '#666666',
+      textAlign: 'center',
+      lineHeight: 25,
+      marginBottom: 30,
+    },
 
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
+    memoryBanner: {
+      width: '100%',
+      maxWidth: 500,
+      height: 180,
+      borderRadius: 24,
+      marginBottom: 25,
+    },
 
-  subtitle: {
-    fontSize: 17,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 25,
-    marginBottom: 30,
-  },
+    memoryInputContainer: {
+      width: '100%',
+      maxWidth: 500,
+      position: 'relative',
+    },
 
-  input: {
-    width: '100%',
-    maxWidth: 500,
-    minHeight: 130,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-    fontSize: 17,
-    color: '#1F2937',
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: '#E5E1DC',
-    marginBottom: 20,
-  },
+    input: {
+      width: '100%',
+      minHeight: 160,
+      backgroundColor: '#F8F7F4',
+      borderRadius: 24,
+      paddingHorizontal: 22,
+      paddingTop: 20,
+      paddingBottom: 20,
+      paddingRight: 65,
+      fontSize: 18,
+      lineHeight: 27,
+      color: '#24211D',
+      textAlignVertical: 'top',
+      borderWidth: 1,
+      borderColor: '#E3DFD8',
+    },
 
-  button: {
-    backgroundColor: '#1F2937',
-    paddingVertical: 16,
-    paddingHorizontal: 45,
-    borderRadius: 14,
-    minWidth: 150,
-    alignItems: 'center',
-  },
+    clearMemoryInputButton: {
+      position: 'absolute',
+      right: 1,
+      top: 1,
+      bottom: 1,
+      width: 48,
+      backgroundColor: '#F0EFEC',
+      borderTopRightRadius: 23,
+      borderBottomRightRadius: 23,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  buttonDisabled: {
-    opacity: 0.6,
-  },
+    clearMemoryInputText: {
+      fontSize: 23,
+      color: '#888888',
+      fontWeight: '400',
+    },
 
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '600',
-  },
+    memoryActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      marginTop: 14,
+      marginBottom: 12,
+    },
 
-  searchSection: {
-    width: '100%',
-    maxWidth: 500,
-    marginTop: 40,
-  },
+    button: {
+      backgroundColor: '#1F2937',
+      paddingVertical: 16,
+      paddingHorizontal: 45,
+      borderRadius: 14,
+      minWidth: 150,
+      alignItems: 'center',
+    },
 
-  searchTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
 
-  searchInput: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    paddingRight: 45,
-    fontSize: 16,
-    color: '#1F2937',
-    borderWidth: 1,
-    borderColor: '#E5E1DC',
-  },
+    buttonText: {
+      color: '#FFFFFF',
+      fontSize: 17,
+      fontWeight: '600',
+    },
 
-  searchButton: {
-    backgroundColor: '#4B5563',
-    paddingVertical: 13,
-    paddingHorizontal: 25,
-    borderRadius: 12,
-    marginTop: 10,
-    alignSelf: 'flex-start',
-  },
+    microButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: '#F8F7F4',
+      borderWidth: 1,
+      borderColor: '#E3DFD8',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  searchButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+    microIcon: {
+      fontSize: 22,
+    },
 
-  memorySection: {
-    width: '100%',
-    maxWidth: 500,
-    marginTop: 35,
-  },
+    clearMemoryButton: {
+      marginTop: 4,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
 
-  memoryTitle: {
-    fontSize: 21,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 15,
-  },
+    clearMemoryButtonText: {
+      fontSize: 14,
+      color: '#999999',
+    },
 
-  memoryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#E5E1DC',
-  },
+    memorySection: {
+      width: '100%',
+      maxWidth: 500,
+      marginTop: 25,
+    },
 
-  memoryText: {
-    fontSize: 17,
-    color: '#333333',
-    lineHeight: 25,
-  },
+    memoryTitle: {
+      fontSize: 21,
+      fontWeight: '700',
+      color: '#1F2937',
+      marginBottom: 15,
+    },
 
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E1DC',
-    marginVertical: 16,
-  },
+    memoryCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 18,
+      marginBottom: 15,
+      borderWidth: 1,
+      borderColor: '#E5E1DC',
+    },
 
-  understoodLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
+    memoryText: {
+      fontSize: 17,
+      color: '#333333',
+      lineHeight: 25,
+    },
 
-  detail: {
-    fontSize: 16,
-    color: '#555555',
-    marginBottom: 7,
-  },
-});
+    divider: {
+      height: 1,
+      backgroundColor: '#E5E1DC',
+      marginVertical: 16,
+    },
+
+    understoodLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#1F2937',
+      marginBottom: 12,
+    },
+
+    detail: {
+      fontSize: 16,
+      color: '#555555',
+      marginBottom: 7,
+    },
+
+    forgetButton: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: '#E5E1DC',
+      alignItems: 'center',
+    },
+
+    forgetButtonText: {
+      fontSize: 14,
+      color: '#999999',
+    },
+  });
+

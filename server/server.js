@@ -1,4 +1,6 @@
-require('dotenv').config({ path: __dirname + '/.env' });
+require('dotenv').config({
+  path: __dirname + '/.env',
+});
 
 const express = require('express');
 const cors = require('cors');
@@ -13,11 +15,19 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+/* ========================================================= */
+/* ACCUEIL                                                   */
+/* ========================================================= */
+
 app.get('/', (req, res) => {
   res.json({
     message: 'Le cerveau de Moment fonctionne !',
   });
 });
+
+/* ========================================================= */
+/* COMPRÉHENSION                                             */
+/* ========================================================= */
 
 app.post('/understand', async (req, res) => {
   console.log('📥 Requête reçue');
@@ -35,80 +45,63 @@ app.post('/understand', async (req, res) => {
 
     const response = await openai.responses.create({
       model: 'gpt-5-mini',
+
       input: `
 Tu es le moteur de mémoire de l'application Moment.
 
 Moment construit progressivement une mémoire personnelle à partir
 de ce que l'utilisateur raconte naturellement.
 
-IMPORTANT :
+Une saisie peut contenir UN ou PLUSIEURS événements.
 
-Une saisie de l'utilisateur peut contenir UN ou PLUSIEURS événements.
-
-Tu dois donc découper la saisie en événements distincts lorsque
+Tu dois découper la saisie en événements distincts lorsque
 plusieurs événements différents sont racontés.
 
-Exemple :
+============================================================
+RÈGLE ABSOLUE SUR LES RELATIONS
+============================================================
 
-"Lundi dernier, j'ai vu Paul. Le soir, j'ai pensé que l'éclairage
-du bassin était vraiment mauvais."
-
-Cette saisie contient deux événements :
-
-ÉVÉNEMENT 1 :
-J'ai vu Paul lundi dernier.
-
-ÉVÉNEMENT 2 :
-Le soir, j'ai pensé que l'éclairage du bassin était mauvais.
-
-Ces deux événements doivent rester séparés.
-
-Ils peuvent provenir de la même saisie, mais cela ne signifie PAS
-qu'ils sont liés.
-
-RÈGLE ABSOLUE SUR LES RELATIONS :
-
-Ne crée une relation entre deux éléments QUE si cette relation est
-explicitement exprimée ou clairement établie par le texte.
+Ne crée une relation entre deux éléments QUE si cette relation
+est explicitement exprimée ou clairement établie par le texte.
 
 Ne crée JAMAIS une relation simplement parce que :
+
 - deux éléments apparaissent dans la même saisie ;
 - ils se produisent le même jour ;
 - ils se produisent au même endroit ;
 - ils sont proches dans le texte ;
 - ils semblent logiquement liés.
 
-Exemple :
+La mémoire enregistrée doit rester factuelle.
 
-"J'ai vu Paul. Plus tard j'ai pensé à l'éclairage."
+============================================================
+OBJECTIF
+============================================================
 
-Paul et l'éclairage ne sont PAS liés.
+N'INVENTE RIEN.
 
-En revanche :
+Ne transforme jamais :
 
-"J'ai parlé avec Paul de l'éclairage."
-
-établit une relation explicite.
-
-OBJECTIF :
-
-Créer une mémoire fiable.
-
-Il vaut mieux oublier une relation incertaine que créer un faux
-souvenir.
+- une proximité temporelle en relation ;
+- une proximité géographique en relation ;
+- une cooccurrence en relation ;
+- une supposition en fait ;
+- une intention en action réalisée.
 
 Retourne UNIQUEMENT un objet JSON valide.
 Aucun markdown.
 Aucune explication.
 
-Structure obligatoire :
+============================================================
+STRUCTURE
+============================================================
 
 {
   "input": "",
   "events": []
 }
 
-Chaque événement doit avoir exactement cette structure :
+Chaque événement doit avoir exactement :
 
 {
   "id": "",
@@ -131,14 +124,16 @@ Chaque événement doit avoir exactement cette structure :
   "confidence": 0
 }
 
-RÈGLES :
+============================================================
+RÈGLES DES CHAMPS
+============================================================
 
 id :
-Identifiant unique à l'intérieur de cette saisie.
-Utilise "event_1", "event_2", "event_3", etc.
+
+"event_1", "event_2", "event_3", etc.
 
 type :
-Utilise l'un des types suivants :
+
 "event"
 "thought"
 "idea"
@@ -149,22 +144,15 @@ Utilise l'un des types suivants :
 "mixed"
 
 description :
-Résumé très court et fidèle de l'événement.
+
+Résumé très court et fidèle.
 
 date_reference :
-Référence temporelle réellement présente.
-Exemples :
-"lundi dernier"
-"le soir"
-"hier"
-"ce matin"
-"demain"
 
-Si aucune référence temporelle :
-""
+Référence temporelle réellement présente.
 
 date_precision :
-Utilise :
+
 "exact"
 "day"
 "approximate"
@@ -172,36 +160,44 @@ Utilise :
 "unknown"
 
 context :
+
 Lieu ou contexte explicitement présent.
 
 people :
+
 Personnes explicitement mentionnées.
 
 places :
+
 Lieux explicitement mentionnés.
 
 objects :
+
 Objets explicitement mentionnés.
 
 subjects :
+
 Sujets explicitement mentionnés.
 
 thoughts :
-Pensées ou réflexions réellement exprimées.
+
+Pensées réellement exprimées.
 
 actions :
+
 Actions réellement effectuées ou en cours.
 
 intentions :
+
 Actions envisagées mais pas encore réalisées.
 
 facts :
+
 Informations présentées comme des faits.
 
 relations :
-Uniquement les relations explicitement présentes.
 
-Chaque relation doit avoir :
+Uniquement les relations explicitement présentes.
 
 Chaque relation doit avoir exactement :
 
@@ -212,71 +208,37 @@ Chaque relation doit avoir exactement :
   "evidence": ""
 }
 
-evidence doit être exactement l'une des valeurs suivantes :
+evidence :
 
 "explicit"
+
+ou
+
 "implied"
 
-"explicit" signifie que la relation est directement exprimée
-dans le texte de l'utilisateur.
-
-Exemple :
-"J'ai mangé avec Marc."
-
-→
-
-{
-  "from": "moi",
-  "relation": "a mangé avec",
-  "to": "Marc",
-  "evidence": "explicit"
-}
-
-"implied" signifie que la relation n'est pas directement exprimée
-mais peut être déduite logiquement.
-
-IMPORTANT :
-
 Ne crée normalement PAS de relation "implied" lors de
-l'enregistrement du souvenir.
+l'enregistrement.
 
-Les relations "implied" seront calculées plus tard par le moteur
-de raisonnement.
-
-La mémoire enregistrée doit donc principalement contenir
-les relations explicitement exprimées par l'utilisateur.
-
-S'il n'existe aucune relation :
-[]
+Les relations implicites seront calculées plus tard
+par le moteur de rappel.
 
 created_at :
+
 Laisse ce champ vide.
-Il sera rempli automatiquement par Moment
-au moment où le souvenir est enregistré.
+Moment le remplira automatiquement.
 
 source_text :
-La partie exacte du texte utilisateur correspondant à cet événement.
+
+Partie exacte du texte utilisateur correspondant
+à l'événement.
 
 confidence :
+
 Nombre entre 0 et 1.
 
-RÈGLE ABSOLUE :
-
-N'INVENTE RIEN.
-
-Ne transforme jamais :
-- une proximité temporelle en relation ;
-- une proximité géographique en relation ;
-- une cooccurrence en relation ;
-- une supposition en fait ;
-- une intention en action réalisée.
-
-Si plusieurs événements sont présents, crée plusieurs objets
-dans "events".
-
-Si un seul événement est présent, crée un seul objet.
-
-Texte utilisateur :
+============================================================
+TEXTE UTILISATEUR
+============================================================
 
 ${text.trim()}
 `,
@@ -293,190 +255,409 @@ ${text.trim()}
       );
 
       return res.status(500).json({
-        error: 'Le cerveau de Moment a produit une réponse invalide',
+        error:
+          'Le cerveau de Moment a produit une réponse invalide',
       });
     }
 
-  result.events?.forEach(event => {
-    event.created_at = new Date().toISOString();
-  });
+    if (!Array.isArray(result.events)) {
+      result.events = [];
+    }
 
-  console.log(
-    `🧠 ${result.events?.length || 0} événement(s) compris`
-  );
+    result.events.forEach((event) => {
+      event.created_at = new Date().toISOString();
+    });
 
-    console.log(JSON.stringify(result, null, 2));
+    console.log(
+      `🧠 ${result.events.length} événement(s) compris`
+    );
+
+    console.log(
+      JSON.stringify(result, null, 2)
+    );
 
     res.json(result);
 
   } catch (error) {
-    console.error('❌ Erreur OpenAI :', error);
+    console.error(
+      '❌ Erreur OpenAI :',
+      error
+    );
 
     res.status(500).json({
-      error: 'Erreur lors de la compréhension de la mémoire',
+      error:
+        'Erreur lors de la compréhension de la mémoire',
     });
   }
 });
 
+/* ========================================================= */
+/* RAPPEL                                                     */
+/* ========================================================= */
 
 app.post('/recall', async (req, res) => {
   console.log('🔎 Question reçue');
 
   try {
-    const { question, memories } = req.body;
+    const {
+      question,
+      memories,
+    } = req.body;
 
-    if (!question || !Array.isArray(memories)) {
+    if (
+      !question ||
+      !Array.isArray(memories)
+    ) {
       return res.status(400).json({
-        error: 'Question ou mémoire absente',
+        error:
+          'Question ou mémoire absente',
       });
     }
 
-    console.log('🧠 Recherche dans la mémoire...');
+    console.log(
+      `🧠 Recherche dans ${memories.length} événement(s)...`
+    );
 
-    const response = await openai.responses.create({
-      model: 'gpt-5-mini',
-      input: `
+    /* ===================================================== */
+    /* ÉVÉNEMENTS VALIDÉS                                    */
+    /* ===================================================== */
+
+    const validatedMemories =
+      memories.filter(
+        (memory) =>
+          memory &&
+          memory.validated_by_user === true
+      );
+
+    console.log(
+      `✅ ${validatedMemories.length} événement(s) validé(s) par l'utilisateur`
+    );
+
+    if (validatedMemories.length > 0) {
+      console.log(
+        '📌 Validations trouvées :',
+        validatedMemories.map(
+          (memory) => ({
+            id: memory.id,
+            description:
+              memory.description,
+            facts:
+              memory.facts,
+          })
+        )
+      );
+    }
+
+    /* ===================================================== */
+    /* APPEL OPENAI                                          */
+    /* ===================================================== */
+
+    const response =
+      await openai.responses.create({
+        model: 'gpt-5-mini',
+
+        input: `
 Tu es le moteur de rappel de Moment.
 
-Moment possède une mémoire personnelle composée d'événements
-indépendants.
+Moment possède une mémoire personnelle composée
+d'événements indépendants.
 
 L'utilisateur pose une question concernant sa propre mémoire.
 
-Ta mission est de retrouver les événements qui permettent
-de répondre à la question et de formuler une réponse naturelle.
+Ta mission est de retrouver les événements pertinents
+et de répondre naturellement.
 
-RÈGLE ABSOLUE SUR LA CERTITUDE :
+============================================================
+NIVEAUX DE CERTITUDE
+============================================================
 
-Pour répondre à une question, distingue toujours quatre niveaux
-d'information :
+Tu dois distinguer STRICTEMENT :
 
 1. EXPLICITE
-
-L'information est directement présente dans l'événement.
-
-Exemple :
-"J'ai vu Paul."
-
-→ Il est certain que l'utilisateur a vu Paul.
-
 2. IMPLIQUÉ
+3. NON CONFIRMÉ
+4. INCONNU
 
-L'information n'est pas écrite explicitement, mais elle découle
-logiquement de l'événement.
+============================================================
+1. EXPLICITE
+============================================================
+
+L'information est directement présente dans un événement.
 
 Exemple :
-"J'ai mangé avec Marc."
 
-→ Il est raisonnable de déduire que Marc était présent avec
-l'utilisateur et qu'il a probablement été vu.
+"Chloe est ma fille."
 
-Cette information doit être présentée comme une implication,
-jamais comme un fait explicitement mémorisé.
+→ Chloe est explicitement la fille de l'utilisateur.
 
-RÈGLE IMPORTANTE SUR LES IMPLICATIONS :
+============================================================
+2. IMPLIQUÉ
+============================================================
 
-Une implication doit découler directement de l'action ou de
-l'affirmation décrite dans l'événement.
+L'information n'est pas directement écrite mais découle
+logiquement de plusieurs informations.
 
-Ne déduis jamais la présence d'une personne simplement parce
-qu'un événement mentionne son domicile, son lieu de travail,
-sa maison ou un autre lieu qui lui est associé.
+Exemple :
 
-Exemples :
+Événement A :
+"Chloe est ma fille."
 
-"Je suis allé chez Marc."
-→ Cela confirme que l'utilisateur est allé chez un lieu associé
-à Marc.
-→ Cela ne confirme PAS que Marc était présent.
-→ Cela ne confirme PAS que l'utilisateur a vu Marc.
+Événement B :
+"Mes deux sœurs sont les marraines de ma fille."
 
-"Je suis retourné chez Marc."
-→ Même règle : la présence de Marc n'est pas confirmée.
+Événement C :
+"Mireille est ma sœur."
 
-"J'ai rejoint Marc chez lui."
-→ Le verbe "rejoindre" implique que Marc était présent au moment
-de la rencontre.
-→ Cela permet de considérer que l'utilisateur a probablement vu
-Marc, même si le verbe "voir" n'est pas utilisé.
+Événement D :
+"Élise est ma sœur."
 
-"J'ai mangé avec Marc."
-→ Le fait de manger "avec Marc" implique que Marc était présent.
-→ Dans le contexte ordinaire de cette formulation, cela implique
-également que l'utilisateur l'a probablement vu.
+Question :
 
-"J'ai parlé avec Marc au téléphone."
-→ Cela confirme une conversation téléphonique.
-→ Cela ne confirme PAS que Marc était physiquement présent.
-→ Cela ne confirme PAS que l'utilisateur l'a vu.
+"Est-ce que Chloe est la fille dont Mireille et Élise
+sont les marraines ?"
+
+La conclusion est logique mais n'est pas écrite explicitement.
+
+Elle est donc :
+
+"implied"
 
 IMPORTANT :
 
-Le simple fait qu'une personne soit mentionnée dans un lieu
-ne suffit jamais à déduire sa présence.
+Lorsque tu construis une telle conclusion, tu DOIS créer
+une evidence supplémentaire avec :
 
-Base toujours la déduction sur le sens de l'action exprimée,
-et non uniquement sur le lieu, la proximité temporelle ou la
-présence du nom d'une personne.
+"status": "implied"
 
-3. NON CONFIRMÉ
-
-La mémoire contient une information proche mais qui ne permet
-pas de confirmer le fait demandé.
+Cette evidence doit représenter LA CONCLUSION elle-même,
+et non simplement répéter une preuve source.
 
 Exemple :
-"J'ai parlé avec Sophie au téléphone."
 
-→ Cela confirme une conversation avec Sophie.
-→ Cela ne confirme pas que l'utilisateur a vu Sophie en personne.
+{
+  "event_id": "memory_123",
+  "status": "implied",
+  "claim": "Chloe est probablement la fille dont Mireille et Élise sont les marraines."
+}
 
+Les événements ayant servi à construire cette conclusion
+restent eux-mêmes "explicit".
+
+============================================================
+3. NON CONFIRMÉ
+============================================================
+
+La mémoire contient une information proche mais ne permet
+pas de confirmer le fait demandé.
+
+============================================================
 4. INCONNU
+============================================================
 
-La mémoire ne contient aucune information permettant de répondre.
+La mémoire ne contient aucune information pertinente.
 
-RÈGLE ABSOLUE SUR LES DÉDUCTIONS :
+============================================================
+RÈGLE ABSOLUE : VALIDATION UTILISATEUR
+============================================================
 
-Certaines actions permettent de déduire logiquement la présence
-physique d'une personne.
+Certains événements peuvent contenir :
 
-Par exemple :
+"validated_by_user": true
 
-"J'ai mangé avec Marc."
-"J'ai dîné avec Marc."
-"J'ai déjeuné avec Marc."
-"J'ai bu un verre avec Marc."
-"J'ai travaillé avec Marc."
-"J'ai fait une activité avec Marc."
+Cela signifie que l'utilisateur a explicitement confirmé
+le contenu factuel de cet événement.
 
-permettent de considérer que Marc était présent avec l'utilisateur.
+Une telle validation est TOUJOURS prioritaire.
 
-Dans un contexte physique, il est également raisonnable de
-considérer que l'utilisateur a probablement vu cette personne.
+Si un événement contient :
 
-Cette information reste IMPLIQUÉE.
+validated_by_user: true
 
-Elle ne devient jamais EXPLICITE.
+alors :
 
-RÈGLE DU TÉLÉPHONE :
+- son contenu factuel est EXPLICITE ;
+- il doit être considéré comme confirmé ;
+- evidence.status DOIT être "explicit" ;
+- il ne doit JAMAIS être classé "implied" ;
+- il ne doit JAMAIS être classé "not_confirmed".
 
-Si l'événement indique :
+Le champ source_text peut contenir l'historique de la
+déduction ayant conduit à la validation.
+
+source_text ne doit JAMAIS annuler la validation.
+
+Le champ description et le champ facts de l'événement
+validé représentent la formulation confirmée.
+
+============================================================
+EXEMPLE DE VALIDATION
+============================================================
+
+{
+  "id": "validated_123",
+  "description": "Chloe est la fille dont Mireille et Élise sont les marraines.",
+  "facts": [
+    "Chloe est la fille dont Mireille et Élise sont les marraines."
+  ],
+  "source_text": "Information validée par l'utilisateur : Chloe est la fille dont Mireille et Élise sont les marraines.",
+  "validated_by_user": true
+}
+
+Question :
+
+"Est-ce que Chloe est la fille dont Mireille et Élise
+sont les marraines ?"
+
+Réponse :
+
+{
+  "answer": "Oui. Tu as confirmé que Chloe est la fille dont Mireille et Élise sont les marraines.",
+  "event_ids": ["validated_123"],
+  "confidence": 1,
+  "inference": null,
+  "evidence": [
+    {
+      "event_id": "validated_123",
+      "status": "explicit",
+      "claim": "Chloe est la fille dont Mireille et Élise sont les marraines."
+    }
+  ]
+}
+
+============================================================
+RÈGLE DES DÉDUCTIONS
+============================================================
+
+Si tu construis une conclusion qui n'est pas directement
+présente dans un événement :
+
+1. evidence DOIT contenir au moins une entrée
+   avec "status": "implied".
+
+2. Le champ "inference" DOIT contenir la conclusion
+   déduite.
+
+3. "inference" doit être null lorsqu'aucune déduction
+   n'est nécessaire.
+
+Exemple :
+
+{
+  "answer": "Probablement oui. Chloe est la fille dont Mireille et Élise sont les marraines.",
+  "event_ids": [
+    "event_1",
+    "event_2",
+    "event_3"
+  ],
+  "confidence": 0.9,
+  "inference": {
+    "claim": "Chloe est probablement la fille dont Mireille et Élise sont les marraines.",
+    "event_ids": [
+      "event_1",
+      "event_2",
+      "event_3"
+    ]
+  },
+  "evidence": [
+    {
+      "event_id": "event_1",
+      "status": "explicit",
+      "claim": "Mes deux sœurs sont les marraines de ma fille."
+    },
+    {
+      "event_id": "event_2",
+      "status": "explicit",
+      "claim": "Chloe est un enfant de l'utilisateur."
+    },
+    {
+      "event_id": "event_3",
+      "status": "explicit",
+      "claim": "Mireille est la sœur de l'utilisateur."
+    },
+    {
+      "event_id": "event_4",
+      "status": "explicit",
+      "claim": "Élise est la sœur de l'utilisateur."
+    },
+    {
+      "event_id": "event_1",
+      "status": "implied",
+      "claim": "Chloe est probablement la fille dont Mireille et Élise sont les marraines."
+    }
+  ]
+}
+
+IMPORTANT :
+
+La conclusion "implied" ne doit jamais remplacer
+les preuves sources.
+
+Les preuves sources restent "explicit".
+
+============================================================
+RÈGLE DES ACTIONS PHYSIQUES
+============================================================
+
+Les formulations suivantes impliquent généralement
+la présence physique :
+
+"j'ai mangé avec Marc"
+"j'ai dîné avec Marc"
+"j'ai déjeuné avec Marc"
+"j'ai bu un verre avec Marc"
+"j'ai travaillé avec Marc"
+"j'ai fait une activité avec Marc"
+"j'ai rejoint Marc"
+"j'ai retrouvé Marc"
+
+La personne peut donc être considérée comme probablement vue.
+
+Mais cette conclusion reste :
+
+"implied"
+
+============================================================
+RÈGLE DU TÉLÉPHONE
+============================================================
+
+Si l'événement contient :
 
 "au téléphone"
 "par téléphone"
-"au téléphone avec"
 "appelé"
 "appel téléphonique"
 
-alors la conversation est confirmée, mais la présence physique
-et le fait d'avoir vu la personne restent NON CONFIRMÉS.
+alors :
 
-Ne déduis jamais qu'une personne a été vue parce que
-l'utilisateur lui a parlé au téléphone.
+- conversation confirmée ;
+- présence physique non confirmée ;
+- personne vue non confirmée.
 
-RÈGLE DU TEMPS :
+============================================================
+RÈGLE DES LIEUX
+============================================================
 
-Les déductions doivent respecter exactement la précision
-temporelle de l'événement.
+"Je suis allé chez Marc."
+
+ne confirme PAS que Marc était présent.
+
+ne confirme PAS que l'utilisateur a vu Marc.
+
+En revanche :
+
+"J'ai rejoint Marc chez lui."
+
+implique que Marc était présent.
+
+Cette conclusion est :
+
+"implied"
+
+============================================================
+RÈGLE DU TEMPS
+============================================================
+
+Respecte exactement la précision temporelle.
 
 "J'ai vu Paul hier."
 
@@ -484,174 +665,126 @@ ne permet pas de répondre :
 
 "Paul était avec toi hier soir."
 
-"Hier" et "hier soir" ne sont pas équivalents.
+============================================================
+RÈGLE DES MISES À JOUR
+============================================================
 
-RÈGLE DES MISES À JOUR ET CORRECTIONS :
+La mémoire conserve toujours l'historique.
 
-La mémoire peut contenir plusieurs informations concernant
-la même personne, le même événement ou le même moment.
+Ne supprime jamais un événement ancien.
 
-Ces informations ne sont pas nécessairement contradictoires.
+Si un événement plus récent apporte une correction,
+une évolution ou une précision explicite concernant
+la même situation, utilise l'information la plus récente
+comme état final.
 
-Lorsqu'un événement plus récent apporte une correction,
-une précision ou une évolution explicite d'un événement antérieur,
-la nouvelle information doit être considérée comme l'état le plus
-récent de la situation.
+Mais un événement plus récent ne remplace jamais
+automatiquement un ancien événement.
 
-Certains mots ou expressions peuvent signaler cette évolution :
+Il faut une relation logique claire.
 
-"finalement"
-"ensuite"
-"puis"
-"après"
-"plus tard"
-"en fait"
-"je me suis finalement..."
-"j'ai finalement..."
-"je l'ai finalement..."
-"au final"
+created_at sert à déterminer l'ordre chronologique.
 
-Exemple :
+============================================================
+RÈGLE DES RELATIONS ENTRE ÉVÉNEMENTS
+============================================================
 
-"Ce soir, je n'ai pas vu Marc, je lui ai seulement parlé
-au téléphone."
+Plusieurs événements peuvent être utilisés ensemble.
 
-Puis :
+Le fait qu'ils parlent :
 
-"Ce soir finalement, j'ai rejoint Marc chez lui."
+- de la même personne ;
+- du même jour ;
+- du même lieu ;
+- du même sujet ;
 
-La deuxième information ne doit pas être considérée comme une
-simple contradiction sans contexte.
+ne signifie pas automatiquement qu'ils décrivent
+le même événement.
 
-Elle indique que la situation a évolué.
+Une conclusion peut néanmoins être déduite
+de plusieurs événements.
 
-Pour répondre à :
+Dans ce cas :
 
-"Est-ce que j'ai vu Marc ce soir ?"
+- les informations sources restent "explicit" ;
+- la conclusion construite est "implied".
 
-la réponse doit être :
-
-"Oui. Tu avais d'abord indiqué ne pas avoir vu Marc ce soir,
-mais tu as ensuite indiqué que tu l'avais finalement rejoint
-chez lui."
-
-IMPORTANT :
-
-Ne supprime jamais l'ancien souvenir.
-
-L'historique doit rester conservé.
-
-Mais lorsqu'une information plus récente modifie explicitement
-l'état de la situation, utilise cette information plus récente
-pour répondre à une question portant sur l'état final.
-
-Si aucune indication ne permet de déterminer qu'une information
-corrige ou actualise une information précédente, considère les
-deux informations comme potentiellement contradictoires et
-signale l'incertitude.
-
-RÈGLE DU CONTEXTE :
-
-Une déduction ne doit pas être déplacée vers un autre contexte.
-
-"J'ai mangé avec Marc au restaurant hier soir."
-
-permet de déduire :
-
-"Marc était présent au restaurant hier soir."
-
-Cela ne permet pas de déduire :
-
-"Marc était avec moi ce matin."
-
-RÈGLE SUR LES QUESTIONS :
-
-La réponse doit utiliser uniquement le niveau de certitude
-nécessaire pour répondre à la question.
-
-Si la question demande :
-
-"Qu'est-ce que j'ai fait avec Marc ?"
-
-répondre avec l'action mémorisée :
-
-"Tu as mangé avec Marc hier soir."
-
-Il n'est pas nécessaire d'ajouter que Marc était probablement
-présent ou probablement vu.
-
-Si la question demande :
-
-"Est-ce que j'ai vu Marc ?"
-
-alors une implication pertinente peut être utilisée :
-
-"Tu as mangé avec Marc hier soir, ce qui implique probablement
-que tu l'as vu."
-
-Si la question demande :
-
-"Qui ai-je vu récemment ?"
-
-examiner les événements explicites ET les événements permettant
-une implication logique.
-
-Exemple :
-
-"J'ai vu Paul."
-"J'ai parlé avec Sophie au téléphone."
-"J'ai mangé avec Marc."
-
-Réponse attendue :
-
-Paul est explicitement identifié comme ayant été vu.
-
-Marc peut être inclus comme personne probablement vue.
-
-Sophie ne doit pas être incluse comme personne vue.
-
-RÈGLE ABSOLUE :
-
-Ne transforme jamais une information IMPLIQUÉE en information
-EXPLICITE.
-
-Ne transforme jamais une information NON CONFIRMÉE en fait.
-
-Ne fabrique aucune information.
-
-Ne crée jamais un nouveau souvenir à partir d'une déduction.
-
-QUESTION DE L'UTILISATEUR :
+============================================================
+QUESTION
+============================================================
 
 ${question}
 
-ÉVÉNEMENTS DISPONIBLES :
+============================================================
+ÉVÉNEMENTS DISPONIBLES
+============================================================
 
-${JSON.stringify(memories, null, 2)}
+${JSON.stringify(
+  memories,
+  null,
+  2
+)}
 
-Retourne UNIQUEMENT un objet JSON valide :
+============================================================
+RAPPEL IMPORTANT SUR LES VALIDATIONS
+============================================================
+
+Les événements suivants ont été identifiés par le serveur
+comme ayant été explicitement validés par l'utilisateur :
+
+${JSON.stringify(
+  validatedMemories,
+  null,
+  2
+)}
+
+Si l'un de ces événements répond directement à la question,
+utilise-le comme preuve EXPLICITE.
+
+Ne le transforme jamais en "implied" ou "not_confirmed".
+
+============================================================
+FORMAT DE RÉPONSE
+============================================================
+
+Retourne UNIQUEMENT un objet JSON valide.
 
 {
   "answer": "",
   "event_ids": [],
   "confidence": 0,
+  "inference": null,
   "evidence": []
 }
 
 answer :
+
 Réponse naturelle à la question.
 
 event_ids :
-Liste des identifiants des événements utilisés pour répondre.
+
+Identifiants des événements utilisés.
 
 confidence :
-Nombre entre 0 et 1 représentant la confiance globale
-dans la réponse.
+
+Nombre entre 0 et 1.
+
+inference :
+
+null si aucune déduction n'est nécessaire.
+
+Sinon :
+
+{
+  "claim": "Conclusion déduite",
+  "event_ids": ["id1", "id2"]
+}
 
 evidence :
-Liste des éléments utilisés pour construire la réponse.
 
-Chaque élément doit avoir exactement cette structure :
+Liste des éléments ayant permis de construire la réponse.
+
+Chaque élément doit avoir exactement :
 
 {
   "event_id": "",
@@ -659,121 +792,49 @@ Chaque élément doit avoir exactement cette structure :
   "claim": ""
 }
 
-status doit être exactement l'une des valeurs suivantes :
+status doit être exactement :
 
 "explicit"
 "implied"
 "not_confirmed"
 
-explicit :
-Le fait est directement présent dans l'événement.
+============================================================
+RÈGLE FINALE
+============================================================
 
-implied :
-Le fait est logiquement déduit de l'événement.
+Avant de répondre, vérifie :
 
-not_confirmed :
-L'événement contient une information proche, mais ne permet
-pas de confirmer le fait demandé.
+1. Si l'information vient d'un événement
+   validated_by_user: true
+   → explicit.
 
-Exemple :
+2. Si la conclusion est déduite
+   → inference doit être renseigné.
 
-Question :
-"Est-ce que j'ai vu Marc ?"
+3. Si la conclusion est déduite
+   → evidence doit contenir une entrée implied
+   représentant cette conclusion.
 
-Événement :
-"J'ai mangé avec Marc."
+4. Les événements sources utilisés pour la déduction
+   restent explicit.
 
-La réponse peut être :
+5. Si la mémoire ne permet pas de confirmer
+   → not_confirmed.
 
-{
-  "answer": "Oui, tu as mangé avec Marc hier soir, ce qui implique qu'il était avec toi et que tu l'as probablement vu.",
-  "event_ids": ["event_3"],
-  "confidence": 0.9,
-  "evidence": [
-    {
-      "event_id": "event_3",
-      "status": "implied",
-      "claim": "Marc était présent avec l'utilisateur."
-    }
-  ]
-}
+6. Ne transforme jamais une déduction en fait
+   sauf validation explicite de l'utilisateur.
 
-Ne présente jamais une information "implied" comme si elle était
-explicitement mémorisée.
+7. Ne fabrique jamais d'information.
 
-RÈGLE DES MISES À JOUR TEMPORELLES :
+8. Ne crée jamais de nouveau souvenir pendant
+   le rappel.
 
-Chaque événement peut contenir un champ technique "created_at".
-Il indique le moment où Moment a enregistré cet événement.
+9. Une validation utilisateur est plus forte que
+   toute ancienne formulation présente dans source_text.
 
-Lorsque plusieurs événements concernent la même personne,
-le même fait ou le même contexte temporel, compare leur
-"created_at" pour déterminer leur ordre d'enregistrement.
-
-Si un événement plus récent apporte une correction, une précision
-ou une évolution explicite concernant un événement plus ancien,
-l'événement plus récent représente l'état le plus récent de la
-situation.
-
-Exemple :
-
-Événement ancien :
-"Je n'ai pas vu Marc ce soir, je lui ai seulement parlé
-au téléphone."
-
-Événement plus récent :
-"J'ai finalement rejoint Marc chez lui ce soir."
-
-Ces deux événements doivent rester dans la mémoire.
-
-Mais pour répondre à :
-
-"Est-ce que j'ai vu Marc ce soir ?"
-
-l'information la plus récente doit être considérée comme
-l'état final de la situation.
-
-La réponse peut expliquer l'évolution :
-
-"Tu avais d'abord indiqué ne pas avoir vu Marc ce soir,
-mais tu as ensuite indiqué l'avoir rejoint chez lui.
-La dernière information indique donc que tu l'as vu ce soir."
-
-IMPORTANT :
-
-Ne considère PAS automatiquement qu'un événement plus récent
-annule un événement plus ancien.
-
-Il doit exister une relation logique entre les deux informations :
-même personne, même fait ou même contexte, et modification,
-correction, précision ou évolution identifiable.
-
-Si cette relation n'est pas suffisamment claire, conserve les
-deux informations et signale la contradiction.
-
-Ne supprime jamais l'historique.
-
-Ne transforme jamais une simple différence de date d'enregistrement
-en correction.
-
-Le champ "created_at" sert à déterminer l'ordre des informations,
-pas à décider à lui seul qu'une information est vraie ou fausse.
-
-answer :
-Réponse naturelle à la question.
-
-event_ids :
-Liste des identifiants des événements utilisés pour répondre.
-
-confidence :
-Nombre entre 0 et 1.
-
-IMPORTANT :
-
-Si plusieurs événements sont pertinents, tu peux en utiliser
-plusieurs.
-
-Mais ne crée jamais de lien entre eux qui n'existe pas.
+Si un événement validé contient exactement l'information
+demandée, réponds directement OUI et utilise cet événement
+comme evidence explicit.
 
 Si aucun événement ne permet de répondre :
 
@@ -781,15 +842,18 @@ Si aucun événement ne permet de répondre :
   "answer": "Je n'ai pas suffisamment d'informations dans ma mémoire.",
   "event_ids": [],
   "confidence": 0,
+  "inference": null,
   "evidence": []
 }
-  `,
-    });
+`,
+      });
 
     let result;
 
     try {
-      result = JSON.parse(response.output_text);
+      result = JSON.parse(
+        response.output_text
+      );
     } catch (parseError) {
       console.error(
         '❌ Réponse de rappel invalide :',
@@ -797,27 +861,584 @@ Si aucun événement ne permet de répondre :
       );
 
       return res.status(500).json({
-        error: 'Réponse de rappel invalide',
+        error:
+          'Réponse de rappel invalide',
       });
     }
 
-    console.log('💡 Réponse :', result.answer);
+    /* ===================================================== */
+    /* NORMALISATION                                         */
+    /* ===================================================== */
+
+    if (
+      typeof result.answer !== 'string'
+    ) {
+      result.answer =
+        "Je n'ai pas suffisamment d'informations dans ma mémoire.";
+    }
+
+    if (
+      !Array.isArray(result.event_ids)
+    ) {
+      result.event_ids = [];
+    }
+
+    if (
+      !Array.isArray(result.evidence)
+    ) {
+      result.evidence = [];
+    }
+
+    if (
+      typeof result.confidence !==
+      'number'
+    ) {
+      result.confidence = 0;
+    }
+
+    if (
+      result.inference !== null &&
+      typeof result.inference !==
+        'object'
+    ) {
+      result.inference = null;
+    }
+
+    /* ===================================================== */
+    /* IDS VALIDES                                           */
+    /* ===================================================== */
+
+    const validEventIds =
+      new Set(
+        memories
+          .map(
+            (memory) =>
+              memory?.id
+          )
+          .filter(Boolean)
+      );
+
+    result.event_ids =
+      result.event_ids.filter(
+        (id) =>
+          validEventIds.has(id)
+      );
+
+    /* ===================================================== */
+    /* NETTOYAGE EVIDENCES                                  */
+    /* ===================================================== */
+
+    result.evidence =
+      result.evidence.filter(
+        (item) =>
+          item &&
+          typeof item.event_id ===
+            'string' &&
+          typeof item.claim ===
+            'string' &&
+          [
+            'explicit',
+            'implied',
+            'not_confirmed',
+          ].includes(
+            item.status
+          )
+      );
+
+    result.evidence =
+      result.evidence.filter(
+        (item) =>
+          validEventIds.has(
+            item.event_id
+          )
+      );
+
+    /* ===================================================== */
+    /* SÉCURITÉ ABSOLUE DES VALIDATIONS                     */
+    /* ===================================================== */
+
+    const validatedById =
+      new Map(
+        validatedMemories.map(
+          (memory) => [
+            memory.id,
+            memory,
+          ]
+        )
+      );
+
+    result.evidence =
+      result.evidence.map(
+        (item) => {
+          const validatedMemory =
+            validatedById.get(
+              item.event_id
+            );
+
+          if (
+            validatedMemory
+          ) {
+            const validatedClaim =
+              Array.isArray(
+                validatedMemory.facts
+              ) &&
+              validatedMemory.facts.length >
+                0
+                ? validatedMemory.facts.join(
+                    ' '
+                  )
+                : validatedMemory.description;
+
+            return {
+              ...item,
+              status:
+                'explicit',
+              claim:
+                validatedClaim ||
+                item.claim,
+            };
+          }
+
+          return item;
+        }
+      );
+
+    /* ===================================================== */
+    /* NORMALISATION DE L'INFERENCE                         */
+    /* ===================================================== */
+
+    if (
+      result.inference &&
+      typeof result.inference.claim ===
+        'string'
+    ) {
+      if (
+        !Array.isArray(
+          result.inference.event_ids
+        )
+      ) {
+        result.inference.event_ids =
+          [];
+      }
+
+      result.inference.event_ids =
+        result.inference.event_ids.filter(
+          (id) =>
+            validEventIds.has(id)
+        );
+
+      /*
+       * On s'assure que les événements utilisés
+       * pour la déduction figurent également
+       * dans event_ids.
+       */
+
+      result.event_ids = [
+        ...new Set([
+          ...result.event_ids,
+          ...result.inference.event_ids,
+        ]),
+      ].filter(
+        (id) =>
+          validEventIds.has(id)
+      );
+
+      /*
+       * L'inference doit obligatoirement produire
+       * une evidence "implied".
+       *
+       * On utilise le premier événement source
+       * comme référence technique.
+       *
+       * Les événements sources restent explicit.
+       */
+
+      const inferenceEventId =
+        result.inference.event_ids[0] ||
+        result.event_ids[0];
+
+      if (
+        inferenceEventId &&
+        !result.evidence.some(
+          (item) =>
+            item.status ===
+              'implied' &&
+            item.claim ===
+              result.inference.claim
+        )
+      ) {
+        result.evidence.push({
+          event_id:
+            inferenceEventId,
+
+          status:
+            'implied',
+
+          claim:
+            result.inference.claim,
+        });
+      }
+
+      console.log(
+        '🧠 Déduction détectée :',
+        result.inference.claim
+      );
+    }
+
+    /* ===================================================== */
+    /* FALLBACK : GPT A OUBLIÉ "inference"                  */
+    /* ===================================================== */
+
+    /*
+     * Certains appels peuvent encore produire une réponse
+     * qui contient clairement une déduction sans remplir
+     * correctement le champ inference.
+     *
+     * On détecte alors les formulations explicites de
+     * déduction dans la réponse.
+     */
+
+    const answerIndicatesInference =
+      typeof result.answer === 'string' &&
+      (
+        /\bimplique\b/i.test(
+          result.answer
+        ) ||
+        /\bdéduction\b/i.test(
+          result.answer
+        ) ||
+        /\bdéduit\b/i.test(
+          result.answer
+        ) ||
+        /\bprobablement\b/i.test(
+          result.answer
+        ) ||
+        /\bsemble\b/i.test(
+          result.answer
+        ) ||
+        /\bconclusion\b/i.test(
+          result.answer
+        )
+      );
+
+    const hasImpliedEvidence =
+      result.evidence.some(
+        (item) =>
+          item.status ===
+          'implied'
+      );
+
+    if (
+      answerIndicatesInference &&
+      !result.inference &&
+      !hasImpliedEvidence &&
+      result.event_ids.length > 0
+    ) {
+      /*
+       * On ne transforme pas toute la réponse en vérité.
+       *
+       * On l'enregistre uniquement comme conclusion
+       * impliquée, ce qui permet à l'utilisateur de
+       * la valider.
+       */
+
+      result.inference = {
+        claim:
+          result.answer,
+
+        event_ids:
+          result.event_ids,
+      };
+
+      result.evidence.push({
+        event_id:
+          result.event_ids[0],
+
+        status:
+          'implied',
+
+        claim:
+          result.answer,
+      });
+
+      console.log(
+        '🧠 Déduction récupérée automatiquement depuis la réponse'
+      );
+    }
+
+    /* ===================================================== */
+    /* DÉTECTION DIRECTE D'UNE VALIDATION                   */
+    /* ===================================================== */
+
+    const normalizedQuestion =
+      question
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(
+          /[\u0300-\u036f]/g,
+          ''
+        );
+
+    const relevantValidatedMemory =
+      validatedMemories.find(
+        (memory) => {
+          const text = [
+            memory.description,
+            ...(Array.isArray(
+              memory.facts
+            )
+              ? memory.facts
+              : []),
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(
+              /[\u0300-\u036f]/g,
+              ''
+            );
+
+          const words =
+            normalizedQuestion
+              .split(/\s+/)
+              .filter(
+                (word) =>
+                  word.length >= 4 &&
+                  ![
+                    'est-ce',
+                    'cette',
+                    'dont',
+                    'sont',
+                    'dans',
+                    'avec',
+                    'pour',
+                    'quelle',
+                    'quels',
+                    'quel',
+                    'comment',
+                    'est',
+                  ].includes(word)
+              );
+
+          const matchingWords =
+            words.filter(
+              (word) =>
+                text.includes(word)
+            );
+
+          return (
+            matchingWords.length >=
+            Math.min(
+              3,
+              words.length
+            )
+          );
+        }
+      );
+
+    if (
+      relevantValidatedMemory
+    ) {
+      const validatedClaim =
+        Array.isArray(
+          relevantValidatedMemory.facts
+        ) &&
+        relevantValidatedMemory.facts.length >
+          0
+          ? relevantValidatedMemory.facts.join(
+              ' '
+            )
+          : relevantValidatedMemory.description;
+
+      if (
+        validatedClaim
+      ) {
+        console.log(
+          '🔐 Validation utilisateur prioritaire :',
+          relevantValidatedMemory.id
+        );
+
+        result.answer =
+          `Oui. Tu as confirmé que ${validatedClaim}`;
+
+        result.event_ids = [
+          relevantValidatedMemory.id,
+        ];
+
+        result.confidence = 1;
+
+        /*
+         * Une information validée n'est plus
+         * une déduction.
+         */
+
+        result.inference = null;
+
+        result.evidence = [
+          {
+            event_id:
+              relevantValidatedMemory.id,
+
+            status:
+              'explicit',
+
+            claim:
+              validatedClaim,
+          },
+        ];
+      }
+    }
+
+    /* ===================================================== */
+    /* COHÉRENCE DES EVENT IDS                              */
+    /* ===================================================== */
+
+    const evidenceIds =
+      result.evidence.map(
+        (item) =>
+          item.event_id
+      );
+
+    result.event_ids = [
+      ...new Set([
+        ...result.event_ids,
+        ...evidenceIds,
+      ]),
+    ].filter(
+      (id) =>
+        validEventIds.has(id)
+    );
+
+    /* ===================================================== */
+    /* COHÉRENCE DE L'INFERENCE                             */
+    /* ===================================================== */
+
+    if (
+      result.inference
+    ) {
+      result.inference.event_ids =
+        result.inference.event_ids.filter(
+          (id) =>
+            validEventIds.has(id)
+        );
+
+      /*
+       * Si une validation utilisateur vient d'être
+       * détectée, l'inference doit disparaître.
+       */
+
+      if (
+        result.evidence.some(
+          (item) =>
+            item.status ===
+              'explicit' &&
+            validatedById.has(
+              item.event_id
+            )
+        )
+      ) {
+        result.inference = null;
+      }
+    }
+
+    /* ===================================================== */
+    /* LOGS                                                  */
+    /* ===================================================== */
+
+    console.log(
+      '💡 Réponse :',
+      result.answer
+    );
+
+    console.log(
+      '📚 Événements utilisés :',
+      result.event_ids
+    );
+
+    console.log(
+      '🔎 Evidence :',
+      JSON.stringify(
+        result.evidence,
+        null,
+        2
+      )
+    );
+
+    if (
+      result.inference
+    ) {
+      console.log(
+        '🧠 INFERENCE :',
+        JSON.stringify(
+          result.inference,
+          null,
+          2
+        )
+      );
+    }
+
+    const impliedCount =
+      result.evidence.filter(
+        (item) =>
+          item.status ===
+          'implied'
+      ).length;
+
+    const explicitCount =
+      result.evidence.filter(
+        (item) =>
+          item.status ===
+          'explicit'
+      ).length;
+
+    const notConfirmedCount =
+      result.evidence.filter(
+        (item) =>
+          item.status ===
+          'not_confirmed'
+      ).length;
+
+    console.log(
+      `🧠 Informations explicites : ${explicitCount}`
+    );
+
+    console.log(
+      `🧠 Déductions détectées : ${impliedCount}`
+    );
+
+    console.log(
+      `🧠 Informations non confirmées : ${notConfirmedCount}`
+    );
 
     res.json(result);
 
   } catch (error) {
-    console.error('❌ Erreur de rappel :', error);
+    console.error(
+      '❌ Erreur de rappel :',
+      error
+    );
 
     res.status(500).json({
-      error: 'Erreur lors du rappel de la mémoire',
+      error:
+        'Erreur lors du rappel de la mémoire',
     });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+/* ========================================================= */
+/* SERVEUR                                                   */
+/* ========================================================= */
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(
-    `🧠 Serveur Moment lancé sur le port ${PORT}`
-  );
-});
+const PORT =
+  process.env.PORT || 3000;
+
+app.listen(
+  PORT,
+  '0.0.0.0',
+  () => {
+    console.log(
+      `🧠 Serveur Moment lancé sur le port ${PORT}`
+    );
+  }
+);
