@@ -16,7 +16,29 @@ const openai = new OpenAI({
 });
 
 /* ========================================================= */
-/* ACCUEIL                                                   */
+/* OUTILS                                                     */
+/* ========================================================= */
+
+function normalizeClaim(text) {
+  if (typeof text !== 'string') {
+    return '';
+  }
+
+  return text
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.!?]+$/g, '');
+}
+
+function claimsMatch(a, b) {
+  return normalizeClaim(a) === normalizeClaim(b);
+}
+
+/* ========================================================= */
+/* ACCUEIL                                                     */
 /* ========================================================= */
 
 app.get('/', (req, res) => {
@@ -26,7 +48,7 @@ app.get('/', (req, res) => {
 });
 
 /* ========================================================= */
-/* COMPRÉHENSION                                             */
+/* COMPRÉHENSION                                               */
 /* ========================================================= */
 
 app.post('/understand', async (req, res) => {
@@ -292,7 +314,7 @@ ${text.trim()}
 });
 
 /* ========================================================= */
-/* RAPPEL                                                    */
+/* RAPPEL                                                      */
 /* ========================================================= */
 
 app.post('/recall', async (req, res) => {
@@ -344,7 +366,8 @@ app.post('/recall', async (req, res) => {
               .length > 0
           ) {
             validatedClaims.push({
-              event_id: memory.id,
+              event_id:
+                memory.id || '',
               claim:
                 validatedClaim.claim.trim(),
               validated_at:
@@ -385,7 +408,7 @@ app.post('/recall', async (req, res) => {
     }
 
     /* ===================================================== */
-    /* MÉMOIRE ENRICHIE POUR LE MODÈLE                      */
+    /* CLAIMS VALIDÉS POUR LE MODÈLE                         */
     /* ===================================================== */
 
     const validatedClaimsForModel =
@@ -463,25 +486,25 @@ pas de confirmer le fait demandé.
 La mémoire ne contient aucune information pertinente.
 
 ============================================================
-RÈGLE ABSOLUE : DÉDUCTIONS VALIDÉES
+RÈGLE ABSOLUE : CLAIM VALIDÉ
 ============================================================
 
-Certains claims ont été explicitement validés
-par l'utilisateur.
+Certains claims ont été explicitement validés par l'utilisateur.
 
-Ils sont fournis séparément dans :
+Ils sont fournis dans :
 
 ÉLÉMENTS EXPLICITEMENT VALIDÉS PAR L'UTILISATEUR
 
-Lorsqu'un claim apparaît dans cette liste :
+Un claim validé par l'utilisateur est désormais considéré
+comme un FAIT CONFIRMÉ.
 
-→ le CLAIM lui-même est EXPLICITEMENT CONFIRMÉ.
+Il ne doit PLUS être présenté comme une déduction.
 
-Il doit être considéré comme un fait confirmé.
+Si la question demande directement ce claim :
 
-Dans evidence :
+→ status = "explicit"
 
-→ status DOIT être "explicit".
+Même si le claim avait initialement été déduit.
 
 IMPORTANT :
 
@@ -491,6 +514,37 @@ Elle ne valide pas automatiquement tout le contenu
 de l'événement source.
 
 Elle ne modifie pas l'événement source.
+
+============================================================
+RÈGLE DE CORRESPONDANCE DES CLAIMS VALIDÉS
+============================================================
+
+Un claim peut être reformulé légèrement par le modèle.
+
+Par exemple :
+
+Claim validé :
+"Léo n'a pas de frères."
+
+Question :
+"Qui sont les frères de Léo ?"
+
+La réponse :
+"Léo n'a pas de frères."
+
+doit être considérée comme correspondant au claim validé.
+
+Les différences mineures de :
+
+- majuscules ;
+- accents ;
+- espaces ;
+- ponctuation finale ;
+
+ne doivent pas empêcher la reconnaissance.
+
+En revanche, ne considère jamais comme équivalents
+deux claims qui changent réellement le sens.
 
 ============================================================
 RÈGLE ABSOLUE : PAS DE PREUVE INUTILE
@@ -542,17 +596,6 @@ Une evidence "implied" DOIT avoir :
 "event_id": ""
 
 Elle doit représenter la conclusion déduite.
-
-Elle ne doit pas recopier simplement une source.
-
-============================================================
-RÈGLE DES SOURCES
-============================================================
-
-Les événements utilisés comme sources doivent apparaître
-séparément dans evidence avec status "explicit".
-
-Pour une conclusion impliquée, event_id doit être vide.
 
 ============================================================
 RÈGLE DES ACTIONS PHYSIQUES
@@ -670,27 +713,26 @@ INSTRUCTIONS FINALES
 Utilise les claims explicitement validés comme des faits
 confirmés par l'utilisateur.
 
-Si un claim validé permet directement de répondre :
+Si un claim validé répond à la question :
 
-→ evidence "explicit".
+→ il est EXPLICITE.
+
+Si un claim validé correspond à une conclusion qui avait
+auparavant été "implied" :
+
+→ elle doit maintenant être considérée comme EXPLICITE.
 
 Si la réponse est directement présente dans un événement :
 
 → evidence "explicit".
 
-Si la réponse nécessite de combiner plusieurs événements :
+Si la réponse nécessite de combiner plusieurs événements
+et n'est PAS déjà validée :
 
 → les sources sont "explicit"
 → la conclusion est "implied".
 
-Ne transforme jamais une déduction en fait simplement
-parce qu'elle paraît logique.
-
-Elle devient explicitement confirmée uniquement si :
-
-1. elle est directement présente dans un événement ;
-OU
-2. elle apparaît dans les claims explicitement validés.
+Ne transforme jamais une déduction non validée en fait.
 
 N'ajoute aucune evidence qui n'est pas nécessaire
 à la construction de la réponse.
@@ -743,34 +785,36 @@ RÈGLE FINALE
 
 1. Claim validé par l'utilisateur → explicit.
 
-2. Information directement présente → explicit.
+2. Claim validé, même s'il était auparavant implied → explicit.
 
-3. Conclusion nécessitant plusieurs événements → implied.
+3. Information directement présente → explicit.
 
-4. Evidence implied → event_id vide.
+4. Conclusion non validée nécessitant plusieurs événements → implied.
 
-5. Une evidence doit être réellement utile à la réponse.
+5. Evidence implied → event_id vide.
 
-6. Ne fabrique jamais d'information.
+6. Une evidence doit être réellement utile à la réponse.
 
-7. Ne crée jamais de nouveau souvenir.
+7. Ne fabrique jamais d'information.
 
-8. Une validation porte uniquement sur le claim précis.
+8. Ne crée jamais de nouveau souvenir.
 
-9. La validation ne modifie jamais l'événement source.
+9. Une validation porte uniquement sur le claim précis.
 
-10. Respecte les dates.
+10. La validation ne modifie jamais l'événement source.
 
-11. Conserve les événements distincts.
+11. Respecte les dates.
 
-12. N'ajoute jamais de champ "validated" dans evidence.
+12. Conserve les événements distincts.
 
-13. N'utilise jamais une information inutile comme preuve.
+13. N'ajoute jamais de champ "validated" dans evidence.
 
-14. Ne déduis jamais une propriété d'une personne
+14. N'utilise jamais une information inutile comme preuve.
+
+15. Ne déduis jamais une propriété d'une personne
 uniquement parce qu'une autre information la suggère.
 
-Si aucun événement ne permet de répondre :
+Si aucun événement ni claim validé ne permet de répondre :
 
 {
   "answer": "Je n'ai pas suffisamment d'informations dans ma mémoire.",
@@ -871,27 +915,19 @@ Si aucun événement ne permet de répondre :
             )
         )
         .map(
-          (item) => {
-            /*
-             * On reconstruit volontairement chaque objet
-             * afin qu'aucun champ supplémentaire envoyé
-             * par GPT ne puisse être conservé.
-             */
+          (item) => ({
+            event_id:
+              item.status ===
+              'implied'
+                ? ''
+                : item.event_id,
 
-            return {
-              event_id:
-                item.status ===
-                'implied'
-                  ? ''
-                  : item.event_id,
+            status:
+              item.status,
 
-              status:
-                item.status,
-
-              claim:
-                item.claim.trim(),
-            };
-          }
+            claim:
+              item.claim.trim(),
+          })
         );
 
     /* ===================================================== */
@@ -927,85 +963,82 @@ Si aucun événement ne permet de répondre :
       );
 
     /* ===================================================== */
-    /* COHÉRENCE DES CLAIMS VALIDÉS                         */
+    /* CLAIMS VALIDÉS                                        */
     /* ===================================================== */
 
-    const validatedClaimsByEvent =
-      new Map();
-
-    validatedClaims.forEach(
-      (item) => {
-        if (
-          !validatedClaimsByEvent.has(
-            item.event_id
-          )
-        ) {
-          validatedClaimsByEvent.set(
-            item.event_id,
-            []
-          );
-        }
-
-        validatedClaimsByEvent
-          .get(item.event_id)
-          .push(item.claim);
-      }
-    );
-
     /*
-     * IMPORTANT :
+     * Les claims validés sont indépendants des événements.
      *
-     * Les claims validés servent au modèle comme faits
-     * explicitement confirmés.
-     *
-     * Nous ne rajoutons PAS de champ "validated"
-     * dans evidence.
-     *
-     * Si GPT reprend exactement un claim validé,
-     * son statut doit être explicit.
+     * On crée une liste globale afin de pouvoir reconnaître
+     * une déduction validée même lorsque GPT la renvoie avec
+     * event_id = "".
      */
+
+    const validatedClaimsNormalized =
+      validatedClaims.map(
+        (item) => ({
+          ...item,
+          normalized:
+            normalizeClaim(
+              item.claim
+            ),
+        })
+      );
+
+    /* ===================================================== */
+    /* TRANSFORMATION DES CLAIMS VALIDÉS                    */
+    /* ===================================================== */
 
     result.evidence =
       result.evidence.map(
         (item) => {
-          if (
-            item.status ===
-            'implied'
-          ) {
-            return item;
-          }
 
-          const claims =
-            validatedClaimsByEvent.get(
-              item.event_id
+          const matchingValidatedClaim =
+            validatedClaimsNormalized.find(
+              (validatedClaim) =>
+                claimsMatch(
+                  validatedClaim.claim,
+                  item.claim
+                )
             );
 
-          if (
-            !claims ||
-            claims.length === 0
-          ) {
-            return item;
-          }
-
-          const matchingClaim =
-            claims.find(
-              (claim) =>
-                claim ===
-                item.claim
-            );
+          /*
+           * Le claim retourné par GPT correspond à une
+           * déduction déjà validée par l'utilisateur.
+           *
+           * Il devient donc EXPLICITE.
+           */
 
           if (
-            matchingClaim
+            matchingValidatedClaim
           ) {
             return {
               event_id:
-                item.event_id,
+                matchingValidatedClaim.event_id ||
+                item.event_id ||
+                '',
 
               status:
                 'explicit',
 
               claim:
-                matchingClaim,
+                matchingValidatedClaim.claim,
+            };
+          }
+
+          /*
+           * Une déduction qui n'a pas été validée
+           * reste une déduction.
+           */
+
+          if (
+            item.status ===
+            'implied'
+          ) {
+            return {
+              event_id: '',
+              status: 'implied',
+              claim: item.claim,
             };
           }
 
@@ -1014,7 +1047,55 @@ Si aucun événement ne permet de répondre :
       );
 
     /* ===================================================== */
-    /* COHÉRENCE DES EVENT IDS                              */
+    /* SÉCURITÉ DES EVIDENCES EXPLICITES                    */
+    /* ===================================================== */
+
+    /*
+     * Une evidence explicit doit normalement avoir un
+     * événement source.
+     *
+     * Si une validation porte sur un claim sans event_id,
+     * on conserve le claim validé mais on ne fabrique
+     * jamais un faux événement.
+     */
+
+    result.evidence =
+      result.evidence.filter(
+        (item) => {
+
+          if (
+            item.status ===
+            'implied'
+          ) {
+            return true;
+          }
+
+          if (
+            item.status ===
+            'not_confirmed'
+          ) {
+            return (
+              item.event_id === '' ||
+              validEventIds.has(
+                item.event_id
+              )
+            );
+          }
+
+          /*
+           * explicit
+           */
+          return (
+            item.event_id === '' ||
+            validEventIds.has(
+              item.event_id
+            )
+          );
+        }
+      );
+
+    /* ===================================================== */
+    /* IDS DES EVIDENCES                                    */
     /* ===================================================== */
 
     const evidenceIds =
@@ -1107,7 +1188,7 @@ Si aucun événement ne permet de répondre :
 });
 
 /* ========================================================= */
-/* SERVEUR                                                   */
+/* SERVEUR                                                    */
 /* ========================================================= */
 
 const PORT =
