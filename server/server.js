@@ -26,187 +26,6 @@ app.get('/', (req, res) => {
 });
 
 /* ========================================================= */
-/* OUTILS                                                    */
-/* ========================================================= */
-
-function normalizeText(text) {
-  return String(text || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function questionToConfirmedClaim(question) {
-  let claim = String(question || '').trim();
-
-  claim = claim
-    .replace(/[?？]\s*$/, '')
-    .trim();
-
-  const prefixes = [
-    /^est-ce que\s+/i,
-    /^est ce que\s+/i,
-    /^est-ce qu['’]\s*/i,
-    /^est ce qu['’]\s*/i,
-  ];
-
-  for (const prefix of prefixes) {
-    if (prefix.test(claim)) {
-      claim = claim.replace(prefix, '');
-      break;
-    }
-  }
-
-  if (!claim) {
-    return '';
-  }
-
-  return claim.charAt(0).toUpperCase() + claim.slice(1);
-}
-
-function getValidatedClaim(memory, question) {
-  /*
-   * Une validation utilisateur représente désormais une
-   * confirmation factuelle.
-   *
-   * On ne reprend PAS aveuglément description/facts,
-   * car ceux-ci peuvent contenir une formulation ancienne
-   * comme :
-   *
-   * "Chloe pourrait être..."
-   *
-   * Si la validation répond directement à la question,
-   * la question devient la formulation canonique du fait.
-   */
-
-  const questionClaim =
-    questionToConfirmedClaim(question);
-
-  if (questionClaim) {
-    return questionClaim;
-  }
-
-  if (
-    Array.isArray(memory.facts) &&
-    memory.facts.length > 0
-  ) {
-    return memory.facts.join(' ');
-  }
-
-  return memory.description || '';
-}
-
-function isValidatedMemoryRelevant(
-  memory,
-  normalizedQuestion
-) {
-  const memoryText = normalizeText(
-    [
-      memory.description,
-      ...(Array.isArray(memory.facts)
-        ? memory.facts
-        : []),
-      ...(Array.isArray(memory.people)
-        ? memory.people
-        : []),
-      ...(Array.isArray(memory.places)
-        ? memory.places
-        : []),
-      ...(Array.isArray(memory.subjects)
-        ? memory.subjects
-        : []),
-      ...(Array.isArray(memory.objects)
-        ? memory.objects
-        : []),
-    ]
-      .filter(Boolean)
-      .join(' ')
-  );
-
-  const stopWords = [
-    'est-ce',
-    'est',
-    'cette',
-    'cela',
-    'dont',
-    'sont',
-    'dans',
-    'avec',
-    'pour',
-    'quelle',
-    'quelles',
-    'quels',
-    'quel',
-    'comment',
-    'les',
-    'des',
-    'une',
-    'un',
-    'qui',
-    'que',
-    'la',
-    'le',
-    'et',
-    'ou',
-    'de',
-    'du',
-    'ma',
-    'mon',
-    'mes',
-    'ta',
-    'ton',
-    'tes',
-    'ses',
-    'son',
-    'sa',
-    'mes',
-    'être',
-    'sont',
-  ];
-
-  const words = normalizedQuestion
-    .split(/\s+/)
-    .map((word) =>
-      word.replace(
-        /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,
-        ''
-      )
-    )
-    .filter(
-      (word) =>
-        word.length >= 4 &&
-        !stopWords.includes(word)
-    );
-
-  if (words.length === 0) {
-    return false;
-  }
-
-  const matchingWords = words.filter(
-    (word) =>
-      memoryText.includes(word)
-  );
-
-  /*
-   * Pour les validations, on reste volontairement
-   * permissif : si au moins deux éléments significatifs
-   * de la question apparaissent dans le souvenir, celui-ci
-   * peut être considéré comme candidat.
-   *
-   * Pour une question très courte, un seul élément suffit.
-   */
-
-  const required =
-    words.length <= 2
-      ? 1
-      : Math.min(2, words.length);
-
-  return (
-    matchingWords.length >= required
-  );
-}
-
-/* ========================================================= */
 /* COMPRÉHENSION                                             */
 /* ========================================================= */
 
@@ -224,11 +43,10 @@ app.post('/understand', async (req, res) => {
 
     console.log('🧠 Analyse de la saisie...');
 
-    const response =
-      await openai.responses.create({
-        model: 'gpt-5-mini',
+    const response = await openai.responses.create({
+      model: 'gpt-5-mini',
 
-        input: `
+      input: `
 Tu es le moteur de mémoire de l'application Moment.
 
 Moment construit progressivement une mémoire personnelle à partir
@@ -424,14 +242,12 @@ TEXTE UTILISATEUR
 
 ${text.trim()}
 `,
-      });
+    });
 
     let result;
 
     try {
-      result = JSON.parse(
-        response.output_text
-      );
+      result = JSON.parse(response.output_text);
     } catch (parseError) {
       console.error(
         '❌ Réponse JSON invalide :',
@@ -449,8 +265,7 @@ ${text.trim()}
     }
 
     result.events.forEach((event) => {
-      event.created_at =
-        new Date().toISOString();
+      event.created_at = new Date().toISOString();
     });
 
     console.log(
@@ -462,6 +277,7 @@ ${text.trim()}
     );
 
     res.json(result);
+
   } catch (error) {
     console.error(
       '❌ Erreur OpenAI :',
@@ -517,9 +333,7 @@ app.post('/recall', async (req, res) => {
       `✅ ${validatedMemories.length} événement(s) validé(s) par l'utilisateur`
     );
 
-    if (
-      validatedMemories.length > 0
-    ) {
+    if (validatedMemories.length > 0) {
       console.log(
         '📌 Validations trouvées :',
         validatedMemories.map(
@@ -570,6 +384,12 @@ Tu dois distinguer STRICTEMENT :
 
 L'information est directement présente dans un événement.
 
+Exemple :
+
+"Chloe est ma fille."
+
+→ Chloe est explicitement la fille de l'utilisateur.
+
 ============================================================
 2. IMPLIQUÉ
 ============================================================
@@ -577,7 +397,30 @@ L'information est directement présente dans un événement.
 L'information n'est pas directement écrite mais découle
 logiquement de plusieurs informations.
 
-Une conclusion déduite doit rester "implied".
+Exemple :
+
+Événement A :
+"Chloe est ma fille."
+
+Événement B :
+"Mes deux sœurs sont les marraines de ma fille."
+
+Événement C :
+"Mireille est ma sœur."
+
+Événement D :
+"Élise est ma sœur."
+
+Question :
+
+"Est-ce que Chloe est la fille dont Mireille et Élise
+sont les marraines ?"
+
+La conclusion est logique mais n'est pas écrite explicitement.
+
+Elle est donc :
+
+"implied"
 
 ============================================================
 3. NON CONFIRMÉ
@@ -601,7 +444,7 @@ Certains événements peuvent contenir :
 "validated_by_user": true
 
 Cela signifie que l'utilisateur a explicitement confirmé
-le contenu factuel correspondant.
+le contenu factuel de cet événement.
 
 Une validation utilisateur est TOUJOURS prioritaire.
 
@@ -609,37 +452,77 @@ Si un événement contient :
 
 validated_by_user: true
 
-alors :
+alors son contenu factuel est EXPLICITE.
 
-- son contenu est considéré comme confirmé ;
-- evidence.status DOIT être "explicit" ;
-- il ne doit JAMAIS être classé "implied" ;
-- il ne doit JAMAIS être classé "not_confirmed" ;
-- aucune formulation comme "pourrait", "probablement",
-  "semble", "peut-être" ne doit apparaître dans la réponse
-  lorsqu'elle affirme le contenu validé.
+Il doit être considéré comme confirmé.
 
-IMPORTANT :
+evidence.status DOIT être "explicit".
 
-Si un événement validé contient une ancienne formulation
-prudente ou déductive dans description, facts ou source_text,
-cette formulation ne doit PAS annuler la validation.
+Il ne doit JAMAIS être classé "implied".
 
-La validation utilisateur représente la confirmation finale.
+Il ne doit JAMAIS être classé "not_confirmed".
+
+source_text peut contenir l'historique de la déduction
+ayant conduit à la validation.
+
+source_text ne doit JAMAIS annuler la validation.
+
+description et facts représentent la formulation confirmée.
+
+============================================================
+RÈGLE IMPORTANTE SUR LES QUESTIONS
+============================================================
+
+Une validation utilisateur ne signifie PAS que toutes les
+questions contenant les mêmes mots doivent être automatiquement
+considérées comme une confirmation.
+
+Exemple de validation :
+
+"Chloe est la fille dont Mireille et Élise sont les marraines."
+
+Question :
+
+"Est-ce que Chloe est la fille dont Mireille et Élise
+sont les marraines ?"
+
+→ EXPLICITE.
+
+Mais :
+
+"Qui sont les marraines de Chloe ?"
+
+→ Il faut répondre à la question en recherchant l'information
+dans la mémoire.
+
+La validation peut servir de preuve pour construire la réponse,
+mais il ne faut pas remplacer la question par le texte de
+la question elle-même.
+
+Autre exemple :
+
+"Chloe est-elle la fille de Mireille ?"
+
+→ La validation concernant les marraines ne permet PAS
+de conclure que Mireille est la mère de Chloe.
+
+Ne déduis jamais une relation différente de celle qui a
+été validée.
 
 ============================================================
 RÈGLE DES DÉDUCTIONS
 ============================================================
 
 Si tu construis une conclusion qui n'est pas directement
-présente dans un événement NON VALIDÉ :
+présente dans un événement :
 
-evidence DOIT contenir :
+evidence DOIT contenir au moins une entrée :
 
 "status": "implied"
 
-Les preuves utilisées pour construire cette conclusion
-restent explicit.
+Les preuves sources restent explicit.
+
+La conclusion construite reste implied.
 
 ============================================================
 RÈGLE DES ACTIONS PHYSIQUES
@@ -733,6 +616,30 @@ Il faut une relation logique claire.
 created_at sert à déterminer l'ordre chronologique.
 
 ============================================================
+RÈGLE DES RELATIONS ENTRE ÉVÉNEMENTS
+============================================================
+
+Plusieurs événements peuvent être utilisés ensemble.
+
+Le fait qu'ils parlent :
+
+- de la même personne ;
+- du même jour ;
+- du même lieu ;
+- du même sujet ;
+
+ne signifie pas automatiquement qu'ils décrivent
+le même événement.
+
+Une conclusion peut néanmoins être déduite
+de plusieurs événements.
+
+Dans ce cas :
+
+- les informations sources restent "explicit" ;
+- la conclusion construite est "implied".
+
+============================================================
 QUESTION
 ============================================================
 
@@ -749,7 +656,7 @@ ${JSON.stringify(
 )}
 
 ============================================================
-VALIDATIONS UTILISATEUR
+ÉVÉNEMENTS VALIDÉS PAR L'UTILISATEUR
 ============================================================
 
 ${JSON.stringify(
@@ -759,30 +666,43 @@ ${JSON.stringify(
 )}
 
 ============================================================
-RÈGLE FINALE
+INSTRUCTIONS FINALES
 ============================================================
 
-Avant de répondre :
+Utilise les événements validés comme des faits confirmés.
 
-1. Cherche d'abord les validations utilisateur.
+Mais réponds TOUJOURS à la question réellement posée.
 
-2. Si une validation utilisateur répond directement
-   à la question :
-   → réponds OUI ou NON selon la validation ;
-   → status = "explicit" ;
-   → confidence = 1.
+Ne remplace jamais une question par le texte de la question.
 
-3. Ne reprends jamais une formulation prudente présente
-   dans source_text pour affaiblir une validation.
+Si la question demande :
 
-4. Une information validée ne doit jamais être décrite
-   comme une simple déduction.
+"Qui sont les marraines de Chloe ?"
 
-5. Les autres déductions restent "implied".
+et qu'un événement validé indique :
 
-6. Ne fabrique jamais d'information.
+"Chloe est la fille dont Mireille et Élise sont les marraines."
 
-7. Ne crée jamais de nouveau souvenir pendant le rappel.
+alors réponds naturellement :
+
+"Les marraines de Chloe sont Mireille et Élise."
+
+avec une evidence explicit correspondant à l'événement validé.
+
+Si la question demande :
+
+"Chloe est-elle la fille dont Mireille et Élise
+sont les marraines ?"
+
+alors réponds :
+
+"Oui. Tu as confirmé que Chloe est la fille dont
+Mireille et Élise sont les marraines."
+
+avec une evidence explicit.
+
+Si la question demande une information différente
+qui ne découle pas de la validation, ne l'invente pas.
 
 ============================================================
 FORMAT DE RÉPONSE
@@ -826,6 +746,48 @@ status doit être exactement :
 "explicit"
 "implied"
 "not_confirmed"
+
+============================================================
+RÈGLE FINALE
+============================================================
+
+Avant de répondre, vérifie :
+
+1. Si l'information vient d'un événement
+   validated_by_user: true
+   → explicit.
+
+2. Si la conclusion est déduite
+   → implied obligatoire.
+
+3. Si la mémoire ne permet pas de confirmer
+   → not_confirmed.
+
+4. Ne transforme jamais une déduction en fait
+   sauf validation explicite de l'utilisateur.
+
+5. Ne fabrique jamais d'information.
+
+6. Ne crée jamais de nouveau souvenir pendant
+   le rappel.
+
+7. Une validation utilisateur est plus forte que
+   toute ancienne formulation présente dans source_text.
+
+8. Réponds toujours à la question réellement posée.
+
+9. Ne considère jamais le simple partage de mots entre
+   une question et un souvenir comme une preuve suffisante
+   pour reformuler automatiquement la question.
+
+Si aucun événement ne permet de répondre :
+
+{
+  "answer": "Je n'ai pas suffisamment d'informations dans ma mémoire.",
+  "event_ids": [],
+  "confidence": 0,
+  "evidence": []
+}
 `,
       });
 
@@ -927,7 +889,7 @@ status doit être exactement :
       );
 
     /* ===================================================== */
-    /* SÉCURITÉ DES VALIDATIONS                              */
+    /* SÉCURITÉ ABSOLUE DES VALIDATIONS                     */
     /* ===================================================== */
 
     const validatedById =
@@ -951,147 +913,21 @@ status doit être exactement :
           if (
             validatedMemory
           ) {
-            /*
-             * Une validation reste explicit.
-             *
-             * Mais on ne reprend pas automatiquement
-             * la formulation potentiellement mauvaise
-             * de l'ancien souvenir.
-             */
+            const validatedClaim =
+              Array.isArray(
+                validatedMemory.facts
+              ) &&
+              validatedMemory.facts.length >
+                0
+                ? validatedMemory.facts.join(
+                    ' '
+                  )
+                : validatedMemory.description;
 
             return {
               ...item,
               status:
                 'explicit',
-            };
-          }
-
-          return item;
-        }
-      );
-
-    /* ===================================================== */
-    /* DÉTECTION DIRECTE D'UNE VALIDATION                   */
-    /* ===================================================== */
-
-    const normalizedQuestion =
-      normalizeText(question);
-
-    const relevantValidatedMemory =
-      validatedMemories.find(
-        (memory) =>
-          isValidatedMemoryRelevant(
-            memory,
-            normalizedQuestion
-          )
-      );
-
-    if (
-      relevantValidatedMemory
-    ) {
-      /*
-       * ===================================================
-       * IMPORTANT
-       * ===================================================
-       *
-       * La validation utilisateur est maintenant
-       * considérée comme la confirmation finale.
-       *
-       * On transforme directement la question en
-       * affirmation.
-       *
-       * Exemple :
-       *
-       * Question :
-       * "Est-ce que Chloe est la fille dont Mireille
-       * et Élise sont les marraines ?"
-       *
-       * devient :
-       *
-       * "Chloe est la fille dont Mireille et Élise
-       * sont les marraines."
-       *
-       * Cela évite de ressortir :
-       *
-       * "Chloe pourrait être..."
-       */
-
-      const validatedClaim =
-        getValidatedClaim(
-          relevantValidatedMemory,
-          question
-        );
-
-      if (validatedClaim) {
-        console.log(
-          '🔐 Validation utilisateur prioritaire :',
-          relevantValidatedMemory.id
-        );
-
-        console.log(
-          '🔐 Fait confirmé :',
-          validatedClaim
-        );
-
-        result.answer =
-          `Oui. Tu as confirmé que ${validatedClaim}.`;
-
-        result.event_ids = [
-          relevantValidatedMemory.id,
-        ];
-
-        result.confidence = 1;
-
-        result.evidence = [
-          {
-            event_id:
-              relevantValidatedMemory.id,
-
-            status:
-              'explicit',
-
-            claim:
-              validatedClaim,
-          },
-        ];
-      }
-    }
-
-    /* ===================================================== */
-    /* NETTOYAGE FINAL DES FORMULATIONS INVALIDES           */
-    /* ===================================================== */
-
-    /*
-     * Si un événement validé est utilisé, son evidence
-     * doit absolument rester explicit.
-     */
-
-    result.evidence =
-      result.evidence.map(
-        (item) => {
-          if (
-            validatedById.has(
-              item.event_id
-            )
-          ) {
-            const memory =
-              validatedById.get(
-                item.event_id
-              );
-
-            const validatedClaim =
-              getValidatedClaim(
-                memory,
-                question
-              );
-
-            return {
-              event_id:
-                item.event_id,
-
-              status:
-                'explicit',
-
               claim:
                 validatedClaim ||
                 item.claim,
@@ -1102,79 +938,30 @@ status doit être exactement :
         }
       );
 
+    /* ===================================================== */
+    /* CORRECTION DES RÉPONSES DE VALIDATION                */
+    /* ===================================================== */
+
     /*
-     * Si une validation est utilisée,
-     * la confiance doit être maximale.
+     * IMPORTANT :
+     *
+     * Nous ne remplaçons PLUS automatiquement la réponse
+     * de GPT simplement parce qu'un événement validé partage
+     * plusieurs mots avec la question.
+     *
+     * Cela évite le bug :
+     *
+     * Question :
+     * "Qui sont les marraines de Chloe ?"
+     *
+     * Réponse incorrecte :
+     * "Oui. Tu as confirmé que Qui sont les marraines de Chloe."
+     *
+     * GPT reste responsable de répondre à la question.
+     *
+     * Le serveur intervient uniquement pour garantir qu'une
+     * preuve provenant d'un événement validé reste explicit.
      */
-
-    const containsValidatedEvidence =
-      result.evidence.some(
-        (item) =>
-          validatedById.has(
-            item.event_id
-          )
-      );
-
-    if (
-      containsValidatedEvidence
-    ) {
-      const validatedItem =
-        result.evidence.find(
-          (item) =>
-            validatedById.has(
-              item.event_id
-            )
-        );
-
-      if (validatedItem) {
-        result.confidence = 1;
-
-        /*
-         * Si GPT a malgré tout produit une formulation
-         * prudente, on la remplace par la formulation
-         * canonique de la validation.
-         */
-
-        const memory =
-          validatedById.get(
-            validatedItem.event_id
-          );
-
-        const confirmedClaim =
-          getValidatedClaim(
-            memory,
-            question
-          );
-
-        if (confirmedClaim) {
-          result.answer =
-            `Oui. Tu as confirmé que ${confirmedClaim}.`;
-
-          result.evidence =
-            result.evidence.map(
-              (item) => {
-                if (
-                  item.event_id ===
-                  validatedItem.event_id
-                ) {
-                  return {
-                    event_id:
-                      item.event_id,
-
-                    status:
-                      'explicit',
-
-                    claim:
-                      confirmedClaim,
-                  };
-                }
-
-                return item;
-              }
-            );
-        }
-      }
-    }
 
     /* ===================================================== */
     /* COHÉRENCE DES EVENT IDS                              */
