@@ -16,7 +16,78 @@ const openai = new OpenAI({
 });
 
 /* ========================================================= */
-/* ACCUEIL                                                   */
+/* OUTILS                                                     */
+/* ========================================================= */
+
+function normalizeText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[“”"']/g, '')
+    .trim();
+}
+
+/*
+ * Nettoie une conclusion implicite afin qu'elle ne contienne
+ * pas elle-même le niveau d'incertitude.
+ *
+ * Le niveau de certitude est porté par :
+ *
+ * status: "implied"
+ *
+ * et non par des mots comme :
+ *
+ * "probablement"
+ * "pourrait"
+ * "semble"
+ * "peut-être"
+ */
+function cleanInferenceClaim(claim) {
+  if (typeof claim !== 'string') {
+    return '';
+  }
+
+  let cleaned = claim.trim();
+
+  cleaned = cleaned
+    .replace(
+      /^(probablement|peut[- ]être|peut etre|sans doute|vraisemblablement|il est probable que|il semble que|semble que|on peut penser que)\s*/i,
+      ''
+    )
+    .replace(
+      /\s*\((impliqué|implique|déduction|déduit|non confirmé|non confirmee|probable|probablement)[^)]*\)\s*$/i,
+      ''
+    )
+    .trim();
+
+  /*
+   * Si le modèle a produit :
+   *
+   * "Chloe pourrait être la fille..."
+   *
+   * on transforme la formulation en :
+   *
+   * "Chloe est la fille..."
+   *
+   * Le statut "implied" indique déjà que cette conclusion
+   * n'est pas explicitement enregistrée.
+   */
+  cleaned = cleaned.replace(
+    /^(.+?)\s+(pourrait|pourrais|pourrait bien)\s+(être|etre)\s+/i,
+    '$1 est '
+  );
+
+  cleaned = cleaned.replace(
+    /^(.+?)\s+(semble être|semble etre)\s+/i,
+    '$1 est '
+  );
+
+  return cleaned;
+}
+
+/* ========================================================= */
+/* ACCUEIL                                                     */
 /* ========================================================= */
 
 app.get('/', (req, res) => {
@@ -26,7 +97,7 @@ app.get('/', (req, res) => {
 });
 
 /* ========================================================= */
-/* COMPRÉHENSION                                             */
+/* COMPRÉHENSION                                               */
 /* ========================================================= */
 
 app.post('/understand', async (req, res) => {
@@ -319,7 +390,7 @@ app.post('/recall', async (req, res) => {
     );
 
     /* ===================================================== */
-    /* ÉVÉNEMENTS VALIDÉS                                    */
+    /* VALIDATIONS UTILISATEUR                               */
     /* ===================================================== */
 
     const validatedMemories =
@@ -416,32 +487,60 @@ Question :
 "Est-ce que Chloe est la fille dont Mireille et Élise
 sont les marraines ?"
 
-La conclusion est logique mais n'est pas écrite explicitement.
+La conclusion logique est :
+
+"Chloe est la fille dont Mireille et Élise sont les marraines."
+
+Cette conclusion n'est pas écrite explicitement dans un seul
+événement.
 
 Elle est donc :
 
 "implied"
 
-IMPORTANT :
+============================================================
+RÈGLE TRÈS IMPORTANTE POUR LES CLAIMS IMPLIQUÉS
+============================================================
 
-Lorsque tu construis une telle conclusion, tu DOIS créer
-une evidence supplémentaire avec :
+Lorsqu'une conclusion est déduite, le champ "claim" doit
+décrire directement la conclusion obtenue.
 
-"status": "implied"
+Il doit être formulé comme une phrase affirmative et claire.
 
-Cette evidence doit représenter LA CONCLUSION elle-même,
-et non simplement répéter une preuve source.
+BON :
 
-Exemple :
+"Chloe est la fille dont Mireille et Élise sont les marraines."
 
-{
-  "event_id": "memory_123",
-  "status": "implied",
-  "claim": "Chloe est probablement la fille dont Mireille et Élise sont les marraines."
-}
+MAUVAIS :
 
-Les événements ayant servi à construire cette conclusion
-restent eux-mêmes "explicit".
+"Chloe pourrait être la fille dont Mireille et Élise sont les marraines."
+
+MAUVAIS :
+
+"Chloe est probablement la fille dont Mireille et Élise sont les marraines."
+
+MAUVAIS :
+
+"Il semble que Chloe soit la fille dont Mireille et Élise sont les marraines."
+
+MAUVAIS :
+
+"Chloe est la fille dont Mireille et Élise sont les marraines (impliqué mais non confirmé)."
+
+Le mot "implied" dans evidence.status indique déjà
+que la conclusion est une déduction.
+
+Le texte de claim ne doit donc PAS contenir :
+
+- probablement ;
+- pourrait ;
+- peut-être ;
+- semble ;
+- vraisemblablement ;
+- non confirmé ;
+- impliqué ;
+- déduction ;
+- ou toute autre formule indiquant le niveau de certitude.
 
 ============================================================
 3. NON CONFIRMÉ
@@ -449,6 +548,12 @@ restent eux-mêmes "explicit".
 
 La mémoire contient une information proche mais ne permet
 pas de confirmer le fait demandé.
+
+Dans ce cas, ne fabrique pas une conclusion.
+
+Utilise :
+
+"not_confirmed"
 
 ============================================================
 4. INCONNU
@@ -460,7 +565,7 @@ La mémoire ne contient aucune information pertinente.
 RÈGLE ABSOLUE : VALIDATION UTILISATEUR
 ============================================================
 
-Certains événements peuvent contenir :
+Certains événements de la mémoire peuvent contenir :
 
 "validated_by_user": true
 
@@ -490,6 +595,27 @@ Le champ description et le champ facts de l'événement
 validé représentent la formulation confirmée.
 
 ============================================================
+RÈGLE DE VALIDATION
+============================================================
+
+Lorsqu'une déduction est proposée à l'utilisateur,
+la phrase utilisée comme "claim" doit être une conclusion
+factuelle propre.
+
+Lorsque l'utilisateur valide cette conclusion, cette même
+phrase devient une information explicitement confirmée.
+
+Il ne faut JAMAIS conserver dans le souvenir validé des
+mots comme :
+
+- probablement ;
+- pourrait ;
+- peut-être ;
+- semble ;
+- non confirmé ;
+- impliqué.
+
+============================================================
 EXEMPLE DE VALIDATION
 ============================================================
 
@@ -508,13 +634,12 @@ Question :
 "Est-ce que Chloe est la fille dont Mireille et Élise
 sont les marraines ?"
 
-Réponse :
+Réponse obligatoire :
 
 {
   "answer": "Oui. Tu as confirmé que Chloe est la fille dont Mireille et Élise sont les marraines.",
   "event_ids": ["validated_123"],
   "confidence": 1,
-  "inference": null,
   "evidence": [
     {
       "event_id": "validated_123",
@@ -531,68 +656,31 @@ RÈGLE DES DÉDUCTIONS
 Si tu construis une conclusion qui n'est pas directement
 présente dans un événement :
 
-1. evidence DOIT contenir au moins une entrée
-   avec "status": "implied".
+evidence DOIT contenir au moins une entrée :
 
-2. Le champ "inference" DOIT contenir la conclusion
-   déduite.
+"status": "implied"
 
-3. "inference" doit être null lorsqu'aucune déduction
-   n'est nécessaire.
+Le claim doit être une formulation affirmative de la
+conclusion déduite.
 
 Exemple :
 
 {
-  "answer": "Probablement oui. Chloe est la fille dont Mireille et Élise sont les marraines.",
-  "event_ids": [
-    "event_1",
-    "event_2",
-    "event_3"
-  ],
-  "confidence": 0.9,
-  "inference": {
-    "claim": "Chloe est probablement la fille dont Mireille et Élise sont les marraines.",
-    "event_ids": [
-      "event_1",
-      "event_2",
-      "event_3"
-    ]
-  },
-  "evidence": [
-    {
-      "event_id": "event_1",
-      "status": "explicit",
-      "claim": "Mes deux sœurs sont les marraines de ma fille."
-    },
-    {
-      "event_id": "event_2",
-      "status": "explicit",
-      "claim": "Chloe est un enfant de l'utilisateur."
-    },
-    {
-      "event_id": "event_3",
-      "status": "explicit",
-      "claim": "Mireille est la sœur de l'utilisateur."
-    },
-    {
-      "event_id": "event_4",
-      "status": "explicit",
-      "claim": "Élise est la sœur de l'utilisateur."
-    },
-    {
-      "event_id": "event_1",
-      "status": "implied",
-      "claim": "Chloe est probablement la fille dont Mireille et Élise sont les marraines."
-    }
-  ]
+  "event_id": "event_2",
+  "status": "implied",
+  "claim": "Chloe est la fille désignée par l'expression 'ta fille'."
 }
 
 IMPORTANT :
 
-La conclusion "implied" ne doit jamais remplacer
-les preuves sources.
+Une réponse peut contenir à la fois :
 
-Les preuves sources restent "explicit".
+- des preuves explicit ;
+- et une conclusion implied.
+
+Les preuves sources restent explicit.
+
+La conclusion construite reste implied.
 
 ============================================================
 RÈGLE DES ACTIONS PHYSIQUES
@@ -615,6 +703,16 @@ La personne peut donc être considérée comme probablement vue.
 Mais cette conclusion reste :
 
 "implied"
+
+Le claim doit néanmoins être formulé sans "probablement".
+
+Exemple :
+
+"Marc était présent lors du repas."
+
+et non :
+
+"Marc était probablement présent lors du repas."
 
 ============================================================
 RÈGLE DU TÉLÉPHONE
@@ -753,13 +851,16 @@ Retourne UNIQUEMENT un objet JSON valide.
   "answer": "",
   "event_ids": [],
   "confidence": 0,
-  "inference": null,
   "evidence": []
 }
 
 answer :
 
 Réponse naturelle à la question.
+
+Si la réponse repose sur une déduction, tu peux expliquer
+naturellement qu'il s'agit d'une déduction, mais ne modifie
+PAS le claim de evidence pour y ajouter cette incertitude.
 
 event_ids :
 
@@ -768,17 +869,6 @@ Identifiants des événements utilisés.
 confidence :
 
 Nombre entre 0 et 1.
-
-inference :
-
-null si aucune déduction n'est nécessaire.
-
-Sinon :
-
-{
-  "claim": "Conclusion déduite",
-  "event_ids": ["id1", "id2"]
-}
 
 evidence :
 
@@ -809,28 +899,25 @@ Avant de répondre, vérifie :
    → explicit.
 
 2. Si la conclusion est déduite
-   → inference doit être renseigné.
+   → implied obligatoire.
 
-3. Si la conclusion est déduite
-   → evidence doit contenir une entrée implied
-   représentant cette conclusion.
-
-4. Les événements sources utilisés pour la déduction
-   restent explicit.
-
-5. Si la mémoire ne permet pas de confirmer
+3. Si la mémoire ne permet pas de confirmer
    → not_confirmed.
 
-6. Ne transforme jamais une déduction en fait
+4. Ne transforme jamais une déduction en fait
    sauf validation explicite de l'utilisateur.
 
-7. Ne fabrique jamais d'information.
+5. Ne fabrique jamais d'information.
 
-8. Ne crée jamais de nouveau souvenir pendant
+6. Ne crée jamais de nouveau souvenir pendant
    le rappel.
 
-9. Une validation utilisateur est plus forte que
+7. Une validation utilisateur est plus forte que
    toute ancienne formulation présente dans source_text.
+
+8. Un claim implied doit être affirmatif et propre.
+   Le mot "implied" est porté par le champ status,
+   pas par le texte du claim.
 
 Si un événement validé contient exactement l'information
 demandée, réponds directement OUI et utilise cet événement
@@ -842,7 +929,6 @@ Si aucun événement ne permet de répondre :
   "answer": "Je n'ai pas suffisamment d'informations dans ma mémoire.",
   "event_ids": [],
   "confidence": 0,
-  "inference": null,
   "evidence": []
 }
 `,
@@ -896,14 +982,6 @@ Si aucun événement ne permet de répondre :
       result.confidence = 0;
     }
 
-    if (
-      result.inference !== null &&
-      typeof result.inference !==
-        'object'
-    ) {
-      result.inference = null;
-    }
-
     /* ===================================================== */
     /* IDS VALIDES                                           */
     /* ===================================================== */
@@ -954,6 +1032,38 @@ Si aucun événement ne permet de répondre :
       );
 
     /* ===================================================== */
+    /* NETTOYAGE DES DÉDUCTIONS                             */
+    /* ===================================================== */
+
+    /*
+     * Si une evidence est "implied", le claim doit rester
+     * une conclusion affirmative.
+     *
+     * On nettoie ici les formulations d'incertitude que GPT
+     * pourrait malgré tout produire.
+     */
+
+    result.evidence =
+      result.evidence.map(
+        (item) => {
+          if (
+            item.status ===
+            'implied'
+          ) {
+            return {
+              ...item,
+              claim:
+                cleanInferenceClaim(
+                  item.claim
+                ),
+            };
+          }
+
+          return item;
+        }
+      );
+
+    /* ===================================================== */
     /* SÉCURITÉ ABSOLUE DES VALIDATIONS                     */
     /* ===================================================== */
 
@@ -966,6 +1076,11 @@ Si aucun événement ne permet de répondre :
           ]
         )
       );
+
+    /*
+     * Si GPT a utilisé un événement validé,
+     * son evidence devient obligatoirement explicit.
+     */
 
     result.evidence =
       result.evidence.map(
@@ -1004,180 +1119,11 @@ Si aucun événement ne permet de répondre :
       );
 
     /* ===================================================== */
-    /* NORMALISATION DE L'INFERENCE                         */
-    /* ===================================================== */
-
-    if (
-      result.inference &&
-      typeof result.inference.claim ===
-        'string'
-    ) {
-      if (
-        !Array.isArray(
-          result.inference.event_ids
-        )
-      ) {
-        result.inference.event_ids =
-          [];
-      }
-
-      result.inference.event_ids =
-        result.inference.event_ids.filter(
-          (id) =>
-            validEventIds.has(id)
-        );
-
-      /*
-       * On s'assure que les événements utilisés
-       * pour la déduction figurent également
-       * dans event_ids.
-       */
-
-      result.event_ids = [
-        ...new Set([
-          ...result.event_ids,
-          ...result.inference.event_ids,
-        ]),
-      ].filter(
-        (id) =>
-          validEventIds.has(id)
-      );
-
-      /*
-       * L'inference doit obligatoirement produire
-       * une evidence "implied".
-       *
-       * On utilise le premier événement source
-       * comme référence technique.
-       *
-       * Les événements sources restent explicit.
-       */
-
-      const inferenceEventId =
-        result.inference.event_ids[0] ||
-        result.event_ids[0];
-
-      if (
-        inferenceEventId &&
-        !result.evidence.some(
-          (item) =>
-            item.status ===
-              'implied' &&
-            item.claim ===
-              result.inference.claim
-        )
-      ) {
-        result.evidence.push({
-          event_id:
-            inferenceEventId,
-
-          status:
-            'implied',
-
-          claim:
-            result.inference.claim,
-        });
-      }
-
-      console.log(
-        '🧠 Déduction détectée :',
-        result.inference.claim
-      );
-    }
-
-    /* ===================================================== */
-    /* FALLBACK : GPT A OUBLIÉ "inference"                  */
-    /* ===================================================== */
-
-    /*
-     * Certains appels peuvent encore produire une réponse
-     * qui contient clairement une déduction sans remplir
-     * correctement le champ inference.
-     *
-     * On détecte alors les formulations explicites de
-     * déduction dans la réponse.
-     */
-
-    const answerIndicatesInference =
-      typeof result.answer === 'string' &&
-      (
-        /\bimplique\b/i.test(
-          result.answer
-        ) ||
-        /\bdéduction\b/i.test(
-          result.answer
-        ) ||
-        /\bdéduit\b/i.test(
-          result.answer
-        ) ||
-        /\bprobablement\b/i.test(
-          result.answer
-        ) ||
-        /\bsemble\b/i.test(
-          result.answer
-        ) ||
-        /\bconclusion\b/i.test(
-          result.answer
-        )
-      );
-
-    const hasImpliedEvidence =
-      result.evidence.some(
-        (item) =>
-          item.status ===
-          'implied'
-      );
-
-    if (
-      answerIndicatesInference &&
-      !result.inference &&
-      !hasImpliedEvidence &&
-      result.event_ids.length > 0
-    ) {
-      /*
-       * On ne transforme pas toute la réponse en vérité.
-       *
-       * On l'enregistre uniquement comme conclusion
-       * impliquée, ce qui permet à l'utilisateur de
-       * la valider.
-       */
-
-      result.inference = {
-        claim:
-          result.answer,
-
-        event_ids:
-          result.event_ids,
-      };
-
-      result.evidence.push({
-        event_id:
-          result.event_ids[0],
-
-        status:
-          'implied',
-
-        claim:
-          result.answer,
-      });
-
-      console.log(
-        '🧠 Déduction récupérée automatiquement depuis la réponse'
-      );
-    }
-
-    /* ===================================================== */
     /* DÉTECTION DIRECTE D'UNE VALIDATION                   */
     /* ===================================================== */
 
     const normalizedQuestion =
-      question
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(
-          /[\u0300-\u036f]/g,
-          ''
-        );
+      normalizeText(question);
 
     const relevantValidatedMemory =
       validatedMemories.find(
@@ -1196,8 +1142,7 @@ Si aucun événement ne permet de répondre :
             .normalize('NFD')
             .replace(
               /[\u0300-\u036f]/g,
-              ''
-            );
+              '');
 
           const words =
             normalizedQuestion
@@ -1268,13 +1213,6 @@ Si aucun événement ne permet de répondre :
 
         result.confidence = 1;
 
-        /*
-         * Une information validée n'est plus
-         * une déduction.
-         */
-
-        result.inference = null;
-
         result.evidence = [
           {
             event_id:
@@ -1311,38 +1249,6 @@ Si aucun événement ne permet de répondre :
     );
 
     /* ===================================================== */
-    /* COHÉRENCE DE L'INFERENCE                             */
-    /* ===================================================== */
-
-    if (
-      result.inference
-    ) {
-      result.inference.event_ids =
-        result.inference.event_ids.filter(
-          (id) =>
-            validEventIds.has(id)
-        );
-
-      /*
-       * Si une validation utilisateur vient d'être
-       * détectée, l'inference doit disparaître.
-       */
-
-      if (
-        result.evidence.some(
-          (item) =>
-            item.status ===
-              'explicit' &&
-            validatedById.has(
-              item.event_id
-            )
-        )
-      ) {
-        result.inference = null;
-      }
-    }
-
-    /* ===================================================== */
     /* LOGS                                                  */
     /* ===================================================== */
 
@@ -1364,19 +1270,6 @@ Si aucun événement ne permet de répondre :
         2
       )
     );
-
-    if (
-      result.inference
-    ) {
-      console.log(
-        '🧠 INFERENCE :',
-        JSON.stringify(
-          result.inference,
-          null,
-          2
-        )
-      );
-    }
 
     const impliedCount =
       result.evidence.filter(
@@ -1427,7 +1320,7 @@ Si aucun événement ne permet de répondre :
 });
 
 /* ========================================================= */
-/* SERVEUR                                                   */
+/* SERVEUR                                                    */
 /* ========================================================= */
 
 const PORT =
