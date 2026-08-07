@@ -171,6 +171,9 @@ import {
 /* CONFIGURATION                                             */
 /* ========================================================= */
 
+
+import MomentThinkingAnimation from '../../components/MomentThinkingAnimation';
+
 import { SERVER_URL } from '../../config/server';
 
 import {
@@ -849,36 +852,42 @@ export default function RecallScreen() {
   /* RECHERCHE                                               */
   /* ======================================================= */
 
-  const annulerRecherche = () => {
-    if (!abortControllerRef.current) {
-      return;
-    }
+const annulerRecherche = () => {
+  if (!abortControllerRef.current) {
+    return;
+  }
 
-    console.log(
-      '🛑 Annulation de la requête demandée'
-    );
+  console.log(
+    '🛑 Annulation de la requête demandée'
+  );
 
-    abortControllerRef.current.abort();
-    abortControllerRef.current = null;
+  abortControllerRef.current.abort();
+  abortControllerRef.current = null;
 
-    setLoading(false);
+  setLoading(false);
 
-    setInferenceActuelle(null);
-    setInferenceValidee(false);
-    setInferenceRefutee(false);
-  };
+  setInferenceActuelle(null);
+  setInferenceValidee(false);
+  setInferenceRefutee(false);
+};
 
+const lancerRecherche = async () => {
+  if (
+    !recherche.trim() ||
+    loading
+  ) {
+    return;
+  }
 
-  const lancerRecherche = async () => {
-    if (
-      !recherche.trim() ||
-      loading
-    ) {
-      return;
-    }
+  await new Promise(
+    resolve =>
+      requestAnimationFrame(
+        resolve
+      )
+  );
 
-    const controller =
-      new AbortController();
+  const controller =
+    new AbortController();
 
     abortControllerRef.current =
       controller;
@@ -1450,12 +1459,12 @@ if (
             styles.searchSection
           }
         >
-          <View
-            style={
-              styles.searchInputContainer
-            }
-          >
-            <TextInput
+<View
+  style={
+    styles.searchInputContainer
+  }
+>
+  <TextInput
               style={styles.input}
               placeholder={
                 SEARCH_PLACEHOLDER
@@ -1548,43 +1557,6 @@ if (
 
           </View>
         </View>
-
-
-        {/* ================================================= */}
-        {/* TRAITEMENT                                        */}
-        {/* ================================================= */}
-
-        {loading && (
-          <View
-            style={
-              styles.processingContainer
-            }
-          >
-            <Text
-              style={
-                styles.processingMainText
-              }
-            >
-              {
-                RECALL_PROCESSING_STEPS[
-                  Math.min(
-                    etapeTraitement,
-                    RECALL_PROCESSING_STEPS.length - 1
-                  )
-                ]
-              }
-            </Text>
-
-            <Text
-              style={
-                styles.processingTime
-              }
-            >
-              {tempsEcoule} s
-            </Text>
-          </View>
-        )}
-
 
         {/* ================================================= */}
         {/* DÉDUCTION                                         */}
@@ -1914,13 +1886,26 @@ if (
               }
             )}
           </View>
-        )}
-
+                )}
       </ScrollView>
+
+      {loading && (
+        <View
+          style={
+            styles.fullScreenThinking
+          }
+          pointerEvents="none"
+        >
+          <MomentThinkingAnimation
+            text={
+              recherche
+            }
+          />
+        </View>
+      )}
     </View>
   );
 }
-
 
 /* ========================================================= */
 /* STYLES                                                    */
@@ -1931,6 +1916,15 @@ const styles =
     container: {
       flex: 1,
       backgroundColor: '#F7F5F2',
+    },
+
+    fullScreenThinking: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 5,
     },
 
     content: {
@@ -2027,28 +2021,28 @@ const styles =
       marginTop: 12,
     },
 
-    button: {
-      backgroundColor: '#4B5563',
-      paddingVertical: 13,
-      paddingHorizontal: 25,
-      borderRadius: 12,
-      minWidth: 150,
-      alignItems: 'center',
-    },
+button: {
+  backgroundColor: '#1F2937',
+  paddingVertical: 16,
+  paddingHorizontal: 45,
+  borderRadius: 14,
+  minWidth: 150,
+  alignItems: 'center',
+},
 
-    cancelButton: {
-      backgroundColor: '#B7791F',
-    },
+cancelButton: {
+  backgroundColor: '#B7791F',
+},
 
-    buttonDisabled: {
-      opacity: 0.6,
-    },
+buttonDisabled: {
+  opacity: 0.6,
+},
 
-    buttonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '600',
-    },
+buttonText: {
+  color: '#FFFFFF',
+  fontSize: 17,
+  fontWeight: '600',
+},
 
     microButton: {
       width: 52,
@@ -2063,28 +2057,6 @@ const styles =
 
     microIcon: {
       fontSize: 22,
-    },
-
-    processingContainer: {
-      width: '100%',
-      maxWidth: 500,
-      alignItems: 'center',
-      marginTop: 20,
-      marginBottom: 8,
-      minHeight: 48,
-      justifyContent: 'center',
-    },
-
-    processingMainText: {
-      fontSize: 16,
-      color: '#777777',
-      textAlign: 'center',
-    },
-
-    processingTime: {
-      fontSize: 13,
-      color: '#AAAAAA',
-      marginTop: 5,
     },
 
     processingTimeFinal: {

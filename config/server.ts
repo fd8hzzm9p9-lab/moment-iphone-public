@@ -8,4 +8,4 @@
  */
 
 export const SERVER_URL =
-  'https://proud-rica-simulation-told.trycloudflare.com';
+  'https://root-bras-pst-offshore.trycloudflare.com';

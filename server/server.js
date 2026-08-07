@@ -1983,6 +1983,205 @@ function getImportantQuestionWords(
   ];
 }
 
+/* ========================================================= */
+/* PRÉSÉLECTION LOCALE DES MÉMOIRES POUR GPT                 */
+/* ========================================================= */
+
+function selectRelevantMemoriesForQuestion(
+  memories,
+  question,
+  limit = 20
+) {
+  if (
+    !Array.isArray(memories) ||
+    memories.length === 0
+  ) {
+    return [];
+  }
+
+  const questionWords =
+    getImportantQuestionWords(
+      question
+    );
+
+  const questionPerson =
+    findPersonInQuestion(
+      question
+    );
+
+  const questionDays =
+    getDaysFromTemporalQuestion(
+      question
+    );
+
+  const normalizedQuestion =
+    normalizeText(
+      question
+    );
+
+  const scored =
+    memories.map(
+      (
+        memory,
+        index
+      ) => {
+        const memoryText =
+          normalizeText(
+            getMemoryText(
+              memory
+            )
+          );
+
+        const memoryWords =
+          new Set(
+            tokenizeForMatching(
+              memoryText
+            )
+          );
+
+        let score =
+          0;
+
+        /*
+         * Mots importants présents à la fois
+         * dans la question et dans le souvenir.
+         */
+        for (
+          const word of
+            questionWords
+        ) {
+          if (
+            memoryWords.has(
+              word
+            )
+          ) {
+            score += 2;
+          }
+        }
+
+        /*
+         * Personne explicitement demandée.
+         */
+        if (
+          questionPerson &&
+          memoryContainsPerson(
+            memory,
+            questionPerson
+          )
+        ) {
+          score += 8;
+        }
+
+        /*
+         * Jour explicitement demandé.
+         */
+        for (
+          const day of
+            questionDays
+        ) {
+          if (
+            memoryContainsDay(
+              memory,
+              day
+            )
+          ) {
+            score += 5;
+          }
+        }
+
+        /*
+         * Correspondance directe d'une partie importante
+         * de la question dans le texte de la mémoire.
+         */
+        if (
+          normalizedQuestion &&
+          memoryText.includes(
+            normalizedQuestion
+          )
+        ) {
+          score += 10;
+        }
+
+        /*
+         * Les déductions validées restent importantes :
+         * elles ont été explicitement acceptées
+         * par l'utilisateur.
+         */
+        if (
+          isValidatedDeduction(
+            memory
+          )
+        ) {
+          score += 3;
+        }
+
+        /*
+         * Une déduction rejetée ne doit jamais être
+         * proposée au modèle.
+         */
+        if (
+          isRejectedDeduction(
+            memory
+          )
+        ) {
+          score = -1000;
+        }
+
+        return {
+          memory,
+          score,
+          index,
+        };
+      }
+    );
+
+  const relevant =
+    scored
+      .filter(
+        item =>
+          item.score > 0
+      )
+      .sort(
+        (a, b) => {
+          if (
+            b.score !==
+            a.score
+          ) {
+            return (
+              b.score -
+              a.score
+            );
+          }
+
+          /*
+           * En cas d'égalité, préférence au
+           * souvenir le plus récent.
+           */
+          return (
+            getCreatedAt(
+              b.memory
+            ) -
+            getCreatedAt(
+              a.memory
+            )
+          );
+        }
+      )
+      .slice(
+        0,
+        Math.max(
+          1,
+          limit
+        )
+      )
+      .map(
+        item =>
+          item.memory
+      );
+
+  return relevant;
+}
+
 function getValidationHistory(
   memory
 ) {
@@ -8418,27 +8617,74 @@ app.post(
         }
       }
 
-      /* =================================================== */
-      /* FALLBACK GPT                                         */
-      /* =================================================== */
+/* =================================================== */
+/* FALLBACK GPT                                         */
+/* =================================================== */
 
-      const validatedClaims =
-        collectValidatedClaims(
-          memories
-        );
+/*
+ * Présélection locale expérimentale.
+ *
+ * IMPORTANT :
+ * pour l'instant cette sélection sert uniquement
+ * à vérifier dans les logs quels souvenirs seraient
+ * considérés comme pertinents.
+ *
+ * Le fallback GPT continue encore à utiliser
+ * toutes les mémoires.
+ */
 
-      const validatedDeductions =
-        collectValidatedDeductions(
-          memories
-        );
+const relevantMemories =
+  selectRelevantMemoriesForQuestion(
+    memories,
+    question,
+    20
+  );
 
-      const enrichedMemories =
-        memories.map(
-          memory =>
-            enrichMemoryWithCalendarDate(
-              memory
-            )
-        );
+console.log(
+  '🧠 Mémoires totales :',
+  memories.length
+);
+
+console.log(
+  '🎯 Mémoires présélectionnées :',
+  relevantMemories.length
+);
+
+console.log(
+  '🎯 IDs présélectionnés :',
+  relevantMemories.map(
+    memory =>
+      memory.id
+  )
+);
+
+console.log(
+  '🎯 Descriptions présélectionnées :',
+  relevantMemories.map(
+    memory =>
+      memory.description ||
+      memory.source_text ||
+      ''
+  )
+);
+
+const validatedClaims =
+  collectValidatedClaims(
+    memories
+  );
+
+const validatedDeductions =
+  collectValidatedDeductions(
+    memories
+  );
+
+const enrichedMemories =
+  memories.map(
+    memory =>
+      enrichMemoryWithCalendarDate(
+        memory
+      )
+  );
 
       const chronologicalMemories =
         [
