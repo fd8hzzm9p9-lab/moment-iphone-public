@@ -1,0 +1,69 @@
+{
+  "project": "Moment",
+  "memento": "MEMENTO 001",
+  "status": "TERMINÉ",
+  "steps_count": 10,
+  "resulting_version": "pré-alpha 0.1.10",
+  "objective": "Restructurer le serveur Moment en modules spécialisés sans modification volontaire du comportement métier déjà validé.",
+  "version_rule": "MEMENTO Y, étape X → pré-alpha 0.Y.X",
+  "result": {
+    "server_entrypoint": "server/server.js",
+    "server_entrypoint_lines_after": 201,
+    "routes": [
+      "server/routes/understand.js",
+      "server/routes/recall.js"
+    ],
+    "utils": [
+      "server/utils/core.js",
+      "server/utils/calendar.js",
+      "server/utils/memory.js",
+      "server/utils/deductions.js",
+      "server/utils/presence.js",
+      "server/utils/corrections.js",
+      "server/utils/work.js",
+      "server/utils/history.js"
+    ]
+  },
+  "steps": [
+    {
+      "step": "001-01",
+      "result": "Extraction des utilitaires généraux vers server/utils/core.js"
+    },
+    {
+      "step": "001-02",
+      "result": "Extraction du moteur calendrier / chronologie vers server/utils/calendar.js"
+    },
+    {
+      "step": "001-03",
+      "result": "Extraction des helpers mémoire / entités / questions vers server/utils/memory.js"
+    },
+    {
+      "step": "001-04",
+      "result": "Extraction du moteur de déductions vers server/utils/deductions.js"
+    },
+    {
+      "step": "001-05",
+      "result": "Extraction de la présence stricte vers server/utils/presence.js"
+    },
+    {
+      "step": "001-06",
+      "result": "Extraction du moteur de corrections vers server/utils/corrections.js"
+    },
+    {
+      "step": "001-07",
+      "result": "Extraction des helpers travail vers server/utils/work.js"
+    },
+    {
+      "step": "001-08",
+      "result": "Extraction historique / claims / déductions validées vers server/utils/history.js"
+    },
+    {
+      "step": "001-09",
+      "result": "Extraction complète de la route /recall vers server/routes/recall.js"
+    },
+    {
+      "step": "001-10",
+      "result": "Extraction complète de la route /understand vers server/routes/understand.js"
+    }
+  ]
+}
