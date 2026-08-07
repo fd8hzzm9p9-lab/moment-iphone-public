@@ -1,775 +1,39 @@
-
-import React, {
-  useEffect,
-  useRef,
-} from 'react';
+import React from 'react';
 
 import {
-  Animated,
-  Easing,
+  Platform,
+  Pressable,
+  Share,
   StyleSheet,
+  Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 
-const TRAIN_COUNT = 12;
-const TRAJECTORY_STEPS = 31;
+import {
+  APP_NAME,
+  APP_VERSION,
+} from '../../config/app';
 
-type MomentThinkingAnimationProps = {
-  text: string;
-};
+export default function PreventMeScreen() {
+  const sendFeedback =
+    async () => {
+      try {
+        await Share.share({
+          title:
+            'Feedback Moment',
 
-type LetterConfig = {
-  delay: number;
-};
-
-type Train = {
-  value: Animated.Value;
-  active: boolean;
-  angle: number;
-  radius: number;
-  turns: number;
-  direction: number;
-  duration: number;
-  ellipseX: number;
-  ellipseY: number;
-  rotation: number;
-  spiralPower: number;
-  size: number;
-  color: string;
-  text: string;
-  letters: LetterConfig[];
-};
-
-const MomentThinkingAnimation = ({
-  text,
-}: MomentThinkingAnimationProps) => {
-  const { width } =
-    useWindowDimensions();
-
-  const isPhone =
-    width < 600;
-
-  const brainScale =
-    useRef(
-      new Animated.Value(1)
-    ).current;
-
-  const trains =
-    useRef(
-      Array.from(
-        {
-          length:
-            TRAIN_COUNT,
-        },
-        () => ({
-          value:
-            new Animated.Value(0),
-
-          active: false,
-
-          angle: 0,
-          radius: 0,
-
-          turns: 0,
-          direction: 1,
-
-          duration: 0,
-
-          ellipseX: 1,
-          ellipseY: 1,
-
-          rotation: 0,
-
-          spiralPower: 0.8,
-
-          size: 48,
-          color: '#2563EB',
-
-          text: '',
-
-          letters: [],
-        })
-      )
-    ).current;
-
-  const mounted =
-    useRef(true);
-
-  useEffect(() => {
-    mounted.current = true;
-
-    const colors = [
-      '#1E3A5F',
-      '#2563EB',
-      '#3B82F6',
-      '#4F46E5',
-      '#0369A1',
-      '#1D4ED8',
-      '#60A5FA',
-      '#334155',
-    ];
-
-    const pulseBrain = () => {
-      if (!mounted.current) {
-        return;
-      }
-
-      Animated.sequence([
-        Animated.timing(
-          brainScale,
-          {
-            toValue: 1.1,
-            duration: 150,
-            easing:
-              Easing.out(
-                Easing.ease
-              ),
-            useNativeDriver: true,
-          }
-        ),
-
-        Animated.timing(
-          brainScale,
-          {
-            toValue: 0.985,
-            duration: 170,
-            easing:
-              Easing.inOut(
-                Easing.ease
-              ),
-            useNativeDriver: true,
-          }
-        ),
-
-        Animated.timing(
-          brainScale,
-          {
-            toValue: 1.035,
-            duration: 130,
-            easing:
-              Easing.inOut(
-                Easing.ease
-              ),
-            useNativeDriver: true,
-          }
-        ),
-
-        Animated.timing(
-          brainScale,
-          {
-            toValue: 1,
-            duration: 210,
-            easing:
-              Easing.out(
-                Easing.ease
-              ),
-            useNativeDriver: true,
-          }
-        ),
-      ]).start();
-    };
-
-    const launchTrain = (
-      train: Train,
-      word: string
-    ) => {
-      if (
-        !mounted.current ||
-        train.active
-      ) {
-        return;
-      }
-
-      train.active = true;
-
-      train.angle =
-        Math.random() *
-        Math.PI *
-        2;
-
-      train.radius =
-        185 +
-        Math.random() *
-          175;
-
-      train.turns =
-        0.85 +
-        Math.random() *
-          1.75;
-
-      train.direction =
-        Math.random() < 0.5
-          ? -1
-          : 1;
-
-      const ellipseType =
-        Math.floor(
-          Math.random() * 4
-        );
-
-      if (
-        ellipseType === 0
-      ) {
-        train.ellipseX =
-          1.25 +
-          Math.random() *
-            0.35;
-
-        train.ellipseY =
-          0.55 +
-          Math.random() *
-            0.2;
-      } else if (
-        ellipseType === 1
-      ) {
-        train.ellipseX =
-          0.55 +
-          Math.random() *
-            0.2;
-
-        train.ellipseY =
-          1.25 +
-          Math.random() *
-            0.35;
-      } else if (
-        ellipseType === 2
-      ) {
-        train.ellipseX =
-          1.05 +
-          Math.random() *
-            0.25;
-
-        train.ellipseY =
-          0.75 +
-          Math.random() *
-            0.2;
-      } else {
-        train.ellipseX =
-          0.75 +
-          Math.random() *
-            0.2;
-
-        train.ellipseY =
-          1.05 +
-          Math.random() *
-            0.25;
-      }
-
-      train.rotation =
-        Math.random() *
-        Math.PI *
-        2;
-
-      train.spiralPower =
-        0.7 +
-        Math.random() *
-          0.45;
-
-      train.duration =
-        isPhone
-          ? 8200 +
-            Math.random() *
-              1700
-          : 6500 +
-            Math.random() *
-              1600;
-
-      train.size =
-        isPhone
-          ? 46 +
-            Math.random() *
-              8
-          : 48 +
-            Math.random() *
-              12;
-
-      train.color =
-        colors[
-          Math.floor(
-            Math.random() *
-              colors.length
-          )
-        ];
-
-      train.text = word;
-
-      train.letters =
-        word
-          .split('')
-          .map(
-            (
-              _letter,
-              index
-            ) => {
-              if (
-                index === 0
-              ) {
-                return {
-                  delay: 0,
-                };
-              }
-
-              const spacing =
-                isPhone
-                  ? 0.055
-                  : 0.05;
-
-              const variation =
-                Math.random() *
-                  0.012;
-
-              return {
-                delay:
-                  index *
-                    spacing +
-                  variation,
-              };
-            }
-          );
-
-      train.value.setValue(0);
-
-      Animated.timing(
-        train.value,
-        {
-          toValue: 1,
-
-          duration:
-            train.duration,
-
-          easing:
-            Easing.inOut(
-              Easing.cubic
-            ),
-
-          useNativeDriver: true,
-        }
-      ).start(
-        ({ finished }) => {
-          if (
-            !mounted.current
-          ) {
-            return;
-          }
-
-          train.active =
-            false;
-
-          train.value.setValue(0);
-
-          if (finished) {
-            pulseBrain();
-          }
-        }
-      );
-    };
-
-    const words =
-      text
-        .split(/\s+/)
-        .filter(
-          word =>
-            word.length > 0
-        );
-
-    let stopped = false;
-
-    const timers: ReturnType<
-      typeof setTimeout
-    >[] = [];
-
-    const spawnTrain = () => {
-      if (
-        stopped ||
-        !mounted.current
-      ) {
-        return;
-      }
-
-      const available =
-        trains.filter(
-          train =>
-            !train.active
-        );
-
-      if (
-        available.length >
-          0 &&
-        words.length > 0
-      ) {
-        const train =
-          available[
-            Math.floor(
-              Math.random() *
-                available.length
-            )
-          ];
-
-        const word =
-          words[
-            Math.floor(
-              Math.random() *
-                words.length
-            )
-          ];
-
-        launchTrain(
-          train,
-          word
+          message:
+            `Feedback ${APP_NAME}\n\n` +
+            `Version : ${APP_VERSION}\n` +
+            `Plateforme : ${Platform.OS}\n\n` +
+            `Ce bouton sera enrichi prochainement avec le diagnostic automatique de la session de test.`,
+        });
+      } catch (error) {
+        console.error(
+          '❌ Impossible d’ouvrir le partage du feedback :',
+          error
         );
       }
-
-      const nextDelay =
-        950 +
-        Math.random() *
-          100;
-
-      const timer =
-        setTimeout(
-          spawnTrain,
-          nextDelay
-        );
-
-      timers.push(timer);
-    };
-
-    const breathing =
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(
-            brainScale,
-            {
-              toValue: 1.035,
-              duration: 2100,
-              easing:
-                Easing.inOut(
-                  Easing.ease
-                ),
-              useNativeDriver: true,
-            }
-          ),
-
-          Animated.timing(
-            brainScale,
-            {
-              toValue: 1,
-              duration: 2100,
-              easing:
-                Easing.inOut(
-                  Easing.ease
-                ),
-              useNativeDriver: true,
-            }
-          ),
-        ])
-      );
-
-    breathing.start();
-
-    spawnTrain();
-
-    return () => {
-      mounted.current =
-        false;
-
-      stopped = true;
-
-      timers.forEach(
-        timer =>
-          clearTimeout(timer)
-      );
-
-      breathing.stop();
-
-      brainScale.stopAnimation();
-
-      trains.forEach(
-        train => {
-          train.active =
-            false;
-
-          train.value.stopAnimation();
-
-          train.value.setValue(0);
-        }
-      );
-    };
-  }, [
-    brainScale,
-    trains,
-    isPhone,
-    text,
-  ]);
-
-  const getSpiralPosition =
-    (
-      progress: number,
-      train: Train
-    ) => {
-      const p =
-        Math.max(
-          0,
-          Math.min(
-            1,
-            progress
-          )
-        );
-
-      const angle =
-        train.angle +
-        train.direction *
-          Math.PI *
-          2 *
-          train.turns *
-          p;
-
-      const radius =
-        train.radius *
-        Math.pow(
-          1 - p,
-          train.spiralPower
-        );
-
-      const x =
-        Math.cos(angle) *
-        radius *
-        train.ellipseX;
-
-      const y =
-        Math.sin(angle) *
-        radius *
-        train.ellipseY;
-
-      const cosRotation =
-        Math.cos(
-          train.rotation
-        );
-
-      const sinRotation =
-        Math.sin(
-          train.rotation
-        );
-
-      const rotatedX =
-        x *
-          cosRotation -
-        y *
-          sinRotation;
-
-      const rotatedY =
-        x *
-          sinRotation +
-        y *
-          cosRotation;
-
-      return {
-        x: rotatedX,
-        y: rotatedY,
-      };
-    };
-
-  const renderTrain =
-    (
-      train: Train,
-      trainIndex: number
-    ) => {
-      if (
-        train.text.length ===
-        0
-      ) {
-        return null;
-      }
-
-      const inputRange =
-        Array.from(
-          {
-            length:
-              TRAJECTORY_STEPS,
-          },
-          (
-            _,
-            index
-          ) =>
-            index /
-            (TRAJECTORY_STEPS -
-              1)
-        );
-
-      return (
-        <View
-          key={`train-${trainIndex}`}
-          pointerEvents="none"
-          style={
-            StyleSheet.absoluteFill
-          }
-        >
-          {train.text
-            .split('')
-            .map(
-              (
-                letter,
-                letterIndex
-              ) => {
-                const delay =
-                  train
-                    .letters[
-                      letterIndex
-                    ]?.delay ??
-                  0;
-
-                const xValues =
-                  inputRange.map(
-                    point => {
-                      const position =
-                        getSpiralPosition(
-                          Math.max(
-                            0,
-                            point -
-                              delay
-                          ),
-                          train
-                        );
-
-                      return position.x;
-                    }
-                  );
-
-                const yValues =
-                  inputRange.map(
-                    point => {
-                      const position =
-                        getSpiralPosition(
-                          Math.max(
-                            0,
-                            point -
-                              delay
-                          ),
-                          train
-                        );
-
-                      return position.y;
-                    }
-                  );
-
-                const translateX =
-                  train.value.interpolate(
-                    {
-                      inputRange,
-
-                      outputRange:
-                        xValues,
-
-                      extrapolate:
-                        'clamp',
-                    }
-                  );
-
-                const translateY =
-                  train.value.interpolate(
-                    {
-                      inputRange,
-
-                      outputRange:
-                        yValues,
-
-                      extrapolate:
-                        'clamp',
-                    }
-                  );
-
-                const opacity =
-                  train.value.interpolate(
-                    {
-                      inputRange: [
-                        0,
-                        0.08,
-                        0.16,
-                        0.82,
-                        0.94,
-                        1,
-                      ],
-
-                      outputRange: [
-                        0,
-                        0.25,
-                        1,
-                        1,
-                        0.8,
-                        0,
-                      ],
-
-                      extrapolate:
-                        'clamp',
-                    }
-                  );
-
-                const scale =
-                  train.value.interpolate(
-                    {
-                      inputRange: [
-                        0,
-                        0.12,
-                        0.78,
-                        0.94,
-                        1,
-                      ],
-
-                      outputRange: [
-                        0.7,
-                        1,
-                        1,
-                        0.88,
-                        0.08,
-                      ],
-
-                      extrapolate:
-                        'clamp',
-                    }
-                  );
-
-                return (
-                  <Animated.Text
-                    key={`${trainIndex}-${letterIndex}`}
-                    style={[
-                      styles.letter,
-
-                      {
-                        left:
-                          '50%',
-
-                        top:
-                          '50%',
-
-                        fontSize:
-                          train.size,
-
-                        color:
-                          train.color,
-
-                        opacity,
-
-                        transform: [
-                          {
-                            translateX,
-                          },
-                          {
-                            translateY,
-                          },
-                          {
-                            scale,
-                          },
-                        ],
-                      },
-                    ]}
-                  >
-                    {letter}
-                  </Animated.Text>
-                );
-              }
-            )}
-        </View>
-      );
     };
 
   return (
@@ -777,54 +41,120 @@ const MomentThinkingAnimation = ({
       style={
         styles.container
       }
-      pointerEvents="none"
     >
-      {trains.map(
-        (
-          train,
-          index
-        ) =>
-          renderTrain(
-            train,
-            index
-          )
-      )}
-
-      <Animated.Text
-        style={[
-          styles.brain,
-
-          {
-            fontSize:
-              isPhone
-                ? 56
-                : 62,
-
-            transform: [
-              {
-                scale:
-                  brainScale,
-              },
-            ],
-          },
-        ]}
+      <View
+        style={
+          styles.content
+        }
       >
-        🧠
-      </Animated.Text>
+        <Text
+          style={
+            styles.icon
+          }
+        >
+          🔔
+        </Text>
+
+        <Text
+          style={
+            styles.title
+          }
+        >
+          Préviens-moi
+        </Text>
+
+        <Text
+          style={
+            styles.status
+          }
+        >
+          Fonctionnalité en cours de développement
+        </Text>
+
+        <Text
+          style={
+            styles.description
+          }
+        >
+          Préviens-moi permettra bientôt à Moment de
+          t’aider à anticiper les événements, échéances
+          et informations importantes.
+        </Text>
+
+        <Text
+          style={
+            styles.alphaNotice
+          }
+        >
+          Cet onglet n’est pas encore opérationnel dans
+          cette version pré-alpha.
+        </Text>
+
+        <View
+          style={
+            styles.separator
+          }
+        />
+
+        <Text
+          style={
+            styles.feedbackTitle
+          }
+        >
+          Tu testes Moment ?
+        </Text>
+
+        <Text
+          style={
+            styles.feedbackText
+          }
+        >
+          Si quelque chose ne fonctionne pas comme prévu,
+          utilise ce bouton pour nous transmettre ton
+          feedback.
+        </Text>
+
+        <Pressable
+          onPress={
+            sendFeedback
+          }
+          style={
+            ({ pressed }) => [
+              styles.feedbackButton,
+
+              pressed &&
+                styles.feedbackButtonPressed,
+            ]
+          }
+        >
+          <Text
+            style={
+              styles.feedbackButtonText
+            }
+          >
+            Envoyer le feedback
+          </Text>
+        </Pressable>
+
+        <Text
+          style={
+            styles.version
+          }
+        >
+          {APP_NAME} — {APP_VERSION}
+        </Text>
+      </View>
     </View>
   );
-};
+}
 
 const styles =
   StyleSheet.create({
     container: {
-      position:
-        'absolute',
+      flex: 1,
 
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      backgroundColor:
+        '#F8FAFC',
 
       alignItems:
         'center',
@@ -832,32 +162,219 @@ const styles =
       justifyContent:
         'center',
 
-      overflow:
-        'hidden',
+      paddingHorizontal:
+        24,
     },
 
-    brain: {
-      position:
-        'absolute',
+    content: {
+      width:
+        '100%',
 
-      zIndex: 50,
+      maxWidth:
+        520,
+
+      alignItems:
+        'center',
+
+      backgroundColor:
+        '#FFFFFF',
+
+      borderRadius:
+        24,
+
+      paddingHorizontal:
+        26,
+
+      paddingVertical:
+        32,
+
+      shadowColor:
+        '#000',
+
+      shadowOpacity:
+        0.08,
+
+      shadowRadius:
+        18,
+
+      shadowOffset: {
+        width: 0,
+        height: 8,
+      },
+
+      elevation: 3,
     },
 
-    letter: {
-      position:
-        'absolute',
+    icon: {
+      fontSize:
+        50,
+
+      marginBottom:
+        12,
+    },
+
+    title: {
+      fontSize:
+        30,
 
       fontWeight:
         '800',
 
+      color:
+        '#0F172A',
+
       textAlign:
         'center',
+    },
 
-      minWidth: 18,
+    status: {
+      marginTop:
+        10,
 
-      zIndex: 30,
+      fontSize:
+        17,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#2563EB',
+
+      textAlign:
+        'center',
+    },
+
+    description: {
+      marginTop:
+        18,
+
+      fontSize:
+        16,
+
+      lineHeight:
+        23,
+
+      color:
+        '#475569',
+
+      textAlign:
+        'center',
+    },
+
+    alphaNotice: {
+      marginTop:
+        14,
+
+      fontSize:
+        14,
+
+      lineHeight:
+        20,
+
+      color:
+        '#64748B',
+
+      textAlign:
+        'center',
+    },
+
+    separator: {
+      width:
+        '100%',
+
+      height: 1,
+
+      backgroundColor:
+        '#E2E8F0',
+
+      marginVertical:
+        26,
+    },
+
+    feedbackTitle: {
+      fontSize:
+        18,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#0F172A',
+
+      textAlign:
+        'center',
+    },
+
+    feedbackText: {
+      marginTop:
+        8,
+
+      fontSize:
+        15,
+
+      lineHeight:
+        21,
+
+      color:
+        '#64748B',
+
+      textAlign:
+        'center',
+    },
+
+    feedbackButton: {
+      marginTop:
+        20,
+
+      width:
+        '100%',
+
+      minHeight:
+        50,
+
+      borderRadius:
+        14,
+
+      backgroundColor:
+        '#2563EB',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      paddingHorizontal:
+        20,
+    },
+
+    feedbackButtonPressed: {
+      opacity:
+        0.8,
+    },
+
+    feedbackButtonText: {
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        16,
+
+      fontWeight:
+        '700',
+    },
+
+    version: {
+      marginTop:
+        20,
+
+      fontSize:
+        12,
+
+      color:
+        '#94A3B8',
+
+      textAlign:
+        'center',
     },
   });
-
-export default
-  MomentThinkingAnimation;
