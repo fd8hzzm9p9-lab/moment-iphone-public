@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🧠 Serveur Moment",
+      "type": "shell",
+      "command": "node server/server.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "☁️ Cloudflare",
+      "type": "shell",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\demarrer-tunnel.ps1\"",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "📱 Expo",
+      "type": "shell",
+      "command": "npx.cmd expo start --tunnel",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🚀 Démarrer Moment",
+      "dependsOn": [
+        "🧠 Serveur Moment",
+        "☁️ Cloudflare",
+        "📱 Expo"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+﻿{
+    "input":  "Marc termine habituellement son travail � 18h.",
+    "events":  [
+                   {
+                       "id":  "event_1",
+                       "type":  "fact",
+                       "description":  "Marc termine habituellement son travail à 18h.",
+                       "date_reference":  "18h",
+                       "date_precision":  "approximate",
+                       "context":  "",
+                       "people":  [
+                                      "Marc"
+                                  ],
+                       "places":  [
+
+                                  ],
+                       "objects":  [
+
+                                   ],
+                       "subjects":  [
+                                        "travail"
+                                    ],
+                       "thoughts":  [
+
+                                    ],
+                       "actions":  [
+                                       "termine son travail à 18h"
+                                   ],
+                       "intentions":  [
+
+                                      ],
+                       "facts":  [
+                                     "Marc termine habituellement son travail à 18h."
+                                 ],
+                       "relations":  [
+                                         {
+                                             "from":  "Marc",
+                                             "relation":  "finishes",
+                                             "to":  "travail",
+                                             "evidence":  "explicit"
+                                         }
+                                     ],
+                       "created_at":  "2026-08-04T18:52:04.657Z",
+                       "source_text":  "Marc termine habituellement son travail � 18h.",
+                       "confidence":  0.9
+                   }
+               ]
+}

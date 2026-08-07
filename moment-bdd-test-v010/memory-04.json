@@ -1,0 +1,61 @@
+﻿{
+    "input":  "Sophie m\u0027a offert un livre pour mon anniversaire.",
+    "events":  [
+                   {
+                       "id":  "event_1",
+                       "type":  "event",
+                       "description":  "Sophie m\u0027a offert un livre pour mon anniversaire.",
+                       "date_reference":  "mon anniversaire",
+                       "date_precision":  "relative",
+                       "context":  "",
+                       "people":  [
+                                      "Sophie",
+                                      "moi"
+                                  ],
+                       "places":  [
+
+                                  ],
+                       "objects":  [
+                                       "un livre"
+                                   ],
+                       "subjects":  [
+                                        "mon anniversaire"
+                                    ],
+                       "thoughts":  [
+
+                                    ],
+                       "actions":  [
+                                       "Sophie m\u0027a offert un livre"
+                                   ],
+                       "intentions":  [
+
+                                      ],
+                       "facts":  [
+                                     "Sophie m\u0027a offert un livre pour mon anniversaire."
+                                 ],
+                       "relations":  [
+                                         {
+                                             "from":  "Sophie",
+                                             "relation":  "a_offert",
+                                             "to":  "un livre",
+                                             "evidence":  "explicit"
+                                         },
+                                         {
+                                             "from":  "Sophie",
+                                             "relation":  "a_offert_a",
+                                             "to":  "moi",
+                                             "evidence":  "explicit"
+                                         },
+                                         {
+                                             "from":  "un livre",
+                                             "relation":  "offert_pour",
+                                             "to":  "mon anniversaire",
+                                             "evidence":  "explicit"
+                                         }
+                                     ],
+                       "created_at":  "2026-08-04T18:52:47.179Z",
+                       "source_text":  "Sophie m\u0027a offert un livre pour mon anniversaire.",
+                       "confidence":  0.9
+                   }
+               ]
+}

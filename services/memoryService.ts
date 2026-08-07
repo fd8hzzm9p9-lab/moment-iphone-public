@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const STORAGE_KEY = 'moment_memory_events';
-const SERVER_URL = 'https://moment-iphone.onrender.com';
+import { SERVER_URL } from "../config/server";
+import { STORAGE_KEY } from '../config/storage';
 
 export type Relation = {
   from: string;

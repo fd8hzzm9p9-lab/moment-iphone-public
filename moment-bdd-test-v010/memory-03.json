@@ -1,0 +1,49 @@
+﻿{
+    "input":  "J\u0027ai vu Marc au caf� de Bernay le 1er ao�t 2026.",
+    "events":  [
+                   {
+                       "id":  "event_1",
+                       "type":  "event",
+                       "description":  "Vu Marc au café de Bernay le 1er août 2026.",
+                       "date_reference":  "1er ao�t 2026",
+                       "date_precision":  "exact",
+                       "context":  "caf� de Bernay",
+                       "people":  [
+                                      "moi",
+                                      "Marc"
+                                  ],
+                       "places":  [
+                                      "caf� de Bernay"
+                                  ],
+                       "objects":  [
+
+                                   ],
+                       "subjects":  [
+
+                                    ],
+                       "thoughts":  [
+
+                                    ],
+                       "actions":  [
+                                       "vu Marc"
+                                   ],
+                       "intentions":  [
+
+                                      ],
+                       "facts":  [
+                                     "La rencontre a eu lieu le 1er ao�t 2026 au caf� de Bernay."
+                                 ],
+                       "relations":  [
+                                         {
+                                             "from":  "moi",
+                                             "relation":  "a_vu",
+                                             "to":  "Marc",
+                                             "evidence":  "explicit"
+                                         }
+                                     ],
+                       "created_at":  "2026-08-04T18:52:31.120Z",
+                       "source_text":  "J\u0027ai vu Marc au caf� de Bernay le 1er ao�t 2026.",
+                       "confidence":  0.9
+                   }
+               ]
+}

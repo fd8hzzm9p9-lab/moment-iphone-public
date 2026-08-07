@@ -1,4 +1,3 @@
-
 import React, {
   useEffect,
   useRef,
@@ -25,20 +24,31 @@ type LetterConfig = {
 
 type Train = {
   value: Animated.Value;
+
   active: boolean;
+
   angle: number;
   radius: number;
+
   turns: number;
   direction: number;
+
   duration: number;
+
   ellipseX: number;
   ellipseY: number;
+
   rotation: number;
+
   spiralPower: number;
+
   size: number;
   color: string;
+
   text: string;
+
   letters: LetterConfig[];
+
 };
 
 const MomentThinkingAnimation = ({
@@ -89,6 +99,7 @@ const MomentThinkingAnimation = ({
           text: '',
 
           letters: [],
+
         })
       )
     ).current;
@@ -170,6 +181,12 @@ const MomentThinkingAnimation = ({
       ]).start();
     };
 
+    /*
+     * --------------------------------------------------
+     * LANCEMENT D'UN TRAIN
+     * --------------------------------------------------
+     */
+
     const launchTrain = (
       train: Train,
       word: string
@@ -202,6 +219,12 @@ const MomentThinkingAnimation = ({
         Math.random() < 0.5
           ? -1
           : 1;
+
+      /*
+       * ------------------------------------------------
+       * ELLIPSE
+       * ------------------------------------------------
+       */
 
       const ellipseType =
         Math.floor(
@@ -294,6 +317,12 @@ const MomentThinkingAnimation = ({
 
       train.text = word;
 
+      /*
+       * ------------------------------------------------
+       * LETTRES
+       * ------------------------------------------------
+       */
+
       train.letters =
         word
           .split('')
@@ -330,6 +359,12 @@ const MomentThinkingAnimation = ({
 
       train.value.setValue(0);
 
+      /*
+       * ------------------------------------------------
+       * ANIMATION
+       * ------------------------------------------------
+       */
+
       Animated.timing(
         train.value,
         {
@@ -365,6 +400,12 @@ const MomentThinkingAnimation = ({
       );
     };
 
+    /*
+     * --------------------------------------------------
+     * MOTS
+     * --------------------------------------------------
+     */
+
     const words =
       text
         .split(/\s+/)
@@ -379,6 +420,15 @@ const MomentThinkingAnimation = ({
       typeof setTimeout
     >[] = [];
 
+    /*
+     * --------------------------------------------------
+     * SPAWNER
+     * --------------------------------------------------
+     *
+     * Premier mot immédiatement.
+     * Puis environ 1 mot/seconde.
+     */
+    let nextWordIndex = 0;
     const spawnTrain = () => {
       if (
         stopped ||
@@ -406,13 +456,13 @@ const MomentThinkingAnimation = ({
             )
           ];
 
-        const word =
-          words[
-            Math.floor(
-              Math.random() *
-                words.length
-            )
-          ];
+const word =
+  words[
+    nextWordIndex %
+      words.length
+  ];
+
+nextWordIndex += 1;
 
         launchTrain(
           train,
@@ -433,6 +483,12 @@ const MomentThinkingAnimation = ({
 
       timers.push(timer);
     };
+
+    /*
+     * --------------------------------------------------
+     * RESPIRATION DU CERVEAU
+     * --------------------------------------------------
+     */
 
     const breathing =
       Animated.loop(
@@ -467,7 +523,17 @@ const MomentThinkingAnimation = ({
 
     breathing.start();
 
+    /*
+     * PREMIER MOT IMMÉDIATEMENT
+     */
+
     spawnTrain();
+
+    /*
+     * --------------------------------------------------
+     * CLEANUP
+     * --------------------------------------------------
+     */
 
     return () => {
       mounted.current =
@@ -500,7 +566,14 @@ const MomentThinkingAnimation = ({
     trains,
     isPhone,
     text,
+    width,
   ]);
+
+  /*
+   * ====================================================
+   * TRAJECTOIRE ELLIPTIQUE VERS LE CERVEAU
+   * ====================================================
+   */
 
   const getSpiralPosition =
     (
@@ -551,23 +624,22 @@ const MomentThinkingAnimation = ({
           train.rotation
         );
 
-      const rotatedX =
-        x *
-          cosRotation -
-        y *
-          sinRotation;
-
-      const rotatedY =
-        x *
-          sinRotation +
-        y *
-          cosRotation;
-
       return {
-        x: rotatedX,
-        y: rotatedY,
+        x:
+          x * cosRotation -
+          y * sinRotation,
+
+        y:
+          x * sinRotation +
+          y * cosRotation,
       };
     };
+
+  /*
+   * ====================================================
+   * RENDU D'UN TRAIN
+   * ====================================================
+   */
 
   const renderTrain =
     (
@@ -771,6 +843,12 @@ const MomentThinkingAnimation = ({
         </View>
       );
     };
+
+  /*
+   * ====================================================
+   * RENDU FINAL
+   * ====================================================
+   */
 
   return (
     <View

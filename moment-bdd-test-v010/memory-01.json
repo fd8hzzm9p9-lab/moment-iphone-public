@@ -1,0 +1,56 @@
+﻿{
+    "input":  "Marc travaille au magasin du lundi au vendredi.",
+    "events":  [
+                   {
+                       "id":  "event_1",
+                       "type":  "fact",
+                       "description":  "Marc travaille au magasin du lundi au vendredi.",
+                       "date_reference":  "lundi au vendredi",
+                       "date_precision":  "relative",
+                       "context":  "magasin",
+                       "people":  [
+                                      "Marc"
+                                  ],
+                       "places":  [
+                                      "magasin"
+                                  ],
+                       "objects":  [
+
+                                   ],
+                       "subjects":  [
+                                        "travail",
+                                        "lundi au vendredi"
+                                    ],
+                       "thoughts":  [
+
+                                    ],
+                       "actions":  [
+                                       "travaille au magasin"
+                                   ],
+                       "intentions":  [
+
+                                      ],
+                       "facts":  [
+                                     "Marc travaille au magasin.",
+                                     "Marc travaille du lundi au vendredi."
+                                 ],
+                       "relations":  [
+                                         {
+                                             "from":  "Marc",
+                                             "relation":  "travaille_dans",
+                                             "to":  "magasin",
+                                             "evidence":  "explicit"
+                                         },
+                                         {
+                                             "from":  "Marc",
+                                             "relation":  "travaille_les_jours",
+                                             "to":  "lundi au vendredi",
+                                             "evidence":  "explicit"
+                                         }
+                                     ],
+                       "created_at":  "2026-08-04T18:51:44.749Z",
+                       "source_text":  "Marc travaille au magasin du lundi au vendredi.",
+                       "confidence":  0.9
+                   }
+               ]
+}
