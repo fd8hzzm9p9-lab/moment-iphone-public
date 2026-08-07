@@ -2,11 +2,11 @@
   "project": "Moment",
   "memento": "MEMENTO 002",
   "status": "EN COURS",
-  "current_version": "pré-alpha 0.2.3",
-  "current_step": "MEMENTO 002-03",
-  "next_step": "MEMENTO 002-04",
+  "current_version": "pré-alpha 0.2.5",
+  "current_step": "MEMENTO 002-05",
+  "next_step": "MEMENTO 002-06",
   "progress": {
-    "completed": 3,
+    "completed": 5,
     "total": 23
   },
   "objective": "Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et appels à OpenAI, sans dégrader les comportements déjà validés.",
@@ -87,19 +87,19 @@
       "id": "002-04",
       "version": "pré-alpha 0.2.4",
       "objective": "Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel",
-      "status": "PROCHAINE ÉTAPE"
+      "status": "TERMINÉ"
     },
     {
       "id": "002-05",
       "version": "pré-alpha 0.2.5",
       "objective": "Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs",
-      "status": "À FAIRE"
+      "status": "TERMINÉ"
     },
     {
       "id": "002-06",
       "version": "pré-alpha 0.2.6",
       "objective": "Créer le paquet de diagnostic alpha exportable en un bouton",
-      "status": "À FAIRE"
+      "status": "PROCHAINE ÉTAPE"
     },
     {
       "id": "002-07",

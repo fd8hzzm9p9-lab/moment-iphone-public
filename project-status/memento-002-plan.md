@@ -2,10 +2,10 @@
 
 **Projet :** Moment  
 **État :** EN COURS  
-**Version actuelle :** pré-alpha 0.2.3  
-**Étape actuelle :** MEMENTO 002-03 — TERMINÉ  
-**Prochaine étape :** MEMENTO 002-04 — pré-alpha 0.2.4  
-**Progression :** 3 / 23 étapes terminées
+**Version actuelle :** pré-alpha 0.2.5  
+**Étape actuelle :** MEMENTO 002-05 — TERMINÉ  
+**Prochaine étape :** MEMENTO 002-06 — pré-alpha 0.2.6  
+**Progression :** 5 / 23 étapes terminées
 
 ## Objectif global
 
