@@ -1,0 +1,118 @@
+{
+  "project": "Moment",
+  "memento": "MEMENTO 002",
+  "status": "EN COURS",
+  "objective": "Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et appels à OpenAI, en privilégiant le traitement local et déterministe sans dégrader les comportements déjà validés.",
+  "principle": "Moment comprend localement si possible → raisonne localement si possible → répond localement si possible → OpenAI uniquement si nécessaire.",
+  "version_rule": "MEMENTO Y, étape X → pré-alpha 0.Y.X",
+  "current_step": "MEMENTO 002-01",
+  "next_step": "MEMENTO 002-02",
+  "steps": [
+    {
+      "step": "002-01",
+      "version": "pré-alpha 0.2.1",
+      "objective": "Mise à jour du suivi projet",
+      "expected": "project-status synchronisé avec la fin de MEMENTO 001"
+    },
+    {
+      "step": "002-02",
+      "version": "pré-alpha 0.2.2",
+      "objective": "Auditer /understand avant l’appel OpenAI",
+      "expected": "Identifier ce que Moment sait déjà détecter localement et dans quels cas OpenAI est appelé"
+    },
+    {
+      "step": "002-03",
+      "version": "pré-alpha 0.2.3",
+      "objective": "Créer la décision local ou OpenAI pour /understand",
+      "expected": "Une saisie déterministe contourne complètement OpenAI"
+    },
+    {
+      "step": "002-04",
+      "version": "pré-alpha 0.2.4",
+      "objective": "Compréhension locale des faits simples",
+      "expected": "Personne, fait, lieu, date, heure, événement simple enregistrables sans API"
+    },
+    {
+      "step": "002-05",
+      "version": "pré-alpha 0.2.5",
+      "objective": "Relations entre personnes",
+      "expected": "Comprendre localement sœur, frère, parent, enfant, nièce, neveu, etc."
+    },
+    {
+      "step": "002-06",
+      "version": "pré-alpha 0.2.6",
+      "objective": "Construction du réseau de relations",
+      "expected": "Moment relie localement les personnes et faits entre plusieurs souvenirs"
+    },
+    {
+      "step": "002-07",
+      "version": "pré-alpha 0.2.7",
+      "objective": "Identités possibles et ambiguïtés",
+      "expected": "Distinguer identité certaine, rapprochement possible et identité inconnue"
+    },
+    {
+      "step": "002-08",
+      "version": "pré-alpha 0.2.8",
+      "objective": "Confirmation locale d’une identité/déduction",
+      "expected": "« Oui, c’est Axelle » consolide localement le lien sans OpenAI"
+    },
+    {
+      "step": "002-09",
+      "version": "pré-alpha 0.2.9",
+      "objective": "/recall local-first",
+      "expected": "Réponse locale lorsque la mémoire structurée suffit"
+    },
+    {
+      "step": "002-10",
+      "version": "pré-alpha 0.2.10",
+      "objective": "Raisonnement relationnel local",
+      "expected": "Réponses issues du réseau de personnes/faits sans API si la preuve suffit"
+    },
+    {
+      "step": "002-11",
+      "version": "pré-alpha 0.2.11",
+      "objective": "Gestion locale de l’incertitude",
+      "expected": "« Je ne peux pas le confirmer » + proposition de confirmation sans OpenAI"
+    },
+    {
+      "step": "002-12",
+      "version": "pré-alpha 0.2.12",
+      "objective": "Optimiser le fallback OpenAI",
+      "expected": "N’envoyer à OpenAI que les souvenirs/contexte pertinents"
+    },
+    {
+      "step": "002-13",
+      "version": "pré-alpha 0.2.13",
+      "objective": "Instrumenter les appels OpenAI",
+      "expected": "Compter appels évités/effectués, raison de l’appel, tokens/contexte transmis"
+    },
+    {
+      "step": "002-14",
+      "version": "pré-alpha 0.2.14",
+      "objective": "Tests comparatifs local/OpenAI",
+      "expected": "Vérifier les économies sans régression"
+    },
+    {
+      "step": "002-15",
+      "version": "pré-alpha 0.2.15",
+      "objective": "Validation du scénario familial complet",
+      "expected": "Le scénario Élise/Axelle fonctionne idéalement avec 0 appel OpenAI"
+    },
+    {
+      "step": "002-16",
+      "version": "pré-alpha 0.2.16",
+      "objective": "Clôture MEMENTO 002",
+      "expected": "Mise à jour project-status, bilan des économies et état final"
+    }
+  ],
+  "reference_scenario": [
+    "J'ai une sœur qui s'appelle Élise",
+    "Élise a trois enfants",
+    "Ma nièce s'appelle Axelle",
+    "Mes parents n'ont eu que deux enfants",
+    "La fille d'Élise est née le 22 août 2014",
+    "Quand est née Axelle ?",
+    "Oui, c'est Axelle",
+    "Quand est née Axelle ?"
+  ]
+}
