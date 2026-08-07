@@ -8,6 +8,12 @@
  * La logique interne de la route est conservée.
  */
 
+
+const {
+  logDiagnostic,
+  serializeError,
+  summarizeResponse,
+} = require('../utils/diagnostics');
 const helpers = {
   ...require('../utils/calendar'),
   ...require('../utils/core'),
@@ -125,9 +131,9 @@ app.post(
     );
 
     try {
-      const {
-        question,
+      const {        question,
         memories,
+        diagnostic_id,
       } = req.body;
 
       if (
@@ -143,6 +149,70 @@ app.post(
               'Question ou mémoire absente',
           });
       }
+      const diagnosticId =
+        typeof diagnostic_id ===
+          'string' &&
+        diagnostic_id.trim()
+          ? diagnostic_id.trim()
+          : createId(
+              'diagnostic'
+            );
+
+      const requestStartedAt =
+        Date.now();
+
+      const originalJson =
+        res.json.bind(
+          res
+        );
+
+      res.json =
+        payload => {
+          logDiagnostic({
+            diagnostic_id:
+              diagnosticId,
+
+            feature:
+              'recall',
+
+            event:
+              'response',
+
+            duration_ms:
+              Date.now() -
+              requestStartedAt,
+
+            status_code:
+              res.statusCode,
+
+            summary:
+              summarizeResponse(
+                payload
+              ),
+          });
+
+          return originalJson(
+            payload
+          );
+        };
+
+      logDiagnostic({
+        diagnostic_id:
+          diagnosticId,
+
+        feature:
+          'recall',
+
+        event:
+          'request_start',
+
+        input:
+          question.trim(),
+
+        memory_count:
+          memories.length,
+      });
+
 
       console.log(
         '❓ Question :',
@@ -1192,6 +1262,20 @@ Pour implied, event_id doit être "".
 
 Une déduction rejetée ne doit jamais servir de preuve.
 `;
+      logDiagnostic({
+        diagnostic_id:
+          diagnosticId,
+
+        feature:
+          'recall',
+
+        event:
+          'openai_fallback',
+
+        reason:
+          'no_local_answer_returned',
+      });
+
 
       const response =
         await openai.responses.create({
@@ -1398,6 +1482,26 @@ try {
         '❌ Erreur de rappel :',
         error
       );
+
+      logDiagnostic({
+        diagnostic_id:
+          typeof diagnosticId !==
+            'undefined'
+            ? diagnosticId
+            : diagnostic_id ||
+              '',
+
+        feature:
+          'recall',
+
+        event:
+          'error',
+
+        error:
+          serializeError(
+            error
+          ),
+      });
 
       return res
         .status(500)

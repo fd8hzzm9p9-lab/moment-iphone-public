@@ -14,6 +14,12 @@ import {
 } from 'react-native';
 import MomentThinkingAnimation from '../../components/MomentThinkingAnimation';
 import { SERVER_URL } from '../../config/server';
+
+import {
+  createDiagnosticId,
+  recordDiagnosticInteraction,
+} from '../../services/diagnosticService';
+
 import { STORAGE_KEY } from '../../config/storage';
 
 import {
@@ -2404,6 +2410,29 @@ const appliquerCorrectionServeur =
 
       const requestId =
         ++requestIdRef.current;
+
+      const diagnosticId =
+        createDiagnosticId(
+          'understand'
+        );
+
+      void recordDiagnosticInteraction({
+        diagnostic_id:
+          diagnosticId,
+
+        feature:
+          'understand',
+
+        input:
+          texte.trim(),
+
+        created_at:
+          new Date()
+            .toISOString(),
+
+        app_version:
+          APP_VERSION,
+      });
 
       const abortController =
         new AbortController();

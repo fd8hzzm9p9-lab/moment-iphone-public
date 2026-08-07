@@ -104,15 +104,17 @@ export default function PreventMeScreen() {
           Tu testes Moment ?
         </Text>
 
-        <Text
-          style={
-            styles.feedbackText
-          }
-        >
-          Si quelque chose ne fonctionne pas comme prévu,
-          utilise ce bouton pour nous transmettre ton
-          feedback.
-        </Text>
+<Text
+  style={
+    styles.feedbackText
+  }
+>
+  Envoie régulièrement ton feedback pendant tes tests,
+  même si tout fonctionne correctement.
+  {'\n\n'}
+  Cela nous permet d’analyser et améliorer le
+  fonctionnement réel de Moment.
+</Text>
 
         <Pressable
           onPress={

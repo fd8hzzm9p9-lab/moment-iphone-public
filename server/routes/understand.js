@@ -12,6 +12,12 @@ const {
   tryLocalUnderstand,
 } = require('../utils/local-understand');
 
+const {
+  logDiagnostic,
+  serializeError,
+  summarizeResponse,
+} = require('../utils/diagnostics');
+
 const helpers = {
   ...require('../utils/calendar'),
   ...require('../utils/core'),
@@ -183,8 +189,8 @@ app.post(
     try {
       const {
         text,
-        memories,
-        confirmed_calendar_date,
+        memories,        confirmed_calendar_date,
+        diagnostic_id,
       } = req.body;
 
       if (
@@ -203,6 +209,70 @@ app.post(
         Array.isArray(memories)
           ? memories
           : [];
+
+      const diagnosticId =
+        typeof diagnostic_id ===
+          'string' &&
+        diagnostic_id.trim()
+          ? diagnostic_id.trim()
+          : createId(
+              'diagnostic'
+            );
+
+      const requestStartedAt =
+        Date.now();
+
+      const originalJson =
+        res.json.bind(
+          res
+        );
+
+      res.json =
+        payload => {
+          logDiagnostic({
+            diagnostic_id:
+              diagnosticId,
+
+            feature:
+              'understand',
+
+            event:
+              'response',
+
+            duration_ms:
+              Date.now() -
+              requestStartedAt,
+
+            status_code:
+              res.statusCode,
+
+            summary:
+              summarizeResponse(
+                payload
+              ),
+          });
+
+          return originalJson(
+            payload
+          );
+        };
+
+      logDiagnostic({
+        diagnostic_id:
+          diagnosticId,
+
+        feature:
+          'understand',
+
+        event:
+          'request_start',
+
+        input:
+          text.trim(),
+
+        memory_count:
+          existingMemories.length,
+      });
 
       const normalizedText =
         normalizeText(
@@ -1671,6 +1741,29 @@ correctionData =
           '⚡ LOCAL FIRST : compréhension locale utilisée'
         );
 
+        logDiagnostic({
+          diagnostic_id:
+            diagnosticId,
+
+          feature:
+            'understand',
+
+          event:
+            'local_success',
+
+          parser:
+            localResult
+              .local_understanding
+              ?.parser ||
+              'unknown',
+
+          confidence:
+            localResult
+              .local_understanding
+              ?.confidence ??
+              null,
+        });
+
         console.log(
           '⚡ Parser local :',
           localResult
@@ -1686,6 +1779,20 @@ correctionData =
         console.log(
           '🌐 LOCAL FIRST : fallback OpenAI nécessaire'
         );
+
+        logDiagnostic({
+          diagnostic_id:
+            diagnosticId,
+
+          feature:
+            'understand',
+
+          event:
+            'openai_fallback',
+
+          reason:
+            'local_understanding_not_confident',
+        });
 
   /* =================================================== */
         /* ANALYSE GPT                                           */
@@ -2383,6 +2490,26 @@ const eventsNeedingDateConfirmation =
     '❌ Erreur OpenAI /understand :',
     error
   );
+
+  logDiagnostic({
+    diagnostic_id:
+      typeof diagnosticId !==
+        'undefined'
+        ? diagnosticId
+        : diagnostic_id ||
+          '',
+
+    feature:
+      'understand',
+
+    event:
+      'error',
+
+    error:
+      serializeError(
+        error
+      ),
+  });
 
   const errorCode =
     error?.code ||

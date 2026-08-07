@@ -177,6 +177,12 @@ import MomentThinkingAnimation from '../../components/MomentThinkingAnimation';
 import { SERVER_URL } from '../../config/server';
 
 import {
+  createDiagnosticId,
+  recordDiagnosticInteraction,
+} from '../../services/diagnosticService';
+
+
+import {
   RECENT_SEARCHES_KEY,
   STORAGE_KEY,
 } from '../../config/storage';
@@ -895,6 +901,29 @@ const lancerRecherche = async () => {
     const question =
       recherche.trim();
 
+    const diagnosticId =
+      createDiagnosticId(
+        'recall'
+      );
+
+    void recordDiagnosticInteraction({
+      diagnostic_id:
+        diagnosticId,
+
+      feature:
+        'recall',
+
+      input:
+        question,
+
+      created_at:
+        new Date()
+          .toISOString(),
+
+      app_version:
+        APP_VERSION,
+    });
+
     const debutRecherche =
       Date.now();
 
@@ -960,6 +989,8 @@ const lancerRecherche = async () => {
             body: JSON.stringify({
               question,
               memories: evenements,
+
+              diagnostic_id: diagnosticId,
             }),
 
             signal:
