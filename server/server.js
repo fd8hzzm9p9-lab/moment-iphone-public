@@ -106,6 +106,11 @@ const {
   buildCorrectedDescription,
   buildCorrectionHistoryEntry,
 } = require('./utils/corrections');
+
+const {
+  findWorkEvents,
+  findLatestWorkEvent,
+} = require('./utils/work');
 const app = express();
 
 app.use(cors());
@@ -118,99 +123,6 @@ const openai = new OpenAI({
 /* ========================================================= */
 /* OUTILS                                                     */
 /* ========================================================= */
-
-/* ========================================================= */
-/* TRAVAIL                                                     */
-/* ========================================================= */
-
-function findWorkEvents(
-  memories,
-  person,
-  day
-) {
-  const candidates =
-    [];
-
-  for (
-    const memory of
-      memories
-  ) {
-    if (
-      !isUsableExplicitMemory(
-        memory
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      !memoryContainsPerson(
-        memory,
-        person
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      !memoryIsAboutWork(
-        memory
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      !memoryContainsDay(
-        memory,
-        day
-      )
-    ) {
-      continue;
-    }
-
-    candidates.push({
-      memory,
-
-      situation:
-        extractSituation(
-          memory
-        ),
-    });
-  }
-
-  candidates.sort(
-    (a, b) =>
-      getTemporalSortValue(
-        a.memory
-      ) -
-      getTemporalSortValue(
-        b.memory
-      )
-  );
-
-  return candidates;
-}
-
-function findLatestWorkEvent(
-  memories,
-  person,
-  day
-) {
-  const events =
-    findWorkEvents(
-      memories,
-      person,
-      day
-    );
-
-  return (
-    events[
-      events.length - 1
-    ] ||
-    null
-  );
-}
 
 /* ========================================================= */
 /* HISTORIQUE DE CORRECTION                                   */
