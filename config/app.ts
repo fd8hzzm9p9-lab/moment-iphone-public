@@ -1,5 +1,5 @@
 export const APP_NAME = 'Moment';
 export const APP_VERSION =
-  'V.pré-0.1.0 • MEMENTO 001-09';
+  'pré-alpha 0.1.10';
 export const APP_TAGLINE =
   'Votre mémoire, simplement.';
