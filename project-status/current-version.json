@@ -1,0 +1,619 @@
+{
+  "project": "Moment",
+  "operation": "MEMENTO 001",
+  "version": "0.1.0",
+  "reference_commit": "f06f1f7",
+  "reference_message": "MEMENTO 001 - état de référence avant refactoring",
+  "status": "EN COURS",
+  "purpose": "État d'avancement versionné, lisible et importable/exportable avec le projet.",
+  "sections": {
+    "corrections_fonctionnelles": [
+      {
+        "type": "Temps / calendrier",
+        "tache": "Références déterministes : demain, hier, après-demain, aujourd'hui → aucune confirmation si non ambigu",
+        "etat": "En cours",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Temps / calendrier",
+        "tache": "Cette semaine → lundi 3/08/2026 au dimanche 9/08/2026",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Temps / calendrier",
+        "tache": "Semaine prochaine → bornes correctes",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Temps / calendrier",
+        "tache": "Numéros de semaine ISO : semaine 32, 42, etc.",
+        "etat": "OK / À valider",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Temps / calendrier",
+        "tache": "Semaine XX sans année → demander l'année",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Temps / calendrier",
+        "tache": "Semaine XX avec année → calcul correct",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rendez-vous",
+        "tache": "Correction d'un rendez-vous : personne + événement + ancienne heure + nouvelle heure",
+        "etat": "En cours",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rendez-vous",
+        "tache": "Aucun rendez-vous correspondant → expliquer clairement qu'il n'est pas mémorisé",
+        "etat": "À améliorer",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rendez-vous",
+        "tache": "Correction avec aucun candidat → ne pas considérer la correction comme réussie",
+        "etat": "À valider",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Horaires de travail",
+        "tache": "Correction ancien horaire → nouvel horaire",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Horaires de travail",
+        "tache": "Sélection parmi plusieurs horaires",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Horaires de travail",
+        "tache": "Gestion des ambiguïtés entre plusieurs horaires",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "deductions": [
+      {
+        "type": "Déductions",
+        "tache": "Détection d'une information implied",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Affichage d'une déduction en attente",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Validation d'une déduction",
+        "etat": "OK / À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Réfutation d'une déduction",
+        "etat": "OK / À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Déduction rejetée jamais utilisée comme preuve",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Déduction validée considérée comme acquise",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Réfuter une déduction ne réfute pas les sources",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Tester validation puis rappel",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Déductions",
+        "tache": "Tester réfutation puis rappel",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "presence_personnes": [
+      {
+        "type": "Présence",
+        "tache": "« J'ai vu Marc » ≠ « Marc était avec moi »",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Présence",
+        "tache": "« Avec moi » nécessite une preuve relationnelle explicite",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Présence",
+        "tache": "Personne mentionnée mais présence non confirmée → réponse explicite",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Mémoire personne-centrée",
+        "tache": "Reconnaître une même personne dans plusieurs événements distincts",
+        "etat": "À poursuivre",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Contexte",
+        "tache": "Utiliser les événements proches comme contexte sans les confondre",
+        "etat": "À tester",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "chronologie_calendrier": [
+      {
+        "type": "Chronologie",
+        "tache": "Utiliser la date réelle de l'événement plutôt que created_at",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Chronologie",
+        "tache": "Utiliser les bornes serveur des périodes relatives",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Chronologie",
+        "tache": "GPT ne recalcule pas les périodes relatives",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Chronologie",
+        "tache": "Distinguer confirmé / non documenté / absence de preuve",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Chronologie",
+        "tache": "Questions « dernier », « premier », « depuis », « entre »",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Chronologie",
+        "tache": "Questions « combien de fois / combien de jours »",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Calendrier",
+        "tache": "Consolider les semaines ISO dans tout le raisonnement temporel",
+        "etat": "À faire",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Calendrier",
+        "tache": "Références déterministes sans confirmation",
+        "etat": "À corriger",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "interface_ux": [
+      {
+        "type": "UX",
+        "tache": "Actualiser correctement les étapes de traitement affichées",
+        "etat": "À améliorer",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Corriger le temps de traitement aberrant, ex. 20367 s",
+        "etat": "À corriger",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Vérifier que le temps affiché correspond au temps réel",
+        "etat": "À corriger",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Messages adaptés à chaque étape réelle du traitement",
+        "etat": "À améliorer",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Bouton Annuler pendant une requête",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Annulation sans enregistrement",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Harmoniser le bouton Annuler de Souviens-toi avec Rappelle-moi",
+        "etat": "À faire",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Corriger warning pointerEvents deprecated",
+        "etat": "À faire",
+        "priorite": "Faible",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "UX",
+        "tache": "Corriger Unexpected text node dans View",
+        "etat": "À corriger",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "rappelle_moi": [
+      {
+        "type": "Rappelle-moi",
+        "tache": "Questions temporelles simples",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rappelle-moi",
+        "tache": "Ne pas créer artificiellement une déduction pour une réponse calendaire",
+        "etat": "OK / À surveiller",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rappelle-moi",
+        "tache": "Réponse naturelle sans informations techniques",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rappelle-moi",
+        "tache": "Utilisation correcte des déductions validées",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Rappelle-moi",
+        "tache": "Questions ambiguës / inconnues / non confirmées",
+        "etat": "À tester",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "stockage_memoire": [
+      {
+        "type": "Stockage",
+        "tache": "Conservation des événements sources d'une déduction",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Stockage",
+        "tache": "Historique de validation",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Stockage",
+        "tache": "Historique de réfutation",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Stockage",
+        "tache": "Correction d'un événement sans perdre son historique",
+        "etat": "À vérifier",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Stockage",
+        "tache": "Oublier un souvenir",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "tests": [
+      {
+        "type": "Test",
+        "tache": "Création rendez-vous → correction heure",
+        "etat": "En cours",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Correction rendez-vous inexistant",
+        "etat": "À tester",
+        "priorite": "Moyenne",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Plusieurs rendez-vous possibles",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Correction horaire de travail",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Plusieurs horaires possibles",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Validation déduction → rappel",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Réfutation déduction → rappel",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Cette semaine / semaine prochaine / précédente",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Semaine ISO avec année",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Semaine ISO sans année",
+        "etat": "OK",
+        "priorite": "-",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "« Demain » sans confirmation",
+        "etat": "À corriger puis tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      },
+      {
+        "type": "Test",
+        "tache": "Questions temporelles combinées aux événements",
+        "etat": "À tester",
+        "priorite": "Haute",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "etat_general": [
+      {
+        "domaine": "Interface générale",
+        "etat": "OK",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Souviens-toi",
+        "etat": "OK",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Stockage mémoire",
+        "etat": "OK",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Oublier un souvenir",
+        "etat": "OK",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Rappelle-moi",
+        "etat": "OK / À valider",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Historique des recherches",
+        "etat": "OK",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Suppression d'une recherche",
+        "etat": "OK",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Préviens-moi",
+        "etat": "En cours",
+        "version_cible": "0.2.0"
+      },
+      {
+        "domaine": "Déductions",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Raisonnement temporel",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Mémoire personne-centrée",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "domaine": "Voix",
+        "etat": "En cours",
+        "version_cible": "0.2.0"
+      },
+      {
+        "domaine": "Notifications réelles",
+        "etat": "KO",
+        "version_cible": "0.2.0"
+      },
+      {
+        "domaine": "Finitions UX",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      }
+    ],
+    "ordre_travail": [
+      {
+        "ordre": 1,
+        "tache": "Supprimer les confirmations inutiles pour « demain », « hier », etc.",
+        "priorite": "Haute",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 2,
+        "tache": "Tester création → correction d'un rendez-vous",
+        "priorite": "Haute",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 3,
+        "tache": "Corriger les corrections d'horaires de travail",
+        "priorite": "Haute",
+        "etat": "À faire",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 4,
+        "tache": "Tester validation / réfutation des déductions",
+        "priorite": "Haute",
+        "etat": "À faire",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 5,
+        "tache": "Approfondir le raisonnement temporel / semaines ISO",
+        "priorite": "Haute",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 6,
+        "tache": "Corriger l'affichage des étapes et du temps de traitement",
+        "priorite": "Haute",
+        "etat": "À faire",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 7,
+        "tache": "Corriger les erreurs/warnings React Native Web",
+        "priorite": "Moyenne",
+        "etat": "À faire",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 8,
+        "tache": "Poursuivre les éléments en cours du pré-0.1.0",
+        "priorite": "Moyenne",
+        "etat": "En cours",
+        "version_cible": "0.1.0"
+      },
+      {
+        "ordre": 9,
+        "tache": "Finaliser Préviens-moi, voix et notifications réelles",
+        "priorite": "Haute",
+        "etat": "À faire",
+        "version_cible": "0.2.0"
+      }
+    ]
+  }
+}
