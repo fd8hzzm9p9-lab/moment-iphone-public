@@ -1,61 +1,87 @@
-# MEMENTO 002 — Plan d’optimisation OpenAI
+# MEMENTO 002 — Optimisation Local First / réduction OpenAI
 
 **Projet :** Moment  
 **État :** EN COURS  
-**Objectif :** réduire au maximum les accès/appels à OpenAI sans dégrader les comportements déjà validés.
+**Version actuelle :** pré-alpha 0.2.3  
+**Étape actuelle :** MEMENTO 002-03 — TERMINÉ  
+**Prochaine étape :** MEMENTO 002-04 — pré-alpha 0.2.4  
+**Progression :** 3 / 23 étapes terminées
 
-## Principe directeur
+## Objectif global
 
-**Moment comprend localement si possible → raisonne localement si possible → répond localement si possible → OpenAI uniquement si nécessaire.**
+Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et appels à OpenAI, sans dégrader les comportements déjà validés.
 
-OpenAI devient un niveau 2 : il n’intervient que lorsque le moteur local ne peut pas comprendre, relier ou répondre avec suffisamment de certitude.
+## Priorité immédiate — interface alpha
 
-## Convention de version
+Avant de poursuivre les dictionnaires, **MEMENTO 002-04** doit modifier l’interface très rapidement afin que les pré-testeurs disposent immédiatement de deux repères essentiels :
 
-**MEMENTO Y, étape X → pré-alpha `0.Y.X`**
+1. un accès clair à **« Envoyer le feedback »**, qui servira ensuite à exporter automatiquement le dossier de diagnostic ;
+2. un écran clair dans **Préviens-moi**, actuellement non opérationnel, indiquant que la fonctionnalité est en cours de développement / arrive prochainement.
 
-## Étapes prévues
+L’objectif est qu’un testeur qui ouvre Préviens-moi ne pense pas que l’application est cassée ou que l’onglet ne fonctionne pas.
 
-| Étape | Version | Objectif | Résultat attendu |
+## Architecture retenue
+
+**Dictionnaires conceptuels partagés → moteur local commun → confiance suffisante = traitement local → sinon fallback OpenAI.**
+
+## Feedback alpha automatique
+
+Moment doit enregistrer en arrière-plan les informations nécessaires au diagnostic des échecs locaux et des fallbacks, sans demander au testeur de prendre des notes.
+
+Le testeur doit pouvoir appuyer sur un seul bouton **« Envoyer le feedback »** pour générer un paquet de diagnostic complet et exportable.
+
+Le paquet doit permettre de reconstruire et analyser une session sans recontacter le testeur.
+
+Exemple de paquet :
+
+```text
+moment-feedback-YYYY-MM-DD-session.zip
+├── feedback.json
+├── interactions.jsonl
+├── local-fallbacks.jsonl
+├── errors.jsonl
+└── app-info.json
+```
+
+## Plan actualisé
+
+| Étape | Version | Objectif | État |
 |---:|---|---|---|
-| 002-01 | pré-alpha 0.2.1 | Mise à jour du suivi projet | project-status synchronisé avec la fin de MEMENTO 001 |
-| 002-02 | pré-alpha 0.2.2 | Auditer /understand avant l’appel OpenAI | Identifier ce que Moment sait déjà détecter localement et dans quels cas OpenAI est appelé |
-| 002-03 | pré-alpha 0.2.3 | Créer la décision local ou OpenAI pour /understand | Une saisie déterministe contourne complètement OpenAI |
-| 002-04 | pré-alpha 0.2.4 | Compréhension locale des faits simples | Personne, fait, lieu, date, heure, événement simple enregistrables sans API |
-| 002-05 | pré-alpha 0.2.5 | Relations entre personnes | Comprendre localement sœur, frère, parent, enfant, nièce, neveu, etc. |
-| 002-06 | pré-alpha 0.2.6 | Construction du réseau de relations | Moment relie localement les personnes et faits entre plusieurs souvenirs |
-| 002-07 | pré-alpha 0.2.7 | Identités possibles et ambiguïtés | Distinguer identité certaine, rapprochement possible et identité inconnue |
-| 002-08 | pré-alpha 0.2.8 | Confirmation locale d’une identité/déduction | « Oui, c’est Axelle » consolide localement le lien sans OpenAI |
-| 002-09 | pré-alpha 0.2.9 | /recall local-first | Réponse locale lorsque la mémoire structurée suffit |
-| 002-10 | pré-alpha 0.2.10 | Raisonnement relationnel local | Réponses issues du réseau de personnes/faits sans API si la preuve suffit |
-| 002-11 | pré-alpha 0.2.11 | Gestion locale de l’incertitude | « Je ne peux pas le confirmer » + proposition de confirmation sans OpenAI |
-| 002-12 | pré-alpha 0.2.12 | Optimiser le fallback OpenAI | N’envoyer à OpenAI que les souvenirs/contexte pertinents |
-| 002-13 | pré-alpha 0.2.13 | Instrumenter les appels OpenAI | Compter appels évités/effectués, raison de l’appel, tokens/contexte transmis |
-| 002-14 | pré-alpha 0.2.14 | Tests comparatifs local/OpenAI | Vérifier les économies sans régression |
-| 002-15 | pré-alpha 0.2.15 | Validation du scénario familial complet | Le scénario Élise/Axelle fonctionne idéalement avec 0 appel OpenAI |
-| 002-16 | pré-alpha 0.2.16 | Clôture MEMENTO 002 | Mise à jour project-status, bilan des économies et état final |
+| **002-01** | pré-alpha 0.2.1 | Synchroniser le suivi projet et ouvrir officiellement MEMENTO 002 | 🟢 **TERMINÉ** |
+| **002-02** | pré-alpha 0.2.2 | Auditer /understand et identifier les appels OpenAI évitables | 🟢 **TERMINÉ** |
+| **002-03** | pré-alpha 0.2.3 | Mettre en place et valider l’architecture Local First → fallback OpenAI | 🟢 **TERMINÉ** |
+| **002-04** | pré-alpha 0.2.4 | Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel | 🔵 **PROCHAINE ÉTAPE** |
+| **002-05** | pré-alpha 0.2.5 | Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs | ⚪ **À FAIRE** |
+| **002-06** | pré-alpha 0.2.6 | Créer le paquet de diagnostic alpha exportable en un bouton | ⚪ **À FAIRE** |
+| **002-07** | pré-alpha 0.2.7 | Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/ | ⚪ **À FAIRE** |
+| **002-08** | pré-alpha 0.2.8 | Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude, relations | ⚪ **À FAIRE** |
+| **002-09** | pré-alpha 0.2.9 | Étendre les dictionnaires : lieux/résidence, travail, rendez-vous, invitations, actions | ⚪ **À FAIRE** |
+| **002-10** | pré-alpha 0.2.10 | Construire le moteur commun d’analyse lexicale + conceptuelle + structurelle | ⚪ **À FAIRE** |
+| **002-11** | pré-alpha 0.2.11 | Mettre en place confiance et sécurité : local si suffisamment certain, sinon OpenAI | ⚪ **À FAIRE** |
+| **002-12** | pré-alpha 0.2.12 | Intégrer complètement ce moteur à Souviens-toi | ⚪ **À FAIRE** |
+| **002-13** | pré-alpha 0.2.13 | Comprendre localement les relations familiales/personnelles | ⚪ **À FAIRE** |
+| **002-14** | pré-alpha 0.2.14 | Construire et exploiter le réseau de connaissances entre personnes, faits, lieux et dates | ⚪ **À FAIRE** |
+| **002-15** | pré-alpha 0.2.15 | Intégrer le Local First à Rappelle-moi et répondre localement lorsque possible | ⚪ **À FAIRE** |
+| **002-16** | pré-alpha 0.2.16 | Gérer localement ambiguïtés, négations, incertitudes, confirmations et réfutations | ⚪ **À FAIRE** |
+| **002-17** | pré-alpha 0.2.17 | Préparer le moteur commun pour l’activation future de Préviens-moi | ⚪ **À FAIRE** |
+| **002-18** | pré-alpha 0.2.18 | Optimiser le fallback OpenAI restant et réduire le contexte/tokens envoyés | ⚪ **À FAIRE** |
+| **002-19** | pré-alpha 0.2.19 | Mesurer appels locaux/OpenAI, causes de fallback, temps et économies | ⚪ **À FAIRE** |
+| **002-20** | pré-alpha 0.2.20 | Exploiter les feedbacks alpha pour enrichir dictionnaires et règles sans recontacter le testeur | ⚪ **À FAIRE** |
+| **002-21** | pré-alpha 0.2.21 | Rejouer le scénario complet Élise/Axelle avec objectif 0 appel OpenAI | ⚪ **À FAIRE** |
+| **002-22** | pré-alpha 0.2.22 | Tests de non-régression et validation globale du Local First | ⚪ **À FAIRE** |
+| **002-23** | pré-alpha 0.2.23 | Clôturer MEMENTO 002 : bilan, documentation, architecture et état final du projet | ⚪ **À FAIRE** |
 
-## Scénario de référence Élise / Axelle
+## Scénario de référence
 
-Ce scénario sert de test cible pour vérifier qu’une chaîne complète peut être traitée localement :
+Le scénario **Élise / Axelle** reste le test cible de fin de MEMENTO 002, avec un objectif de **0 appel OpenAI** lorsque la chaîne est suffisamment structurée et couverte localement.
 
-1. « J'ai une sœur qui s'appelle Élise »
-2. « Élise a trois enfants »
-3. « Ma nièce s'appelle Axelle »
-4. « Mes parents n'ont eu que deux enfants »
-5. « La fille d'Élise est née le 22 août 2014 »
-6. « Quand est née Axelle ? »
-7. « Oui, c'est Axelle »
-8. « Quand est née Axelle ? »
+## Prochaine étape
 
-Objectif final : **0 appel OpenAI** sur ce scénario lorsque les formulations restent suffisamment structurées et déterministes.
+### MEMENTO 002-04 — pré-alpha 0.2.4
 
-## Point de départ
+Modifier immédiatement l’interface alpha :
 
-- MEMENTO 002-01 : synchronisation de `project-status` — terminé.
-- Prochaine étape : **MEMENTO 002-02 / pré-alpha 0.2.2**.
-- Première cible : auditer `/understand` avant l’appel OpenAI pour déterminer ce qui peut déjà être traité localement.
-
-## Règle de sécurité
-
-Aucune optimisation ne doit supprimer un appel OpenAI si cela réduit la fiabilité de Moment. Le moteur local doit avoir une confiance suffisante ; sinon OpenAI reste le fallback.
+- ajouter un accès clair **Envoyer le feedback** ;
+- préparer l’intégration du futur paquet de diagnostic ;
+- remplacer l’état actuel de **Préviens-moi** par un écran explicatif propre indiquant que la fonctionnalité est à venir / en cours de développement ;
+- éviter qu’un testeur interprète cet onglet non opérationnel comme un bug.

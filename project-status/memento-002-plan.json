@@ -2,117 +2,210 @@
   "project": "Moment",
   "memento": "MEMENTO 002",
   "status": "EN COURS",
-  "objective": "Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et appels à OpenAI, en privilégiant le traitement local et déterministe sans dégrader les comportements déjà validés.",
-  "principle": "Moment comprend localement si possible → raisonne localement si possible → répond localement si possible → OpenAI uniquement si nécessaire.",
-  "version_rule": "MEMENTO Y, étape X → pré-alpha 0.Y.X",
-  "current_step": "MEMENTO 002-01",
-  "next_step": "MEMENTO 002-02",
+  "current_version": "pré-alpha 0.2.3",
+  "current_step": "MEMENTO 002-03",
+  "next_step": "MEMENTO 002-04",
+  "progress": {
+    "completed": 3,
+    "total": 23
+  },
+  "objective": "Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et appels à OpenAI, sans dégrader les comportements déjà validés.",
+  "architecture_principle": "Dictionnaires conceptuels partagés → moteur local commun → confiance suffisante = traitement local → sinon fallback OpenAI.",
+  "immediate_ui_priority": {
+    "step": "MEMENTO 002-04",
+    "version": "pré-alpha 0.2.4",
+    "goals": [
+      "Ajouter très rapidement une entrée/interface « Envoyer le feedback » accessible aux pré-testeurs.",
+      "Préparer l’accès au paquet de diagnostic qui sera généré automatiquement.",
+      "Modifier immédiatement l’onglet Préviens-moi, actuellement non opérationnel, afin qu’un testeur qui l’ouvre comprenne clairement que la fonctionnalité n’est pas encore disponible.",
+      "Afficher un message simple du type « Préviens-moi arrive bientôt », « Fonctionnalité en cours de développement » ou équivalent.",
+      "Éviter qu’un onglet vide ou inactif soit interprété comme un bug."
+    ]
+  },
+  "feedback_principle": "Tout échec ou résultat incertain du moteur local doit être consigné automatiquement et exportable par le testeur en un seul bouton.",
+  "feedback_requirements": {
+    "background_capture": true,
+    "tester_manual_notes_required": false,
+    "one_button_export": true,
+    "goal": "Permettre l'analyse complète d'une session alpha sans devoir redemander au testeur ce qu'il a saisi, vu ou obtenu.",
+    "capture_per_interaction": [
+      "texte ou question originale",
+      "fonction Moment utilisée",
+      "version de l'application",
+      "horodatage et identifiant d'interaction",
+      "éléments/concepts reconnus localement",
+      "dictionnaires/règles consultés",
+      "score ou niveau de confiance",
+      "raison du succès local ou du fallback",
+      "appel OpenAI effectué ou non",
+      "succès ou erreur OpenAI",
+      "structure produite",
+      "résultat final affiché par Moment",
+      "événement ou mémoire créé/modifié",
+      "validation, correction, annulation ou suppression ultérieure",
+      "marqueur utilisateur « ça n'a pas marché » si utilisé"
+    ],
+    "session_linking": "Les interactions doivent être chaînées afin de reconstruire un scénario complet de test.",
+    "export_package_example": "moment-feedback-YYYY-MM-DD-session.zip",
+    "suggested_files": [
+      "feedback.json",
+      "interactions.jsonl",
+      "local-fallbacks.jsonl",
+      "errors.jsonl",
+      "app-info.json"
+    ]
+  },
+  "knowledge_strategy": {
+    "directory": "server/knowledge/",
+    "shared_consumers": [
+      "Souviens-toi",
+      "Rappelle-moi",
+      "Préviens-moi"
+    ],
+    "update_strategy": "Enrichissement progressif des dictionnaires et règles à partir des retours alpha/bêta."
+  },
   "steps": [
     {
-      "step": "002-01",
+      "id": "002-01",
       "version": "pré-alpha 0.2.1",
-      "objective": "Mise à jour du suivi projet",
-      "expected": "project-status synchronisé avec la fin de MEMENTO 001"
+      "objective": "Synchroniser le suivi projet et ouvrir officiellement MEMENTO 002",
+      "status": "TERMINÉ"
     },
     {
-      "step": "002-02",
+      "id": "002-02",
       "version": "pré-alpha 0.2.2",
-      "objective": "Auditer /understand avant l’appel OpenAI",
-      "expected": "Identifier ce que Moment sait déjà détecter localement et dans quels cas OpenAI est appelé"
+      "objective": "Auditer /understand et identifier les appels OpenAI évitables",
+      "status": "TERMINÉ"
     },
     {
-      "step": "002-03",
+      "id": "002-03",
       "version": "pré-alpha 0.2.3",
-      "objective": "Créer la décision local ou OpenAI pour /understand",
-      "expected": "Une saisie déterministe contourne complètement OpenAI"
+      "objective": "Mettre en place et valider l’architecture Local First → fallback OpenAI",
+      "status": "TERMINÉ"
     },
     {
-      "step": "002-04",
+      "id": "002-04",
       "version": "pré-alpha 0.2.4",
-      "objective": "Compréhension locale des faits simples",
-      "expected": "Personne, fait, lieu, date, heure, événement simple enregistrables sans API"
+      "objective": "Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel",
+      "status": "PROCHAINE ÉTAPE"
     },
     {
-      "step": "002-05",
+      "id": "002-05",
       "version": "pré-alpha 0.2.5",
-      "objective": "Relations entre personnes",
-      "expected": "Comprendre localement sœur, frère, parent, enfant, nièce, neveu, etc."
+      "objective": "Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-06",
+      "id": "002-06",
       "version": "pré-alpha 0.2.6",
-      "objective": "Construction du réseau de relations",
-      "expected": "Moment relie localement les personnes et faits entre plusieurs souvenirs"
+      "objective": "Créer le paquet de diagnostic alpha exportable en un bouton",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-07",
+      "id": "002-07",
       "version": "pré-alpha 0.2.7",
-      "objective": "Identités possibles et ambiguïtés",
-      "expected": "Distinguer identité certaine, rapprochement possible et identité inconnue"
+      "objective": "Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-08",
+      "id": "002-08",
       "version": "pré-alpha 0.2.8",
-      "objective": "Confirmation locale d’une identité/déduction",
-      "expected": "« Oui, c’est Axelle » consolide localement le lien sans OpenAI"
+      "objective": "Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude, relations",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-09",
+      "id": "002-09",
       "version": "pré-alpha 0.2.9",
-      "objective": "/recall local-first",
-      "expected": "Réponse locale lorsque la mémoire structurée suffit"
+      "objective": "Étendre les dictionnaires : lieux/résidence, travail, rendez-vous, invitations, actions",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-10",
+      "id": "002-10",
       "version": "pré-alpha 0.2.10",
-      "objective": "Raisonnement relationnel local",
-      "expected": "Réponses issues du réseau de personnes/faits sans API si la preuve suffit"
+      "objective": "Construire le moteur commun d’analyse lexicale + conceptuelle + structurelle",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-11",
+      "id": "002-11",
       "version": "pré-alpha 0.2.11",
-      "objective": "Gestion locale de l’incertitude",
-      "expected": "« Je ne peux pas le confirmer » + proposition de confirmation sans OpenAI"
+      "objective": "Mettre en place confiance et sécurité : local si suffisamment certain, sinon OpenAI",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-12",
+      "id": "002-12",
       "version": "pré-alpha 0.2.12",
-      "objective": "Optimiser le fallback OpenAI",
-      "expected": "N’envoyer à OpenAI que les souvenirs/contexte pertinents"
+      "objective": "Intégrer complètement ce moteur à Souviens-toi",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-13",
+      "id": "002-13",
       "version": "pré-alpha 0.2.13",
-      "objective": "Instrumenter les appels OpenAI",
-      "expected": "Compter appels évités/effectués, raison de l’appel, tokens/contexte transmis"
+      "objective": "Comprendre localement les relations familiales/personnelles",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-14",
+      "id": "002-14",
       "version": "pré-alpha 0.2.14",
-      "objective": "Tests comparatifs local/OpenAI",
-      "expected": "Vérifier les économies sans régression"
+      "objective": "Construire et exploiter le réseau de connaissances entre personnes, faits, lieux et dates",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-15",
+      "id": "002-15",
       "version": "pré-alpha 0.2.15",
-      "objective": "Validation du scénario familial complet",
-      "expected": "Le scénario Élise/Axelle fonctionne idéalement avec 0 appel OpenAI"
+      "objective": "Intégrer le Local First à Rappelle-moi et répondre localement lorsque possible",
+      "status": "À FAIRE"
     },
     {
-      "step": "002-16",
+      "id": "002-16",
       "version": "pré-alpha 0.2.16",
-      "objective": "Clôture MEMENTO 002",
-      "expected": "Mise à jour project-status, bilan des économies et état final"
+      "objective": "Gérer localement ambiguïtés, négations, incertitudes, confirmations et réfutations",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-17",
+      "version": "pré-alpha 0.2.17",
+      "objective": "Préparer le moteur commun pour l’activation future de Préviens-moi",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-18",
+      "version": "pré-alpha 0.2.18",
+      "objective": "Optimiser le fallback OpenAI restant et réduire le contexte/tokens envoyés",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-19",
+      "version": "pré-alpha 0.2.19",
+      "objective": "Mesurer appels locaux/OpenAI, causes de fallback, temps et économies",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-20",
+      "version": "pré-alpha 0.2.20",
+      "objective": "Exploiter les feedbacks alpha pour enrichir dictionnaires et règles sans recontacter le testeur",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-21",
+      "version": "pré-alpha 0.2.21",
+      "objective": "Rejouer le scénario complet Élise/Axelle avec objectif 0 appel OpenAI",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-22",
+      "version": "pré-alpha 0.2.22",
+      "objective": "Tests de non-régression et validation globale du Local First",
+      "status": "À FAIRE"
+    },
+    {
+      "id": "002-23",
+      "version": "pré-alpha 0.2.23",
+      "objective": "Clôturer MEMENTO 002 : bilan, documentation, architecture et état final du projet",
+      "status": "À FAIRE"
     }
   ],
-  "reference_scenario": [
-    "J'ai une sœur qui s'appelle Élise",
-    "Élise a trois enfants",
-    "Ma nièce s'appelle Axelle",
-    "Mes parents n'ont eu que deux enfants",
-    "La fille d'Élise est née le 22 août 2014",
-    "Quand est née Axelle ?",
-    "Oui, c'est Axelle",
-    "Quand est née Axelle ?"
-  ]
+  "reference_scenario": {
+    "name": "Élise / Axelle",
+    "goal": "Valider à terme qu'une chaîne structurée de relations familiales, ambiguïtés, confirmations et rappels puisse être traitée localement avec 0 appel OpenAI lorsque les formulations sont suffisamment couvertes et fiables."
+  }
 }

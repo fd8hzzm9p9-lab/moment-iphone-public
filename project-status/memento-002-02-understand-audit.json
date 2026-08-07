@@ -1,0 +1,35 @@
+{
+  "project": "Moment",
+  "memento": "MEMENTO 002",
+  "step": "MEMENTO 002-02",
+  "version": "pré-alpha 0.2.2",
+  "status": "TERMINÉ",
+  "objective": "Auditer /understand avant les appels OpenAI afin d'identifier les chemins déjà locaux et les premiers bypass possibles.",
+  "openai_calls": [
+    {
+      "area": "corrections",
+      "trigger": "isCorrectionRequest(text) === true",
+      "current_behavior": "La correction est détectée localement, puis OpenAI est appelé pour extraire personne, date, contexte et anciennes/nouvelles valeurs.",
+      "optimization_potential": "Élevé pour les corrections structurées et déterministes."
+    },
+    {
+      "area": "general_understanding",
+      "trigger": "Toute saisie qui n'a pas déjà retourné via correction/refutation/validation",
+      "current_behavior": "OpenAI structure la saisie en événements avant les enrichissements locaux.",
+      "optimization_potential": "Très élevé : c'est le principal appel systématique de /understand."
+    }
+  ],
+  "local_paths_already_present": [
+    "Validation d'une déduction lorsque la déduction cible est trouvée",
+    "Réfutation d'une déduction lorsque la déduction cible est trouvée",
+    "Détection locale d'une demande de correction",
+    "Enrichissement calendrier après structuration",
+    "Détection de contradictions après structuration"
+  ],
+  "key_finding": "Le moteur local intervient surtout après la structuration GPT. Pour réduire réellement les appels OpenAI, Moment doit créer un parseur local capable de produire directement un événement structuré avant le bloc ANALYSE GPT.",
+  "next_step": {
+    "id": "MEMENTO 002-03",
+    "version": "pré-alpha 0.2.3",
+    "objective": "Créer une décision local-first avant ANALYSE GPT et permettre à une première famille de saisies déterministes de contourner complètement OpenAI."
+  }
+}

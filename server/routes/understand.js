@@ -8,6 +8,10 @@
  * La logique interne de la route est conservée.
  */
 
+const {
+  tryLocalUnderstand,
+} = require('../utils/local-understand');
+
 const helpers = {
   ...require('../utils/calendar'),
   ...require('../utils/core'),
@@ -1649,282 +1653,317 @@ correctionData =
         }
       }
 
-      /* =================================================== */
-      /* ANALYSE GPT                                           */
+            /* =================================================== */
+      /* LOCAL FIRST — MEMENTO 002                            */
       /* =================================================== */
 
-      console.log(
-        '🧠 Analyse de la saisie...'
+      let result;
+
+      const localResult =
+        tryLocalUnderstand(
+          text
+        );
+
+      if (
+        localResult
+      ) {
+        console.log(
+          '⚡ LOCAL FIRST : compréhension locale utilisée'
+        );
+
+        console.log(
+          '⚡ Parser local :',
+          localResult
+            .local_understanding
+            ?.parser ||
+            'unknown'
+        );
+
+        result =
+          localResult;
+      } else {
+
+        console.log(
+          '🌐 LOCAL FIRST : fallback OpenAI nécessaire'
+        );
+
+  /* =================================================== */
+        /* ANALYSE GPT                                           */
+        /* =================================================== */
+  
+        console.log(
+          '🧠 Analyse de la saisie...'
+        );
+  
+        const prompt = `
+  Tu es le moteur de mémoire de l'application Moment.
+  
+  Une saisie peut contenir un ou plusieurs événements.
+  
+  RÈGLES ABSOLUES :
+  
+  
+  
+  1. Ne crée aucune information absente du texte.
+  2. Ne crée aucune relation non exprimée.
+  3. Ne transforme jamais une intention en action.
+  4. Un fait explicitement dit reste explicite.
+  5. Une déduction doit être séparée des faits sources.
+  6. Ne déduis jamais qu'une personne était avec l'utilisateur
+     simplement parce qu'elle a été vue, mentionnée ou se trouvait
+     dans le même lieu.
+  
+  EXEMPLES :
+  
+  "J'ai vu Marc au restaurant lundi."
+  
+  => Marc est mentionné.
+  => Marc était au restaurant.
+  => Mais cela NE signifie PAS que Marc était avec moi.
+  
+  "J'ai mangé avec Marc lundi."
+  
+  => Marc était explicitement avec moi.
+  
+  RÈGLE DE FORMULATION DES DESCRIPTIONS :
+  
+  Le champ "description" doit être une phrase complète et naturelle
+  qui résume fidèlement le souvenir en s'adressant directement
+  à la personne qui utilise Moment.
+  
+  Lorsque le texte source est formulé à la première personne
+  ("je", "j'", "moi", "mon", "ma", "mes"), la description DOIT
+  être reformulée à la deuxième personne ("tu", "toi", "ton",
+  "ta", "tes").
+  
+  INTERDICTION ABSOLUE dans "description" :
+  - "Utilisateur"
+  - "l'utilisateur"
+  - "je"
+  - "j'"
+  
+  Ne supprime pas le sujet de la phrase pour éviter cette règle.
+  La description doit rester une phrase complète.
+  
+  Exemples obligatoires :
+  
+  "Je suis content de l'avancée du projet MOMENT."
+  => "Tu es content de l'avancée du projet MOMENT."
+  
+  "J'ai vu Bob jeudi dernier."
+  => "Tu as vu Bob jeudi dernier."
+  
+  "Mon rendez-vous avec Marc est demain."
+  => "Ton rendez-vous avec Marc est demain."
+  
+  La description doit conserver le sens complet du texte source.
+  
+  Retourne uniquement du JSON :
+  
+  {
+    "input": "",
+    "events": []
+  }
+  
+  Chaque événement :
+  
+  {
+    "id": "",
+    "type": "",
+    "description": "",
+    "date_reference": "",
+    "date_precision": "",
+    "temporal_direction": "",
+    "context": "",
+    "people": [],
+    "places": [],
+    "objects": [],
+    "subjects": [],
+    "thoughts": [],
+    "actions": [],
+    "intentions": [],
+    "facts": [],
+    "relations": [],
+    "source_event_ids": [],
+    "is_deduction": false,
+    "pending_validation": false,
+    "created_at": "",
+    "source_text": "",
+    "confidence": 0
+  }
+    RÈGLE POUR LE CHAMP "facts" :
+  
+  Le champ "facts" contient uniquement des faits explicites
+  qui apportent une information distincte de la description.
+  
+  Ne recopie jamais la description dans "facts".
+  
+  Si la description exprime déjà entièrement le fait mémorisé,
+  "facts" doit être [].
+  
+  Exemple :
+  
+  "Je suis content de l'avancée du projet MOMENT."
+  
+  => description :
+  "Tu es content de l'avancée du projet MOMENT."
+  
+  => facts :
+  []
+  
+  Ne crée pas un fait séparé comme :
+  "Tu es content de l'avancée du projet MOMENT."
+  
+  Types autorisés :
+  
+  "event"
+  "thought"
+  "idea"
+  "action"
+  "intention"
+  "fact"
+  "feeling"
+  "mixed"
+  "deduction"
+  
+  date_precision :
+  
+  "exact"
+  "day"
+  "approximate"
+  "relative"
+  "unknown"
+  
+  temporal_direction :
+  
+  "past"
+  "future"
+  "generic"
+  "unknown"
+  
+  IMPORTANT — DIRECTION TEMPORELLE :
+  
+  temporal_direction indique si le repère temporel
+  doit être compris comme passé, futur ou générique.
+  
+  "past" :
+  l'événement est situé dans le passé.
+  
+  "future" :
+  l'événement est prévu ou situé dans le futur.
+  
+  "generic" :
+  le repère temporel ne désigne pas un jour précis.
+  
+  "unknown" :
+  la direction temporelle ne peut pas être déterminée.
+  
+  EXEMPLES :
+  
+  "J'y suis allé dimanche."
+  => date_reference = "dimanche"
+  => temporal_direction = "past"
+  
+  "J'y vais dimanche."
+  => date_reference = "dimanche"
+  => temporal_direction = "future"
+  
+  "J'irai dimanche."
+  => date_reference = "dimanche"
+  => temporal_direction = "future"
+  
+  "Il a plu mardi."
+  => date_reference = "mardi"
+  => temporal_direction = "past"
+  
+  "Je dois appeler Marc mardi."
+  => date_reference = "mardi"
+  => temporal_direction = "future"
+  
+  "J'y suis allé un dimanche."
+  => date_reference = "un dimanche"
+  => temporal_direction = "generic"
+  
+  "Un dimanche, j'y suis allé."
+  => date_reference = "un dimanche"
+  => temporal_direction = "generic"
+  
+  "Je vais à la piscine mardi prochain."
+  => date_reference = "mardi prochain"
+  => temporal_direction = "future"
+  
+  Ne transforme jamais temporal_direction
+  en une date calendaire.
+  Le serveur s'en chargera.
+  
+  IMPORTANT :
+  
+  date_reference décrit la date ou le repère temporel
+  explicitement présent dans le texte utilisateur.
+  
+  created_at doit rester vide.
+  
+  source_text doit reprendre la partie exacte
+  du texte utilisateur correspondant à l'événement.
+  
+  Ne convertis pas toi-même un jour de semaine en date :
+  le serveur s'en chargera.
+  
+  Texte utilisateur :
+  
+  ${text.trim()}
+  `;
+  
+        const response =
+          await openai.responses.create({
+            model:
+              'gpt-5-mini',
+  
+            input:
+              prompt,
+          });
+  try {
+    const rawText =
+      String(
+        response.output_text || ''
+      )
+        .trim()
+        .replace(
+          /^```(?:json)?\s*/i,
+          ''
+        )
+        .replace(
+          /\s*```$/i,
+          ''
+        )
+        .trim();
+  
+    result =
+      JSON.parse(
+        rawText
       );
-
-      const prompt = `
-Tu es le moteur de mémoire de l'application Moment.
-
-Une saisie peut contenir un ou plusieurs événements.
-
-RÈGLES ABSOLUES :
-
-
-
-1. Ne crée aucune information absente du texte.
-2. Ne crée aucune relation non exprimée.
-3. Ne transforme jamais une intention en action.
-4. Un fait explicitement dit reste explicite.
-5. Une déduction doit être séparée des faits sources.
-6. Ne déduis jamais qu'une personne était avec l'utilisateur
-   simplement parce qu'elle a été vue, mentionnée ou se trouvait
-   dans le même lieu.
-
-EXEMPLES :
-
-"J'ai vu Marc au restaurant lundi."
-
-=> Marc est mentionné.
-=> Marc était au restaurant.
-=> Mais cela NE signifie PAS que Marc était avec moi.
-
-"J'ai mangé avec Marc lundi."
-
-=> Marc était explicitement avec moi.
-
-RÈGLE DE FORMULATION DES DESCRIPTIONS :
-
-Le champ "description" doit être une phrase complète et naturelle
-qui résume fidèlement le souvenir en s'adressant directement
-à la personne qui utilise Moment.
-
-Lorsque le texte source est formulé à la première personne
-("je", "j'", "moi", "mon", "ma", "mes"), la description DOIT
-être reformulée à la deuxième personne ("tu", "toi", "ton",
-"ta", "tes").
-
-INTERDICTION ABSOLUE dans "description" :
-- "Utilisateur"
-- "l'utilisateur"
-- "je"
-- "j'"
-
-Ne supprime pas le sujet de la phrase pour éviter cette règle.
-La description doit rester une phrase complète.
-
-Exemples obligatoires :
-
-"Je suis content de l'avancée du projet MOMENT."
-=> "Tu es content de l'avancée du projet MOMENT."
-
-"J'ai vu Bob jeudi dernier."
-=> "Tu as vu Bob jeudi dernier."
-
-"Mon rendez-vous avec Marc est demain."
-=> "Ton rendez-vous avec Marc est demain."
-
-La description doit conserver le sens complet du texte source.
-
-Retourne uniquement du JSON :
-
-{
-  "input": "",
-  "events": []
-}
-
-Chaque événement :
-
-{
-  "id": "",
-  "type": "",
-  "description": "",
-  "date_reference": "",
-  "date_precision": "",
-  "temporal_direction": "",
-  "context": "",
-  "people": [],
-  "places": [],
-  "objects": [],
-  "subjects": [],
-  "thoughts": [],
-  "actions": [],
-  "intentions": [],
-  "facts": [],
-  "relations": [],
-  "source_event_ids": [],
-  "is_deduction": false,
-  "pending_validation": false,
-  "created_at": "",
-  "source_text": "",
-  "confidence": 0
-}
-  RÈGLE POUR LE CHAMP "facts" :
-
-Le champ "facts" contient uniquement des faits explicites
-qui apportent une information distincte de la description.
-
-Ne recopie jamais la description dans "facts".
-
-Si la description exprime déjà entièrement le fait mémorisé,
-"facts" doit être [].
-
-Exemple :
-
-"Je suis content de l'avancée du projet MOMENT."
-
-=> description :
-"Tu es content de l'avancée du projet MOMENT."
-
-=> facts :
-[]
-
-Ne crée pas un fait séparé comme :
-"Tu es content de l'avancée du projet MOMENT."
-
-Types autorisés :
-
-"event"
-"thought"
-"idea"
-"action"
-"intention"
-"fact"
-"feeling"
-"mixed"
-"deduction"
-
-date_precision :
-
-"exact"
-"day"
-"approximate"
-"relative"
-"unknown"
-
-temporal_direction :
-
-"past"
-"future"
-"generic"
-"unknown"
-
-IMPORTANT — DIRECTION TEMPORELLE :
-
-temporal_direction indique si le repère temporel
-doit être compris comme passé, futur ou générique.
-
-"past" :
-l'événement est situé dans le passé.
-
-"future" :
-l'événement est prévu ou situé dans le futur.
-
-"generic" :
-le repère temporel ne désigne pas un jour précis.
-
-"unknown" :
-la direction temporelle ne peut pas être déterminée.
-
-EXEMPLES :
-
-"J'y suis allé dimanche."
-=> date_reference = "dimanche"
-=> temporal_direction = "past"
-
-"J'y vais dimanche."
-=> date_reference = "dimanche"
-=> temporal_direction = "future"
-
-"J'irai dimanche."
-=> date_reference = "dimanche"
-=> temporal_direction = "future"
-
-"Il a plu mardi."
-=> date_reference = "mardi"
-=> temporal_direction = "past"
-
-"Je dois appeler Marc mardi."
-=> date_reference = "mardi"
-=> temporal_direction = "future"
-
-"J'y suis allé un dimanche."
-=> date_reference = "un dimanche"
-=> temporal_direction = "generic"
-
-"Un dimanche, j'y suis allé."
-=> date_reference = "un dimanche"
-=> temporal_direction = "generic"
-
-"Je vais à la piscine mardi prochain."
-=> date_reference = "mardi prochain"
-=> temporal_direction = "future"
-
-Ne transforme jamais temporal_direction
-en une date calendaire.
-Le serveur s'en chargera.
-
-IMPORTANT :
-
-date_reference décrit la date ou le repère temporel
-explicitement présent dans le texte utilisateur.
-
-created_at doit rester vide.
-
-source_text doit reprendre la partie exacte
-du texte utilisateur correspondant à l'événement.
-
-Ne convertis pas toi-même un jour de semaine en date :
-le serveur s'en chargera.
-
-Texte utilisateur :
-
-${text.trim()}
-`;
-
-      const response =
-        await openai.responses.create({
-          model:
-            'gpt-5-mini',
-
-          input:
-            prompt,
-        });
-
-let result;
-
-try {
-  const rawText =
-    String(
-      response.output_text || ''
-    )
-      .trim()
-      .replace(
-        /^```(?:json)?\s*/i,
-        ''
-      )
-      .replace(
-        /\s*```$/i,
-        ''
-      )
-      .trim();
-
-  result =
-    JSON.parse(
-      rawText
+  } catch (error) {
+    console.error(
+      '❌ JSON compréhension invalide :',
+      response.output_text
     );
-} catch (error) {
-  console.error(
-    '❌ JSON compréhension invalide :',
-    response.output_text
-  );
+  
+    console.error(
+      '❌ Détail parsing :',
+      error
+    );
+  
+    return res
+      .status(500)
+      .json({
+        error:
+          'Le cerveau de Moment a produit une réponse invalide',
+      });
+  }
+  
 
-  console.error(
-    '❌ Détail parsing :',
-    error
-  );
+      }
 
-  return res
-    .status(500)
-    .json({
-      error:
-        'Le cerveau de Moment a produit une réponse invalide',
-    });
-}
 
       if (
         !Array.isArray(
