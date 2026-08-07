@@ -1,7 +1,7 @@
 {
   "project": "Moment",
-  "operation": "MEMENTO 001",
-  "version": "0.1.0",
+  "operation": "MEMENTO 002",
+  "version": "pré-alpha 0.1.10",
   "reference_commit": "f06f1f7",
   "reference_message": "MEMENTO 001 - état de référence avant refactoring",
   "status": "EN COURS",
@@ -615,5 +615,142 @@
         "version_cible": "0.2.0"
       }
     ]
+  },
+  "operation_step": "MEMENTO 002-01",
+  "next_version": "pré-alpha 0.2.1",
+  "memento_history": [
+    {
+      "id": "MEMENTO 001",
+      "status": "TERMINÉ",
+      "steps": 10,
+      "resulting_version": "pré-alpha 0.1.10",
+      "purpose": "Refactoring structurel du serveur sans modification volontaire du comportement métier.",
+      "result": {
+        "server_main_lines": 201,
+        "routes": [
+          "server/routes/understand.js",
+          "server/routes/recall.js"
+        ],
+        "utils": [
+          "server/utils/core.js",
+          "server/utils/calendar.js",
+          "server/utils/memory.js",
+          "server/utils/deductions.js",
+          "server/utils/presence.js",
+          "server/utils/corrections.js",
+          "server/utils/work.js",
+          "server/utils/history.js"
+        ]
+      },
+      "steps_detail": [
+        {
+          "step": 1,
+          "id": "MEMENTO 001-01",
+          "result": "Extraction des utilitaires généraux vers server/utils/core.js"
+        },
+        {
+          "step": 2,
+          "id": "MEMENTO 001-02",
+          "result": "Extraction du moteur calendrier / chronologie vers server/utils/calendar.js"
+        },
+        {
+          "step": 3,
+          "id": "MEMENTO 001-03",
+          "result": "Extraction des helpers mémoire / entités / questions vers server/utils/memory.js"
+        },
+        {
+          "step": 4,
+          "id": "MEMENTO 001-04",
+          "result": "Extraction du moteur de déductions vers server/utils/deductions.js"
+        },
+        {
+          "step": 5,
+          "id": "MEMENTO 001-05",
+          "result": "Extraction de la présence stricte vers server/utils/presence.js"
+        },
+        {
+          "step": 6,
+          "id": "MEMENTO 001-06",
+          "result": "Extraction du moteur de corrections vers server/utils/corrections.js"
+        },
+        {
+          "step": 7,
+          "id": "MEMENTO 001-07",
+          "result": "Extraction des helpers travail vers server/utils/work.js"
+        },
+        {
+          "step": 8,
+          "id": "MEMENTO 001-08",
+          "result": "Extraction historique / claims / déductions validées vers server/utils/history.js"
+        },
+        {
+          "step": 9,
+          "id": "MEMENTO 001-09",
+          "result": "Extraction complète de la route /recall vers server/routes/recall.js"
+        },
+        {
+          "step": 10,
+          "id": "MEMENTO 001-10",
+          "result": "Extraction complète de la route /understand vers server/routes/understand.js"
+        }
+      ]
+    }
+  ],
+  "current_memento": {
+    "id": "MEMENTO 002",
+    "current_step": "MEMENTO 002-01",
+    "target_version": "pré-alpha 0.2.1",
+    "status": "EN COURS",
+    "purpose": "Poursuite du développement de Moment à partir de la base restructurée par MEMENTO 001."
+  },
+  "architecture": {
+    "server": {
+      "entrypoint": "server/server.js",
+      "entrypoint_lines": 201,
+      "routes": [
+        {
+          "file": "server/routes/understand.js",
+          "responsibility": "Route /understand"
+        },
+        {
+          "file": "server/routes/recall.js",
+          "responsibility": "Route /recall"
+        }
+      ],
+      "utils": [
+        {
+          "file": "server/utils/core.js",
+          "responsibility": "Utilitaires généraux"
+        },
+        {
+          "file": "server/utils/calendar.js",
+          "responsibility": "Calendrier et chronologie"
+        },
+        {
+          "file": "server/utils/memory.js",
+          "responsibility": "Mémoire, entités et analyse des questions"
+        },
+        {
+          "file": "server/utils/deductions.js",
+          "responsibility": "Déductions, validation et réfutation"
+        },
+        {
+          "file": "server/utils/presence.js",
+          "responsibility": "Présence stricte / avec moi"
+        },
+        {
+          "file": "server/utils/corrections.js",
+          "responsibility": "Corrections de souvenirs, rendez-vous et horaires"
+        },
+        {
+          "file": "server/utils/work.js",
+          "responsibility": "Recherche des événements de travail"
+        },
+        {
+          "file": "server/utils/history.js",
+          "responsibility": "Historique, claims et déductions validées"
+        }
+      ]
+    }
   }
 }

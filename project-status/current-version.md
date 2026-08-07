@@ -1,7 +1,7 @@
 # Moment — État d’avancement
 
-**Opération :** MEMENTO 001  
-**Version de travail :** 0.1.0  
+**Opération :** MEMENTO 002
+**Version de travail :** pré-alpha 0.1.10
 **Commit de référence :** `f06f1f7`  
 **État global :** EN COURS
 
@@ -144,3 +144,60 @@ Ce fichier fait partie du projet et doit voyager avec les exports/imports de Mom
 | 7 | Corriger les erreurs/warnings React Native Web | Moyenne | À faire | 0.1.0 |
 | 8 | Poursuivre les éléments en cours du pré-0.1.0 | Moyenne | En cours | 0.1.0 |
 | 9 | Finaliser Préviens-moi, voix et notifications réelles | Haute | À faire | 0.2.0 |
+
+<!-- MEMENTO_HISTORY_START -->
+
+## MEMENTO — Historique structurel
+
+### MEMENTO 001 — TERMINÉ
+
+**Résultat : pré-alpha 0.1.10**  
+**Nombre d’étapes : 10**
+
+Objectif : restructurer le serveur sans modifier volontairement le comportement métier de Moment.
+
+| Étape | Résultat |
+|---|---|
+| MEMENTO 001-01 | Extraction des utilitaires généraux dans `server/utils/core.js` |
+| MEMENTO 001-02 | Extraction du calendrier / chronologie dans `server/utils/calendar.js` |
+| MEMENTO 001-03 | Extraction mémoire / entités / questions dans `server/utils/memory.js` |
+| MEMENTO 001-04 | Extraction du moteur de déductions dans `server/utils/deductions.js` |
+| MEMENTO 001-05 | Extraction de la présence stricte dans `server/utils/presence.js` |
+| MEMENTO 001-06 | Extraction du moteur de corrections dans `server/utils/corrections.js` |
+| MEMENTO 001-07 | Extraction des helpers travail dans `server/utils/work.js` |
+| MEMENTO 001-08 | Extraction historique / claims validés dans `server/utils/history.js` |
+| MEMENTO 001-09 | Extraction de la route `/recall` dans `server/routes/recall.js` |
+| MEMENTO 001-10 | Extraction de la route `/understand` dans `server/routes/understand.js` |
+
+### Architecture serveur obtenue
+
+```text
+server/
+├── server.js
+├── routes/
+│   ├── understand.js
+│   └── recall.js
+└── utils/
+    ├── core.js
+    ├── calendar.js
+    ├── memory.js
+    ├── deductions.js
+    ├── presence.js
+    ├── corrections.js
+    ├── work.js
+    └── history.js
+```
+
+Le fichier principal `server/server.js` est désormais ramené à environ **201 lignes** et sert principalement d’orchestrateur.
+
+---
+
+### MEMENTO 002 — EN COURS
+
+**Étape actuelle : MEMENTO 002-01**  
+**Prochaine version : pré-alpha 0.2.1**
+
+MEMENTO 002 part de la base restructurée obtenue avec MEMENTO 001.
+
+<!-- MEMENTO_HISTORY_END -->
+
