@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "moment-iphone",
+    "name": "Moment",
     "slug": "moment-iphone",
     "version": "0.2.8",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/moment-icon.png",
     "scheme": "momentiphone",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

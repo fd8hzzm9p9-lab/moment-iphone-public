@@ -8,4 +8,4 @@
  */
 
 export const SERVER_URL =
-  'https://root-bras-pst-offshore.trycloudflare.com';
+  'https://diameter-suspended-pride-himself.trycloudflare.com';

@@ -41,6 +41,17 @@ export type DiagnosticInteraction = {
   app_version?: string;
 
   app_revision?: string;
+
+  /*
+   * false :
+   * l'interaction reste disponible dans
+   * le diagnostic mais ne fait pas avancer
+   * le compteur demandant l'envoi du feedback.
+   *
+   * Utilise notamment pour les reessais
+   * automatiques / techniques.
+   */
+  counts_toward_feedback?: boolean;
 };
 
 async function readArray(
@@ -186,7 +197,18 @@ export async function getPendingDiagnosticCount() {
   const interactions =
     await getPendingDiagnosticInteractions();
 
-  return interactions.length;
+  /*
+   * Les reessais techniques restent exportes
+   * dans le diagnostic mais ne doivent pas
+   * faire croire au testeur qu'il a effectue
+   * une nouvelle interaction utilisateur.
+   */
+  return interactions.filter(
+    interaction =>
+      interaction
+        .counts_toward_feedback !==
+      false
+  ).length;
 }
 
 export async function markDiagnosticInteractionsAsSent(

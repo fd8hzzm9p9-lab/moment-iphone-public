@@ -157,6 +157,14 @@ type MemoryInput = {
 
   events: Partial<MemoryEvent>[];
 
+  local_understanding?: {
+    matched?: boolean;
+    parser?: string;
+    confidence?: number;
+    source_count?: number;
+    event_count?: number;
+  };
+
   date_confirmation?: {
     required: boolean;
 
@@ -3438,6 +3446,14 @@ setLastFailedMemory({
             diagnosticId
           );
 
+          /*
+           * Le retry reste dans le diagnostic
+           * pour l'analyse des tests.
+           *
+           * En revanche il ne compte pas comme
+           * une nouvelle interaction utilisateur
+           * pour le seuil d'envoi du feedback.
+           */
           await recordDiagnosticInteraction({
             diagnostic_id:
               diagnosticId,
@@ -3454,6 +3470,9 @@ setLastFailedMemory({
 
             app_version:
               APP_VERSION,
+
+            counts_toward_feedback:
+              false,
           });
 
           try {
@@ -3696,17 +3715,7 @@ setLastFailedMemory({
             );
 
             const parser =
-              (
-                data as
-                  | (
-                      MemoryInput & {
-                        local_understanding?: {
-                          parser?: string;
-                        };
-                      }
-                    )
-                  | null
-              )
+              data
                 ?.local_understanding
                 ?.parser ||
               '';

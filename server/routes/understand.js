@@ -120,8 +120,15 @@ const {
   validateDeduction,
 } = helpers;
 
+/*
+ * 15 secondes etait trop proche des temps
+ * observes en conditions reelles de pre-test.
+ *
+ * On conserve un timeout ferme, sans retry
+ * automatique, mais avec davantage de marge.
+ */
 const OPENAI_UNDERSTAND_TIMEOUT_MS =
-  15000;
+  25000;
 
 function registerUnderstandRoute(
   app,
@@ -2286,7 +2293,7 @@ correctionData =
                  * cette requête.
                  *
                  * Moment doit reprendre la main
-                 * après 15 secondes maximum.
+                 * après le timeout configure ci-dessus.
                  */
                 maxRetries:
                   0,
@@ -2840,6 +2847,19 @@ const eventsNeedingDateConfirmation =
 
         events:
           result.events,
+
+        /*
+         * Conserve la provenance du moteur local.
+         *
+         * Pour une reponse OpenAI cette propriete
+         * sera simplement absente.
+         */
+        ...(result.local_understanding
+          ? {
+              local_understanding:
+                result.local_understanding,
+            }
+          : {}),
 
         conflict:
           null,

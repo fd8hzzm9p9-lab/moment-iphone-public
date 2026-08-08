@@ -123,11 +123,7 @@ function buildIdLabel(
     return id;
   }
 
-  return (
-    id +
-    '\n' +
-    testerName
-  );
+  return `${testerName} (${id})`;
 }
 
 function render() {
@@ -250,7 +246,7 @@ function render() {
           );
 
         return {
-          'ID / Nom':
+          Testeur:
             buildIdLabel(
               device
                 ?.device_id,
@@ -350,14 +346,10 @@ function render() {
       }
 
       return String(
-        a[
-          'ID / Nom'
-        ]
+        a.Testeur
       ).localeCompare(
         String(
-          b[
-            'ID / Nom'
-          ]
+          b.Testeur
         )
       );
     }

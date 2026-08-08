@@ -135,10 +135,21 @@ app.post(
       '🔎 REQUÊTE /RECALL'
     );
 
+    const diagnostic_id =
+      typeof req.body?.diagnostic_id ===
+        'string'
+        ? req.body.diagnostic_id
+        : '';
+
+    let diagnosticId =
+      diagnostic_id.trim()
+        ? diagnostic_id.trim()
+        : '';
+
     try {
-      const {        question,
+      const {
+        question,
         memories,
-        diagnostic_id,
       } = req.body;
 
       if (
@@ -154,14 +165,11 @@ app.post(
               'Question ou mémoire absente',
           });
       }
-      const diagnosticId =
-        typeof diagnostic_id ===
-          'string' &&
-        diagnostic_id.trim()
-          ? diagnostic_id.trim()
-          : createId(
-              'diagnostic'
-            );
+      diagnosticId =
+        diagnosticId ||
+        createId(
+          'diagnostic'
+        );
 
       const requestStartedAt =
         Date.now();
@@ -1510,11 +1518,9 @@ try {
 
       logDiagnostic({
         diagnostic_id:
-          typeof diagnosticId !==
-            'undefined'
-            ? diagnosticId
-            : diagnostic_id ||
-              '',
+          diagnosticId ||
+          diagnostic_id ||
+          '',
 
         feature:
           'recall',

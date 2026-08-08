@@ -147,12 +147,14 @@ app.use(express.json());
 
 /*
  * =========================================================
- * DIAGNOSTIC TRANSPORT
+ * DIAGNOSTIC TRANSPORT + JOURNAL TESTEUR LISIBLE
  * =========================================================
  *
- * Ce middleware garantit une trace minimale
- * même si une route métier retourne plus tôt
- * que prévu.
+ * Ce middleware :
+ * - conserve les diagnostics techniques existants ;
+ * - affiche un résumé humain pour /understand et /recall ;
+ * - ne modifie aucune logique métier ;
+ * - exploite uniquement les données déjà envoyées par l'app.
  */
 
 app.use(
@@ -179,66 +181,331 @@ app.use(
             .trim()
         : '';
 
-    if (
-      !diagnosticId
-    ) {
-      return next();
-    }
+    const deviceId =
+      typeof req.body
+        ?.moment_device_id ===
+        'string'
+        ? req.body
+            .moment_device_id
+            .trim()
+        : '';
+
+    const input =
+      String(
+        req.body?.text ||
+        req.body?.question ||
+        ''
+      ).trim();
+
+    const feature =
+      req.path ===
+        '/understand'
+        ? 'understand'
+        : 'recall';
+
+    const commandLabel =
+      feature ===
+        'understand'
+        ? 'SOUVIENS-TOI'
+        : 'RAPPELLE-MOI';
 
     const startedAt =
       Date.now();
 
-    logTransportDiagnostic({
-      diagnostic_id:
-        diagnosticId,
+    const parisDateTime =
+      new Intl.DateTimeFormat(
+        'fr-FR',
+        {
+          timeZone:
+            'Europe/Paris',
+          day:
+            '2-digit',
+          month:
+            '2-digit',
+          year:
+            'numeric',
+          hour:
+            '2-digit',
+          minute:
+            '2-digit',
+          second:
+            '2-digit',
+          hour12:
+            false,
+        }
+      ).format(
+        new Date()
+      );
 
-      feature:
-        req.path ===
-          '/understand'
-          ? 'understand'
-          : 'recall',
+    const shortDeviceId =
+      deviceId
+        ? deviceId
+            .replace(
+              /^moment_/,
+              ''
+            )
+            .slice(
+              0,
+              8
+            )
+        : 'inconnu';
 
-      event:
-        'transport_request',
+    let creditsBefore =
+      null;
 
-      input:
-        req.body?.text ||
-        req.body?.question ||
-        '',
-    });
+    if (
+      deviceId
+    ) {
+      try {
+        const snapshot =
+          getQuotaFeedbackSnapshot(
+            deviceId
+          );
+
+        if (
+          snapshot?.available &&
+          Number.isFinite(
+            Number(
+              snapshot
+                .credits_remaining
+            )
+          )
+        ) {
+          creditsBefore =
+            Number(
+              snapshot
+                .credits_remaining
+            );
+        }
+      } catch {
+        creditsBefore =
+          null;
+      }
+    }
+
+    console.log('');
+    console.log(
+      '╔══════════════════════════════════════════════════════════════'
+    );
+
+    console.log(
+      '║ 🧪 ACTIVITÉ TESTEUR MOMENT'
+    );
+
+    console.log(
+      '╠══════════════════════════════════════════════════════════════'
+    );
+
+    console.log(
+      `║ 👤 Testeur      : ${shortDeviceId}`
+    );
+
+    console.log(
+      `║ 🆔 Appareil     : ${deviceId || 'identifiant indisponible'}`
+    );
+
+    console.log(
+      `║ 🕐 Heure        : ${parisDateTime}`
+    );
+
+    console.log(
+      `║ 🧠 Commande     : ${commandLabel}`
+    );
+
+    console.log(
+      '║'
+    );
+
+    console.log(
+      `║ 📝 Demande      : "${input}"`
+    );
+
+    if (
+      creditsBefore !==
+        null
+    ) {
+      console.log(
+        `║ 💳 Crédit avant : ${creditsBefore}`
+      );
+    }
+
+    if (
+      diagnosticId
+    ) {
+      logTransportDiagnostic({
+        diagnostic_id:
+          diagnosticId,
+
+        feature,
+
+        event:
+          'transport_request',
+
+        input,
+      });
+    }
 
     const originalJson =
       res.json.bind(
         res
       );
 
+    let responseLogged =
+      false;
+
     res.json =
       payload => {
-        logTransportDiagnostic({
-          diagnostic_id:
-            diagnosticId,
+        if (
+          responseLogged
+        ) {
+          return originalJson(
+            payload
+          );
+        }
 
-          feature:
-            req.path ===
-              '/understand'
-              ? 'understand'
-              : 'recall',
+        responseLogged =
+          true;
 
-          event:
-            'transport_response',
+        const durationMs =
+          Date.now() -
+          startedAt;
 
-          duration_ms:
-            Date.now() -
-            startedAt,
+        let creditsAfter =
+          null;
 
-          status_code:
-            res.statusCode,
+        if (
+          deviceId
+        ) {
+          try {
+            const snapshot =
+              getQuotaFeedbackSnapshot(
+                deviceId
+              );
 
-          diagnostic_payload:
-            sanitizeTransportDiagnosticPayload(
-              payload
-            ),
-        });
+            if (
+              snapshot?.available &&
+              Number.isFinite(
+                Number(
+                  snapshot
+                    .credits_remaining
+                )
+              )
+            ) {
+              creditsAfter =
+                Number(
+                  snapshot
+                    .credits_remaining
+                );
+            }
+          } catch {
+            creditsAfter =
+              null;
+          }
+        }
+
+        if (
+          diagnosticId
+        ) {
+          logTransportDiagnostic({
+            diagnostic_id:
+              diagnosticId,
+
+            feature,
+
+            event:
+              'transport_response',
+
+            duration_ms:
+              durationMs,
+
+            status_code:
+              res.statusCode,
+
+            diagnostic_payload:
+              sanitizeTransportDiagnosticPayload(
+                payload
+              ),
+          });
+        }
+
+        const successful =
+          res.statusCode >=
+            200 &&
+          res.statusCode <
+            300;
+
+        let treatment =
+          'INDÉTERMINÉ';
+
+        if (
+          creditsBefore !==
+            null &&
+          creditsAfter !==
+            null
+        ) {
+          treatment =
+            creditsAfter <
+              creditsBefore
+              ? 'OPENAI UTILISÉ'
+              : 'SANS CRÉDIT OPENAI';
+        }
+
+        const resultLabel =
+          successful
+            ? (
+                feature ===
+                  'understand'
+                  ? 'TRAITEMENT TERMINÉ'
+                  : 'RÉPONSE ENVOYÉE'
+              )
+            : 'ERREUR';
+
+        console.log(
+          '║'
+        );
+
+        console.log(
+          `║ 🤖 Traitement   : ${treatment}`
+        );
+
+        if (
+          creditsBefore !==
+            null &&
+          creditsAfter !==
+            null
+        ) {
+          console.log(
+            `║ 💳 Crédit       : ${creditsBefore} → ${creditsAfter}`
+          );
+        }
+
+        console.log(
+          `║ ⏱️ Durée        : ${(durationMs / 1000).toFixed(1)} s`
+        );
+
+        console.log(
+          `║ ${successful ? '✅' : '❌'} Résultat      : ${resultLabel} (HTTP ${res.statusCode})`
+        );
+
+        if (
+          !successful
+        ) {
+          const reason =
+            payload?.code ||
+            payload?.error ||
+            payload?.message ||
+            'Erreur non détaillée';
+
+          console.log(
+            `║ ⚠️ Motif        : ${String(reason)}`
+          );
+        }
+
+        console.log(
+          '╚══════════════════════════════════════════════════════════════'
+        );
+
+        console.log('');
 
         return originalJson(
           payload
