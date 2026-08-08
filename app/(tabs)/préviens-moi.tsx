@@ -1,22 +1,31 @@
 import React, {
   useCallback,
+  useEffect,
   useState,
 } from 'react';
 
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
 import {
   useFocusEffect,
 } from '@react-navigation/native';
+
+import {
+  useLocalSearchParams,
+} from 'expo-router';
 
 import {
   APP_NAME,
@@ -28,6 +37,7 @@ import {
 } from '../../config/releaseNotes';
 
 import {
+  getMomentDeviceId,
   getPendingDiagnosticCount,
   markDiagnosticInteractionsAsSent,
 } from '../../services/diagnosticService';
@@ -36,7 +46,21 @@ import {
   exportMomentFeedback,
 } from '../../services/feedbackExportService';
 
+import {
+  getAlphaCreditStatus,
+  getCachedAlphaCreditRequest,
+  redeemAlphaCredits,
+  requestAlphaCredits,
+  type AlphaCreditStatus,
+} from '../../services/alphaCreditService';
+
 export default function PreventMeScreen() {
+  const {
+    openCredit,
+  } =
+    useLocalSearchParams<{
+      openCredit?: string;
+    }>();
   const [
     exporting,
     setExporting,
@@ -54,6 +78,32 @@ export default function PreventMeScreen() {
     setShowReleaseNotes,
   ] =
     useState(false);
+
+  const [
+    showCreditModal,
+    setShowCreditModal,
+  ] =
+    useState(false);
+
+  const [
+    creditLoading,
+    setCreditLoading,
+  ] =
+    useState(false);
+
+  const [
+    creditStatus,
+    setCreditStatus,
+  ] =
+    useState<AlphaCreditStatus | null>(
+      null
+    );
+
+  const [
+    rechargeCode,
+    setRechargeCode,
+  ] =
+    useState('');
 
   const [
     showTestHelp,
@@ -98,6 +148,24 @@ export default function PreventMeScreen() {
     useCallback(
       () => {
         void refreshPendingCount();
+
+        void getAlphaCreditStatus()
+          .then(
+            status => {
+              setCreditStatus(
+                status
+              );
+            }
+          )
+          .catch(
+            () => {
+              /*
+               * Pas d'erreur visible :
+               * l'absence du serveur ne doit
+               * pas polluer Préviens-moi.
+               */
+            }
+          );
       },
       [
         refreshPendingCount,
@@ -151,6 +219,182 @@ export default function PreventMeScreen() {
         ]
       );
     };
+
+  const openCreditModal =
+    async () => {
+      setShowCreditModal(
+        true
+      );
+
+      const cached =
+        await getCachedAlphaCreditRequest();
+
+      if (cached) {
+        setCreditStatus({
+          pending: true,
+          request: cached,
+        });
+      }
+
+      try {
+        const status =
+          await getAlphaCreditStatus();
+
+        setCreditStatus(
+          status
+        );
+      } catch {
+        /*
+         * Si le serveur est momentanément indisponible,
+         * le code de demande mis en cache reste visible.
+         */
+      }
+    };
+
+  const createCreditRequestAction =
+    async () => {
+      if (creditLoading) {
+        return;
+      }
+
+      setCreditLoading(
+        true
+      );
+
+      try {
+        const status =
+          await requestAlphaCredits();
+
+        setCreditStatus(
+          status
+        );
+      } catch (error) {
+        Alert.alert(
+          'Demande impossible',
+          error instanceof Error
+            ? error.message
+            : 'Impossible de créer la demande pour le moment.'
+        );
+      } finally {
+        setCreditLoading(
+          false
+        );
+      }
+    };
+
+  const shareCreditRequest =
+    async () => {
+      const requestCode =
+        creditStatus
+          ?.request
+          ?.request_code;
+
+      if (
+        !requestCode
+      ) {
+        Alert.alert(
+          'Demande introuvable',
+          'Aucune demande de crédit n’est actuellement disponible.'
+        );
+
+        return;
+      }
+
+      try {
+        const momentDeviceId =
+          await getMomentDeviceId();
+
+        const message =
+          [
+            '🎟️ Demande de crédit Moment',
+            '',
+            `Code : ${requestCode}`,
+            `Identifiant : ${momentDeviceId}`,
+            `Version : ${APP_VERSION}`,
+            '',
+            'Merci de générer un code de recharge pour cette demande.',
+          ].join(
+            '\n'
+          );
+
+        await Share.share({
+          title:
+            'Demande de crédit Moment',
+
+          message,
+        });
+
+      } catch (error) {
+        console.error(
+          '❌ Partage demande crédit impossible :',
+          error
+        );
+
+        Alert.alert(
+          'Partage impossible',
+          'La demande est toujours enregistrée. Tu peux réessayer plus tard.'
+        );
+      }
+    };
+
+  const validateRechargeCode =
+    async () => {
+      if (
+        creditLoading ||
+        !rechargeCode.trim()
+      ) {
+        return;
+      }
+
+      setCreditLoading(
+        true
+      );
+
+      try {
+        await redeemAlphaCredits(
+          rechargeCode
+        );
+
+        setRechargeCode('');
+
+        const status =
+          await getAlphaCreditStatus();
+
+        setCreditStatus(
+          status
+        );
+
+        Alert.alert(
+          'Crédit ajouté',
+          'Tu peux poursuivre tes tests.'
+        );
+      } catch (error) {
+        Alert.alert(
+          'Code refusé',
+          error instanceof Error
+            ? error.message
+            : 'Ce code ne peut pas être utilisé.'
+        );
+      } finally {
+        setCreditLoading(
+          false
+        );
+      }
+    };
+
+  useEffect(
+    () => {
+      if (
+        openCredit ===
+        '1'
+      ) {
+        void openCreditModal();
+      }
+    },
+    [
+      openCredit,
+    ]
+  );
 
   const sendFeedback =
     async () => {
@@ -393,6 +637,38 @@ export default function PreventMeScreen() {
             </Text>
           </Pressable>
 
+          {
+            creditStatus
+              ?.credit_needed ===
+                true
+              ? (
+                <Pressable
+                  onPress={
+                    openCreditModal
+                  }
+                  style={
+                    ({
+                      pressed,
+                    }) => [
+                      styles.creditAccessButton,
+
+                      pressed &&
+                        styles.buttonPressed,
+                    ]
+                  }
+                >
+                  <Text
+                    style={
+                      styles.creditAccessButtonText
+                    }
+                  >
+                    🎟️ Crédit de tests
+                  </Text>
+                </Pressable>
+              )
+              : null
+          }
+
           <Text
             style={
               styles.feedbackText
@@ -494,6 +770,242 @@ export default function PreventMeScreen() {
           }
         </View>
       </View>
+
+      {/* =================================================== */}
+      {/* CRÉDITS DE TEST — MEMENTO 002-08                   */}
+      {/* =================================================== */}
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={
+          showCreditModal
+        }
+        onRequestClose={() =>
+          setShowCreditModal(
+            false
+          )
+        }
+      >
+        <KeyboardAvoidingView
+          style={
+            styles.creditKeyboardAvoider
+          }
+          behavior={
+            Platform.OS === 'ios'
+              ? 'padding'
+              : 'height'
+          }
+          keyboardVerticalOffset={
+            Platform.OS === 'ios'
+              ? 20
+              : 0
+          }
+        >
+          <View
+            style={
+              styles.modalBackdrop
+            }
+          >
+            <View
+              style={
+                styles.creditModalCard
+              }
+            >
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <Text
+                style={
+                  styles.modalTitle
+                }
+              >
+                Crédit de tests
+              </Text>
+
+              <Pressable
+                onPress={() =>
+                  setShowCreditModal(
+                    false
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.closeButton
+                  }
+                >
+                  Fermer
+                </Text>
+              </Pressable>
+            </View>
+
+            {
+              creditStatus?.pending &&
+              creditStatus.request?.request_code
+                ? (
+                  <>
+                    <Text
+                      style={
+                        styles.creditModalText
+                      }
+                    >
+                      Transmets ce code pour demander une recharge. Tu peux fermer cette fenêtre : le même code sera conservé.
+                    </Text>
+
+                    <View
+                      style={
+                        styles.creditRequestCodeBox
+                      }
+                    >
+                      <Text
+                        selectable
+                        style={
+                          styles.creditRequestCode
+                        }
+                      >
+                        {
+                          creditStatus.request.request_code
+                        }
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      onPress={
+                        shareCreditRequest
+                      }
+                      style={
+                        ({
+                          pressed,
+                        }) => [
+                          styles.creditShareButton,
+
+                          pressed &&
+                            styles.buttonPressed,
+                        ]
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.creditShareButtonText
+                        }
+                      >
+                        📤 Envoyer ma demande
+                      </Text>
+                    </Pressable>
+
+                    <TextInput
+                      autoCapitalize="characters"
+                      autoCorrect={
+                        false
+                      }
+                      placeholder="Code de recharge reçu"
+                      value={
+                        rechargeCode
+                      }
+                      onChangeText={
+                        setRechargeCode
+                      }
+                      style={
+                        styles.creditRechargeInput
+                      }
+                    />
+
+                    <Pressable
+                      disabled={
+                        creditLoading ||
+                        !rechargeCode.trim()
+                      }
+                      onPress={
+                        validateRechargeCode
+                      }
+                      style={
+                        ({ pressed }) => [
+                          styles.creditPrimaryButton,
+                          (
+                            pressed ||
+                            creditLoading ||
+                            !rechargeCode.trim()
+                          ) &&
+                            styles.buttonPressed,
+                        ]
+                      }
+                    >
+                      {
+                        creditLoading
+                          ? (
+                            <ActivityIndicator
+                              color="#FFFFFF"
+                            />
+                          )
+                          : (
+                            <Text
+                              style={
+                                styles.creditPrimaryButtonText
+                              }
+                            >
+                              Valider le code
+                            </Text>
+                          )
+                      }
+                    </Pressable>
+                  </>
+                )
+                : (
+                  <>
+                    <Text
+                      style={
+                        styles.creditModalText
+                      }
+                    >
+                      Si tu as besoin de poursuivre les tests, crée une demande de crédit.
+                    </Text>
+
+                    <Pressable
+                      disabled={
+                        creditLoading
+                      }
+                      onPress={
+                        createCreditRequestAction
+                      }
+                      style={
+                        ({ pressed }) => [
+                          styles.creditPrimaryButton,
+                          (
+                            pressed ||
+                            creditLoading
+                          ) &&
+                            styles.buttonPressed,
+                        ]
+                      }
+                    >
+                      {
+                        creditLoading
+                          ? (
+                            <ActivityIndicator
+                              color="#FFFFFF"
+                            />
+                          )
+                          : (
+                            <Text
+                              style={
+                                styles.creditPrimaryButtonText
+                              }
+                            >
+                              Créer une demande
+                            </Text>
+                          )
+                      }
+                    </Pressable>
+                  </>
+                )
+            }
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* =================================================== */}
       {/* AIDE PRÉ-TESTEUR                                    */}
@@ -1227,6 +1739,52 @@ const styles =
         'center',
     },
 
+    creditAccessButton: {
+      width:
+        '100%',
+
+      minHeight:
+        44,
+
+      marginTop:
+        8,
+
+      paddingHorizontal:
+        16,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#D7DCE3',
+
+      borderRadius:
+        13,
+
+      backgroundColor:
+        '#F8FAFC',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+    },
+
+    creditAccessButtonText: {
+      fontSize:
+        14,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#475569',
+
+      textAlign:
+        'center',
+    },
+
     feedbackText: {
       marginTop:
         6,
@@ -1485,6 +2043,197 @@ const styles =
 
       color:
         '#475569',
+    },
+
+    creditKeyboardAvoider: {
+      flex:
+        1,
+    },
+
+    creditModalCard: {
+      backgroundColor:
+        '#FFFFFF',
+
+      borderTopLeftRadius:
+        24,
+
+      borderTopRightRadius:
+        24,
+
+      paddingHorizontal:
+        22,
+
+      paddingTop:
+        20,
+
+      paddingBottom:
+        30,
+    },
+
+    creditModalText: {
+      fontSize:
+        14,
+
+      lineHeight:
+        20,
+
+      color:
+        '#475569',
+
+      textAlign:
+        'center',
+    },
+
+    creditRequestCodeBox: {
+      marginTop:
+        16,
+
+      marginBottom:
+        16,
+
+      paddingVertical:
+        14,
+
+      paddingHorizontal:
+        14,
+
+      borderRadius:
+        13,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#CBD5E1',
+
+      backgroundColor:
+        '#F8FAFC',
+    },
+
+    creditRequestCode: {
+      fontSize:
+        19,
+
+      fontWeight:
+        '800',
+
+      letterSpacing:
+        1,
+
+      color:
+        '#0F172A',
+
+      textAlign:
+        'center',
+    },
+
+    creditShareButton: {
+      width:
+        '100%',
+
+      minHeight:
+        46,
+
+      marginBottom:
+        14,
+
+      paddingHorizontal:
+        16,
+
+      borderRadius:
+        13,
+
+      backgroundColor:
+        '#2563EB',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+    },
+
+    creditShareButtonText: {
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        14,
+
+      fontWeight:
+        '800',
+
+      textAlign:
+        'center',
+    },
+
+    creditRechargeInput: {
+      width:
+        '100%',
+
+      minHeight:
+        48,
+
+      paddingHorizontal:
+        14,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#CBD5E1',
+
+      borderRadius:
+        13,
+
+      backgroundColor:
+        '#FFFFFF',
+
+      fontSize:
+        15,
+
+      color:
+        '#0F172A',
+    },
+
+    creditPrimaryButton: {
+      width:
+        '100%',
+
+      minHeight:
+        48,
+
+      marginTop:
+        12,
+
+      borderRadius:
+        13,
+
+      backgroundColor:
+        '#2563EB',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      paddingHorizontal:
+        16,
+    },
+
+    creditPrimaryButtonText: {
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        15,
+
+      fontWeight:
+        '800',
+
+      textAlign:
+        'center',
     },
 
     modalBackdrop: {

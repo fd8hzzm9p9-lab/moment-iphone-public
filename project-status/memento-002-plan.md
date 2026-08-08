@@ -2,10 +2,10 @@
 
 **Projet :** Moment  
 **État :** EN COURS  
-**Version actuelle :** pré-alpha 0.2.7  
-**Étape actuelle :** MEMENTO 002-07 — TERMINÉ  
-**Prochaine étape :** MEMENTO 002-08 — pré-alpha 0.2.8  
-**Progression :** 7 / 23 étapes terminées  
+**Version actuelle :** pré-alpha 0.2.8  
+**Étape actuelle :** MEMENTO 002-08 — TERMINÉ  
+**Prochaine étape :** MEMENTO 002-09 — moteur hybride Local partiel / OpenAI ciblé  
+**Progression :** 8 / 23 étapes terminées  
 **Date du fichier :** 08/08/2026  
 **Heure du fichier :** 12:20
 

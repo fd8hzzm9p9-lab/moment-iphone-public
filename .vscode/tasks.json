@@ -32,11 +32,22 @@
       "problemMatcher": []
     },
     {
+      "label": "📊 Crédits testeurs",
+      "type": "shell",
+      "command": "node server/tools/watch-alpha-credits.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "🚀 Démarrer Moment",
       "dependsOn": [
         "🧠 Serveur Moment",
         "☁️ Cloudflare",
-        "📱 Expo"
+        "📱 Expo",
+        "📊 Crédits testeurs"
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []

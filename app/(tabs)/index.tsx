@@ -16,6 +16,14 @@ import MomentThinkingAnimation from '../../components/MomentThinkingAnimation';
 import { SERVER_URL } from '../../config/server';
 
 import {
+  useNavigation,
+} from 'expo-router';
+
+import {
+  getAlphaCreditStatus,
+} from '../../services/alphaCreditService';
+
+import {
   createDiagnosticId,
   getMomentDeviceId,
   recordDiagnosticInteraction,
@@ -1357,6 +1365,8 @@ function getCorrectionTime(
 /* ========================================================= */
 
 export default function MemoryScreen() {
+  const creditNavigation =
+    useNavigation<any>();
   const [
     souvenir,
     setSouvenir,
@@ -2494,6 +2504,63 @@ const appliquerCorrectionServeur =
   /* ANALYSE                                                */
   /* ======================================================= */
 
+  const ensureTestCreditsAvailable =
+    async () => {
+      try {
+        const status =
+          await getAlphaCreditStatus();
+
+        if (
+          status
+            ?.credit_needed !==
+          true
+        ) {
+          return true;
+        }
+
+        Alert.alert(
+          'Crédits de test nécessaires',
+
+          'Pour continuer les tests de Moment, demande de nouveaux crédits.',
+
+          [
+            {
+              text:
+                'Plus tard',
+
+              style:
+                'cancel',
+            },
+
+            {
+              text:
+                'Demander des crédits',
+
+              onPress:
+                () => {
+                  creditNavigation.navigate(
+                  'préviens-moi',
+                  {
+                    openCredit:
+                      '1',
+                  }
+                );
+                },
+            },
+          ]
+        );
+
+        return false;
+
+      } catch {
+        /*
+         * Une panne du contrôle quota ne doit pas
+         * empêcher Moment d'essayer son traitement.
+         */
+        return true;
+      }
+    };
+
   const analyserSouvenir =
   async (
     texte: string,
@@ -2503,6 +2570,19 @@ const appliquerCorrectionServeur =
         !texte.trim()
       ) {
         return;
+      }
+
+      if (
+        !confirmedCalendarDate
+      ) {
+        const creditsAvailable =
+          await ensureTestCreditsAvailable();
+
+        if (
+          !creditsAvailable
+        ) {
+          return;
+        }
       }
 
       /*

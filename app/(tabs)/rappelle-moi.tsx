@@ -150,6 +150,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  useNavigation,
+} from 'expo-router';
+
+import {
+  getAlphaCreditStatus,
+} from '../../services/alphaCreditService';
+
+import {
   useEffect,
   useRef,
   useState,
@@ -436,6 +444,8 @@ function AnswerText({
 /* ========================================================= */
 
 export default function RecallScreen() {
+  const creditNavigation =
+    useNavigation<any>();
   const abortControllerRef =
     useRef<AbortController | null>(null);
 
@@ -878,10 +888,72 @@ const annulerRecherche = () => {
   setInferenceRefutee(false);
 };
 
+const ensureTestCreditsAvailable =
+  async () => {
+    try {
+      const status =
+        await getAlphaCreditStatus();
+
+      if (
+        status
+          ?.credit_needed !==
+        true
+      ) {
+        return true;
+      }
+
+      Alert.alert(
+        'Crédits de test nécessaires',
+
+        'Pour continuer les tests de Moment, demande de nouveaux crédits.',
+
+        [
+          {
+            text:
+              'Plus tard',
+
+            style:
+              'cancel',
+          },
+
+          {
+            text:
+              'Demander des crédits',
+
+            onPress:
+              () => {
+                creditNavigation.navigate(
+                  'préviens-moi',
+                  {
+                    openCredit:
+                      '1',
+                  }
+                );
+              },
+          },
+        ]
+      );
+
+      return false;
+
+    } catch {
+      return true;
+    }
+  };
+
 const lancerRecherche = async () => {
   if (
     !recherche.trim() ||
     loading
+  ) {
+    return;
+  }
+
+  const creditsAvailable =
+    await ensureTestCreditsAvailable();
+
+  if (
+    !creditsAvailable
   ) {
     return;
   }

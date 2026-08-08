@@ -9,6 +9,28 @@ export const RELEASE_NOTES:
   ReleaseNote[] = [
     {
       version:
+        'pré-alpha 0.2.8',
+
+      date:
+        '8 août 2026',
+
+      title:
+        'Crédits de tests',
+
+      changes: [
+        'Ajout d’un quota individuel pour encadrer l’utilisation d’OpenAI pendant les pré-tests.',
+        'Ajout d’un accès « Crédit de tests » dans Préviens-moi.',
+        'Possibilité de créer une demande de recharge avec un code unique.',
+        'La demande reste disponible avec le même code même si elle n’est pas traitée immédiatement.',
+        'Possibilité d’attribuer au cas par cas un nombre précis de crédits supplémentaires.',
+        'Les codes de recharge sont générés et signés uniquement côté serveur.',
+        'Une recharge est liée à la demande et à l’appareil concerné.',
+        'Ajout des statistiques de consommation OpenAI et des tokens au feedback.',
+        'Les traitements entièrement réalisés en local restent hors quota OpenAI.',
+      ],
+    },
+    {
+      version:
         'pré-alpha 0.2.7',
 
       date:

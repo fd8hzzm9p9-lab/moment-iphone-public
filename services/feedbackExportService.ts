@@ -28,6 +28,10 @@ import {
 } from './diagnosticService';
 
 import {
+  getLocalAlphaCreditSnapshot,
+} from './alphaCreditService';
+
+import {
   getPendingMemoryDiagnosticSnapshot,
 } from './pendingMemoryService';
 
@@ -201,6 +205,65 @@ export async function exportMomentFeedback() {
     };
   }
 
+  let alphaCredit:
+    any = {
+      available:
+        false,
+    };
+
+  try {
+    const alphaCreditResponse =
+      await fetch(
+        `${SERVER_URL}/alpha-credit/feedback`,
+        {
+          method:
+            'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body:
+            JSON.stringify({
+              moment_device_id:
+                momentDeviceId,
+            }),
+        }
+      );
+
+    if (
+      alphaCreditResponse.ok
+    ) {
+      alphaCredit =
+        await alphaCreditResponse
+          .json();
+
+    } else {
+      alphaCredit = {
+        available:
+          false,
+
+        status:
+          alphaCreditResponse.status,
+      };
+    }
+
+  } catch (error) {
+    alphaCredit = {
+      available:
+        false,
+
+      error:
+        String(
+          error
+        ),
+    };
+  }
+
+  const alphaCreditDevice =
+    await getLocalAlphaCreditSnapshot();
+
   const feedback = {
     format:
       'moment-feedback-v2',
@@ -260,6 +323,12 @@ export async function exportMomentFeedback() {
 
     server:
       serverDiagnostics,
+
+    alpha_credit:
+      alphaCredit,
+
+    alpha_credit_device:
+      alphaCreditDevice,
 
     analysis_notes: {
       purpose:

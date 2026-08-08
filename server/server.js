@@ -132,6 +132,13 @@ const {
     sanitizeTransportDiagnosticPayload,
 } = require('./utils/diagnostics');
 
+const {
+  createCreditRequest,
+  getCreditRequestStatus,
+  redeemRechargeCode,
+  getQuotaFeedbackSnapshot,
+} = require('./utils/openai-alpha-quota');
+
 const app = express();
 
 app.use(cors());
@@ -282,6 +289,91 @@ registerRecallRoute(
   openai
 );
 
+
+/* ========================================================= */
+/* CRÉDITS DE TEST — MEMENTO 002-08                           */
+/* ========================================================= */
+
+app.post(
+  '/alpha-credit/status',
+  (req, res) => {
+    try {
+      return res.json(
+        getCreditRequestStatus(
+          req.body?.moment_device_id
+        )
+      );
+    } catch (error) {
+      return res
+        .status(error?.status || 500)
+        .json({
+          error: error?.message || 'Statut indisponible.',
+          code: error?.code || 'ALPHA_CREDIT_STATUS_ERROR',
+        });
+    }
+  }
+);
+
+app.post(
+  '/alpha-credit/request',
+  (req, res) => {
+    try {
+      return res.json(
+        createCreditRequest(
+          req.body?.moment_device_id
+        )
+      );
+    } catch (error) {
+      return res
+        .status(error?.status || 500)
+        .json({
+          error: error?.message || 'Demande impossible.',
+          code: error?.code || 'ALPHA_CREDIT_REQUEST_ERROR',
+        });
+    }
+  }
+);
+
+app.post(
+  '/alpha-credit/redeem',
+  (req, res) => {
+    try {
+      return res.json(
+        redeemRechargeCode(
+          req.body?.moment_device_id,
+          req.body?.recharge_code
+        )
+      );
+    } catch (error) {
+      return res
+        .status(error?.status || 500)
+        .json({
+          error: error?.message || 'Code refusé.',
+          code: error?.code || 'ALPHA_CREDIT_REDEEM_ERROR',
+        });
+    }
+  }
+);
+
+app.post(
+  '/alpha-credit/feedback',
+  (req, res) => {
+    try {
+      return res.json(
+        getQuotaFeedbackSnapshot(
+          req.body?.moment_device_id
+        )
+      );
+    } catch (error) {
+      return res
+        .status(error?.status || 500)
+        .json({
+          available: false,
+          error: error?.message || 'Données indisponibles.',
+        });
+    }
+  }
+);
 
 /* ========================================================= */
 /* EXPORT DIAGNOSTIC ALPHA                                    */
