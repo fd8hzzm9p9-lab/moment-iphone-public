@@ -11,6 +11,7 @@
 
 const {
   logDiagnostic,
+  sanitizeDiagnosticPayload,
   serializeError,
   summarizeResponse,
 } = require('../utils/diagnostics');
@@ -187,6 +188,11 @@ app.post(
 
             summary:
               summarizeResponse(
+                payload
+              ),
+
+            diagnostic_payload:
+              sanitizeDiagnosticPayload(
                 payload
               ),
           });

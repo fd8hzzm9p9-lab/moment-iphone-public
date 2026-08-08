@@ -14,6 +14,7 @@ const {
 
 const {
   logDiagnostic,
+  sanitizeDiagnosticPayload,
   serializeError,
   summarizeResponse,
 } = require('../utils/diagnostics');
@@ -115,6 +116,9 @@ const {
   validateDeduction,
 } = helpers;
 
+const OPENAI_UNDERSTAND_TIMEOUT_MS =
+  15000;
+
 function registerUnderstandRoute(
   app,
   openai
@@ -175,6 +179,147 @@ function isDeterministicRelativeDateReference(
   return false;
 }
 
+function classifyOpenAIError(
+  error
+) {
+  const status =
+    Number(
+      error?.status ||
+      error?.response?.status ||
+      0
+    ) || 0;
+
+  const code =
+    String(
+      error?.code ||
+      error?.error?.code ||
+      ''
+    ).trim();
+
+  const type =
+    String(
+      error?.type ||
+      error?.error?.type ||
+      ''
+    ).trim();
+
+  const message =
+    String(
+      error?.message ||
+      error?.error?.message ||
+      ''
+    ).trim();
+
+  const normalizedCode =
+    code.toLowerCase();
+
+  const normalizedType =
+    type.toLowerCase();
+
+  const normalizedMessage =
+    message.toLowerCase();
+
+  if (
+    status === 429 &&
+    (
+      normalizedCode ===
+        'insufficient_quota' ||
+      normalizedCode ===
+        'credit_balance_exhausted' ||
+      normalizedType ===
+        'insufficient_quota' ||
+      normalizedMessage.includes(
+        'insufficient quota'
+      ) ||
+      normalizedMessage.includes(
+        'exceeded your current quota'
+      ) ||
+      normalizedMessage.includes(
+        'credit balance'
+      ) ||
+      normalizedMessage.includes(
+        'billing'
+      )
+    )
+  ) {
+    return {
+      reason:
+        'credit_exhausted',
+      status,
+      code,
+      type,
+    };
+  }
+
+  if (
+    status === 429
+  ) {
+    return {
+      reason:
+        'rate_limit',
+      status,
+      code,
+      type,
+    };
+  }
+
+  if (
+    normalizedCode ===
+      'openai_understand_timeout' ||
+    normalizedCode ===
+      'openai_timeout' ||
+    error?.name ===
+      'AbortError' ||
+    normalizedMessage.includes(
+      'timeout'
+    ) ||
+    normalizedMessage.includes(
+      'timed out'
+    )
+  ) {
+    return {
+      reason:
+        'timeout',
+      status,
+      code,
+      type,
+    };
+  }
+
+  if (
+    normalizedCode ===
+      'econnreset' ||
+    normalizedCode ===
+      'econnrefused' ||
+    normalizedCode ===
+      'enotfound' ||
+    normalizedCode ===
+      'etimedout' ||
+    normalizedMessage.includes(
+      'network'
+    ) ||
+    normalizedMessage.includes(
+      'connection'
+    )
+  ) {
+    return {
+      reason:
+        'network_error',
+      status,
+      code,
+      type,
+    };
+  }
+
+  return {
+    reason:
+      'openai_error',
+    status,
+    code,
+    type,
+  };
+}
+
 app.post(
   '/understand',
   async (req, res) => {
@@ -186,10 +331,28 @@ app.post(
       '📥 REQUÊTE /UNDERSTAND'
     );
 
+    const routeDiagnosticId =
+      typeof req.body
+        ?.diagnostic_id ===
+        'string' &&
+      req.body
+        .diagnostic_id
+        .trim()
+        ? req.body
+            .diagnostic_id
+            .trim()
+        : createId(
+            'diagnostic'
+          );
+
+    const routeRequestStartedAt =
+      Date.now();
+
     try {
       const {
         text,
-        memories,        confirmed_calendar_date,
+        memories,
+        confirmed_calendar_date,
         diagnostic_id,
       } = req.body;
 
@@ -211,16 +374,10 @@ app.post(
           : [];
 
       const diagnosticId =
-        typeof diagnostic_id ===
-          'string' &&
-        diagnostic_id.trim()
-          ? diagnostic_id.trim()
-          : createId(
-              'diagnostic'
-            );
+        routeDiagnosticId;
 
       const requestStartedAt =
-        Date.now();
+        routeRequestStartedAt;
 
       const originalJson =
         res.json.bind(
@@ -248,6 +405,11 @@ app.post(
 
             summary:
               summarizeResponse(
+                payload
+              ),
+
+            diagnostic_payload:
+              sanitizeDiagnosticPayload(
                 payload
               ),
           });
@@ -2021,14 +2183,118 @@ correctionData =
   ${text.trim()}
   `;
   
-        const response =
-          await openai.responses.create({
-            model:
-              'gpt-5-mini',
-  
-            input:
-              prompt,
-          });
+        let response;
+
+        const openAiAbortController =
+          new AbortController();
+
+        const openAiTimeoutId =
+          setTimeout(
+            () => {
+              openAiAbortController
+                .abort();
+            },
+            OPENAI_UNDERSTAND_TIMEOUT_MS
+          );
+
+        try {
+          response =
+            await openai.responses.create(
+              {
+                model:
+                  'gpt-5-mini',
+
+                input:
+                  prompt,
+              },
+              {
+                signal:
+                  openAiAbortController
+                    .signal,
+
+                /*
+                 * Important :
+                 * aucun retry automatique pour
+                 * cette requête.
+                 *
+                 * Moment doit reprendre la main
+                 * après 15 secondes maximum.
+                 */
+                maxRetries:
+                  0,
+              }
+            );
+
+        } catch (error) {
+          const isTimeout =
+            openAiAbortController
+              .signal
+              .aborted ||
+            error?.name ===
+              'AbortError' ||
+            error?.code ===
+              'ABORT_ERR';
+
+          if (
+            isTimeout
+          ) {
+            logDiagnostic({
+              diagnostic_id:
+                diagnosticId,
+
+              feature:
+                'understand',
+
+              event:
+                'openai_timeout',
+
+              duration_ms:
+                Date.now() -
+                requestStartedAt,
+
+              timeout_ms:
+                OPENAI_UNDERSTAND_TIMEOUT_MS,
+            });
+
+            return res
+              .status(504)
+              .json({
+                error:
+                  'Délai OpenAI dépassé',
+
+                code:
+                  'OPENAI_TIMEOUT',
+
+                diagnostic_event:
+                  'openai_timeout',
+
+                message:
+                  'Moment n’a pas pu enregistrer ce souvenir pour le moment.',
+              });
+          }
+
+          throw error;
+
+        } finally {
+          clearTimeout(
+            openAiTimeoutId
+          );
+        }
+
+        logDiagnostic({
+          diagnostic_id:
+            diagnosticId,
+
+          feature:
+            'understand',
+
+          event:
+            'openai_success',
+
+          duration_ms:
+            Date.now() -
+            requestStartedAt,
+        });
   try {
     const rawText =
       String(
@@ -2059,12 +2325,38 @@ correctionData =
       '❌ Détail parsing :',
       error
     );
+
+    logDiagnostic({
+      diagnostic_id:
+        diagnosticId,
+
+      feature:
+        'understand',
+
+      event:
+        'openai_parse_error',
+
+      duration_ms:
+        Date.now() -
+        requestStartedAt,
+
+      error:
+        serializeError(
+          error
+        ),
+    });
   
     return res
       .status(500)
       .json({
         error:
           'Le cerveau de Moment a produit une réponse invalide',
+
+        code:
+          'OPENAI_INVALID_JSON',
+
+        message:
+          'Moment a reçu une réponse inexploitable pendant l’analyse du souvenir.',
       });
   }
   
@@ -2491,13 +2783,55 @@ const eventsNeedingDateConfirmation =
     error
   );
 
+  const classifiedError =
+    classifyOpenAIError(
+      error
+    );
+
   logDiagnostic({
     diagnostic_id:
-      typeof diagnosticId !==
-        'undefined'
-        ? diagnosticId
-        : diagnostic_id ||
-          '',
+      routeDiagnosticId,
+
+    feature:
+      'understand',
+
+    event:
+      'openai_error',
+
+    reason:
+      classifiedError.reason,
+
+    openai_reason:
+      classifiedError.reason,
+
+    openai_status:
+      classifiedError.status,
+
+    openai_code:
+      classifiedError.code,
+
+    openai_type:
+      classifiedError.type,
+
+    duration_ms:
+      Date.now() -
+      routeRequestStartedAt,
+
+    error:
+      serializeError(
+        error
+      ),
+  });
+
+  /*
+   * L'ancien événement générique est conservé
+   * temporairement pour compatibilité avec les
+   * diagnostics déjà existants.
+   */
+
+  logDiagnostic({
+    diagnostic_id:
+      routeDiagnosticId,
 
     feature:
       'understand',
@@ -2539,8 +2873,16 @@ const eventsNeedingDateConfirmation =
       .json({
         error:
           'Crédit API OpenAI épuisé',
+
         code:
           'OPENAI_CREDIT_EXHAUSTED',
+
+        diagnostic_event:
+          'openai_error',
+
+        diagnostic_reason:
+          'credit_exhausted',
+
         message:
           'Moment ne peut plus analyser de nouveaux souvenirs car le crédit API OpenAI est épuisé.',
       });
@@ -2554,8 +2896,16 @@ const eventsNeedingDateConfirmation =
       .json({
         error:
           'Limite API OpenAI atteinte',
+
         code:
           'OPENAI_RATE_LIMIT',
+
+        diagnostic_event:
+          'openai_error',
+
+        diagnostic_reason:
+          'rate_limit',
+
         message:
           'Moment reçoit temporairement trop de requêtes. Réessayez dans quelques instants.',
       });
@@ -2566,8 +2916,16 @@ const eventsNeedingDateConfirmation =
     .json({
       error:
         'Erreur lors de la compréhension de la mémoire',
+
       code:
         'UNDERSTAND_ERROR',
+
+      diagnostic_event:
+        'openai_error',
+
+      diagnostic_reason:
+        classifiedError.reason,
+
       message:
         'Moment a rencontré une erreur pendant l’analyse du souvenir.',
     });

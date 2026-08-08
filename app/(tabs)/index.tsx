@@ -1384,6 +1384,11 @@ export default function MemoryScreen() {
   ] = useState<number | null>(null);
 
   const [
+    souvenirErrorMessage,
+    setSouvenirErrorMessage,
+  ] = useState('');
+
+  const [
     etapeTraitement,
     setEtapeTraitement,
   ] = useState('');
@@ -2408,6 +2413,42 @@ const appliquerCorrectionServeur =
         return;
       }
 
+      /*
+       * Une nouvelle saisie utilisateur constitue
+       * toujours un nouveau traitement.
+       *
+       * Le temps cumulé précédent ne doit jamais
+       * contaminer la nouvelle interaction.
+       *
+       * Exception :
+       * la confirmation d'une date appartient au
+       * même traitement et doit conserver le temps
+       * déjà accumulé avant la confirmation.
+       */
+
+      const isContinuationDeTraitement =
+        Boolean(
+          confirmedCalendarDate
+        );
+
+      if (
+        !isContinuationDeTraitement
+      ) {
+        processingStartTimeRef.current =
+          Date.now();
+
+        tempsTraitementCumuleRef.current =
+          0;
+
+        setTempsTraitement(
+          0
+        );
+
+        setTempsFinal(
+          null
+        );
+      }
+
       const requestId =
         ++requestIdRef.current;
 
@@ -2451,6 +2492,10 @@ const appliquerCorrectionServeur =
         true
       );
 
+      setSouvenirErrorMessage(
+        ''
+      );
+
       setTempsFinal(
         null
       );
@@ -2490,6 +2535,9 @@ body:
 
     confirmed_calendar_date:
       confirmedCalendarDate || '',
+
+    diagnostic_id:
+      diagnosticId,
   }),
 
               signal:
@@ -2890,6 +2938,10 @@ setEtapeTraitement(
   '✅ Souvenir enregistré dans la mémoire de Moment'
 );
 
+setSouvenirErrorMessage(
+  ''
+);
+
 processingStartTimeRef.current =
   null;
 
@@ -2962,6 +3014,10 @@ if (
 }
 
 setEtapeTraitement(
+  messageErreur
+);
+
+setSouvenirErrorMessage(
   messageErreur
 );
       } finally {
@@ -3374,6 +3430,49 @@ return (
           </Text>
         </Pressable>
       </View>
+
+      {
+        !souvenirEnCours &&
+        souvenirErrorMessage
+          ? (
+            <View
+              style={
+                styles.memoryErrorContainer
+              }
+            >
+              <Text
+                style={
+                  styles.memoryErrorText
+                }
+              >
+                {
+                  souvenirErrorMessage
+                }
+              </Text>
+
+              {
+                tempsFinal !== null
+                  ? (
+                    <Text
+                      style={
+                        styles.memoryErrorTime
+                      }
+                    >
+                      ⏱️ Temps de traitement :{' '}
+                      {
+                        tempsFinal.toFixed(
+                          1
+                        )
+                      }{' '}
+                      s
+                    </Text>
+                  )
+                  : null
+              }
+            </View>
+          )
+          : null
+      }
 
       {souvenirEnCours && (
         <View
@@ -4109,6 +4208,35 @@ const styles =
 
     microIcon: {
       fontSize: 22,
+    },
+
+    /* ===================================================== */
+    /* MESSAGE D'ÉCHEC SOUVIENS-TOI                          */
+    /* ===================================================== */
+
+    memoryErrorContainer: {
+      width: '100%',
+      maxWidth: 500,
+      marginTop: 2,
+      marginBottom: 8,
+      paddingHorizontal: 18,
+      paddingVertical: 11,
+      alignItems: 'center',
+    },
+
+    memoryErrorText: {
+      width: '100%',
+      textAlign: 'center',
+      fontSize: 14,
+      color: '#777777',
+      lineHeight: 20,
+    },
+
+    memoryErrorTime: {
+      marginTop: 5,
+      fontSize: 12,
+      color: '#999999',
+      textAlign: 'center',
     },
 
     /* ===================================================== */

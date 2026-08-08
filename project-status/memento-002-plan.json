@@ -2,11 +2,11 @@
   "project": "Moment",
   "memento": "MEMENTO 002",
   "status": "EN COURS",
-  "current_version": "pré-alpha 0.2.5",
-  "current_step": "MEMENTO 002-05",
-  "next_step": "MEMENTO 002-06",
+  "current_version": "pré-alpha 0.2.6",
+  "current_step": "MEMENTO 002-06",
+  "next_step": "MEMENTO 002-07",
   "progress": {
-    "completed": 5,
+    "completed": 6,
     "total": 23
   },
   "objective": "Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et appels à OpenAI, sans dégrader les comportements déjà validés.",
@@ -99,13 +99,13 @@
       "id": "002-06",
       "version": "pré-alpha 0.2.6",
       "objective": "Créer le paquet de diagnostic alpha exportable en un bouton",
-      "status": "PROCHAINE ÉTAPE"
+      "status": "TERMINÉ"
     },
     {
       "id": "002-07",
       "version": "pré-alpha 0.2.7",
       "objective": "Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/",
-      "status": "À FAIRE"
+      "status": "PROCHAINE ÉTAPE"
     },
     {
       "id": "002-08",
@@ -207,5 +207,8 @@
   "reference_scenario": {
     "name": "Élise / Axelle",
     "goal": "Valider à terme qu'une chaîne structurée de relations familiales, ambiguïtés, confirmations et rappels puisse être traitée localement avec 0 appel OpenAI lorsque les formulations sont suffisamment couvertes et fiables."
-  }
+  },
+  "file_date": "08/08/2026",
+  "file_time": "10:54",
+  "file_timezone": "Europe/Paris"
 }

@@ -2,10 +2,12 @@
 
 **Projet :** Moment  
 **État :** EN COURS  
-**Version actuelle :** pré-alpha 0.2.5  
-**Étape actuelle :** MEMENTO 002-05 — TERMINÉ  
-**Prochaine étape :** MEMENTO 002-06 — pré-alpha 0.2.6  
-**Progression :** 5 / 23 étapes terminées
+**Version actuelle :** pré-alpha 0.2.6  
+**Étape actuelle :** MEMENTO 002-06 — TERMINÉ  
+**Prochaine étape :** MEMENTO 002-07 — pré-alpha 0.2.7  
+**Progression :** 6 / 23 étapes terminées  
+**Date du fichier :** 08/08/2026  
+**Heure du fichier :** 10:54  
 
 ## Objectif global
 
@@ -50,10 +52,10 @@ moment-feedback-YYYY-MM-DD-session.zip
 | **002-01** | pré-alpha 0.2.1 | Synchroniser le suivi projet et ouvrir officiellement MEMENTO 002 | 🟢 **TERMINÉ** |
 | **002-02** | pré-alpha 0.2.2 | Auditer /understand et identifier les appels OpenAI évitables | 🟢 **TERMINÉ** |
 | **002-03** | pré-alpha 0.2.3 | Mettre en place et valider l’architecture Local First → fallback OpenAI | 🟢 **TERMINÉ** |
-| **002-04** | pré-alpha 0.2.4 | Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel | 🔵 **PROCHAINE ÉTAPE** |
-| **002-05** | pré-alpha 0.2.5 | Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs | ⚪ **À FAIRE** |
-| **002-06** | pré-alpha 0.2.6 | Créer le paquet de diagnostic alpha exportable en un bouton | ⚪ **À FAIRE** |
-| **002-07** | pré-alpha 0.2.7 | Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/ | ⚪ **À FAIRE** |
+| **002-04** | pré-alpha 0.2.4 | Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel | 🟢 **TERMINÉ** |
+| **002-05** | pré-alpha 0.2.5 | Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs | 🟢 **TERMINÉ** |
+| **002-06** | pré-alpha 0.2.6 | Créer le paquet de diagnostic alpha exportable en un bouton | 🟢 **TERMINÉ** |
+| **002-07** | pré-alpha 0.2.7 | Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/ | 🔵 **PROCHAINE ÉTAPE** |
 | **002-08** | pré-alpha 0.2.8 | Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude, relations | ⚪ **À FAIRE** |
 | **002-09** | pré-alpha 0.2.9 | Étendre les dictionnaires : lieux/résidence, travail, rendez-vous, invitations, actions | ⚪ **À FAIRE** |
 | **002-10** | pré-alpha 0.2.10 | Construire le moteur commun d’analyse lexicale + conceptuelle + structurelle | ⚪ **À FAIRE** |
@@ -77,11 +79,14 @@ Le scénario **Élise / Axelle** reste le test cible de fin de MEMENTO 002, avec
 
 ## Prochaine étape
 
-### MEMENTO 002-04 — pré-alpha 0.2.4
+### MEMENTO 002-07 — pré-alpha 0.2.7
 
-Modifier immédiatement l’interface alpha :
+Créer l’architecture des dictionnaires conceptuels partagés et le dossier `server/knowledge/`.
 
-- ajouter un accès clair **Envoyer le feedback** ;
-- préparer l’intégration du futur paquet de diagnostic ;
-- remplacer l’état actuel de **Préviens-moi** par un écran explicatif propre indiquant que la fonctionnalité est à venir / en cours de développement ;
-- éviter qu’un testeur interprète cet onglet non opérationnel comme un bug.
+Objectifs :
+
+- créer la structure `server/knowledge/` ;
+- préparer l’organisation des dictionnaires conceptuels partagés ;
+- définir une architecture réutilisable par le moteur Local First ;
+- préparer MEMENTO 002-08 consacré aux dictionnaires fondamentaux ;
+- conserver tous les comportements déjà validés de Moment.

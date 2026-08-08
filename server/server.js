@@ -120,10 +120,127 @@ const {
   findValidatedDeductionForQuestion,
   buildValidatedDeductionAnswer,
 } = require('./utils/history');
+const {
+  getDiagnosticsByIds,
+} = require('./utils/diagnostics');
+
+const {
+  logDiagnostic:
+    logTransportDiagnostic,
+
+  sanitizeDiagnosticPayload:
+    sanitizeTransportDiagnosticPayload,
+} = require('./utils/diagnostics');
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+
+/*
+ * =========================================================
+ * DIAGNOSTIC TRANSPORT
+ * =========================================================
+ *
+ * Ce middleware garantit une trace minimale
+ * même si une route métier retourne plus tôt
+ * que prévu.
+ */
+
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
+    if (
+      req.path !==
+        '/understand' &&
+      req.path !==
+        '/recall'
+    ) {
+      return next();
+    }
+
+    const diagnosticId =
+      typeof req.body
+        ?.diagnostic_id ===
+        'string'
+        ? req.body
+            .diagnostic_id
+            .trim()
+        : '';
+
+    if (
+      !diagnosticId
+    ) {
+      return next();
+    }
+
+    const startedAt =
+      Date.now();
+
+    logTransportDiagnostic({
+      diagnostic_id:
+        diagnosticId,
+
+      feature:
+        req.path ===
+          '/understand'
+          ? 'understand'
+          : 'recall',
+
+      event:
+        'transport_request',
+
+      input:
+        req.body?.text ||
+        req.body?.question ||
+        '',
+    });
+
+    const originalJson =
+      res.json.bind(
+        res
+      );
+
+    res.json =
+      payload => {
+        logTransportDiagnostic({
+          diagnostic_id:
+            diagnosticId,
+
+          feature:
+            req.path ===
+              '/understand'
+              ? 'understand'
+              : 'recall',
+
+          event:
+            'transport_response',
+
+          duration_ms:
+            Date.now() -
+            startedAt,
+
+          status_code:
+            res.statusCode,
+
+          diagnostic_payload:
+            sanitizeTransportDiagnosticPayload(
+              payload
+            ),
+        });
+
+        return originalJson(
+          payload
+        );
+      };
+
+    return next();
+  }
+);
 
 const {
   registerRecallRoute,
@@ -163,6 +280,44 @@ registerUnderstandRoute(
 registerRecallRoute(
   app,
   openai
+);
+
+
+/* ========================================================= */
+/* EXPORT DIAGNOSTIC ALPHA                                    */
+/* ========================================================= */
+
+app.post(
+  '/diagnostics/export',
+  (req, res) => {
+    const ids =
+      Array.isArray(
+        req.body?.diagnostic_ids
+      )
+        ? req.body
+            .diagnostic_ids
+        : [];
+
+    const entries =
+      getDiagnosticsByIds(
+        ids
+      );
+
+    return res.json({
+      generated_at:
+        new Date()
+          .toISOString(),
+
+      requested_ids:
+        ids,
+
+      diagnostic_count:
+        entries.length,
+
+      diagnostics:
+        entries,
+    });
+  }
 );
 
 /* ========================================================= */
