@@ -14,10 +14,10 @@
  */
 
 const SERVER_VERSION =
-  'S2';
+  'S4';
 
 const EXPECTED_APP_REVISION =
-  'A1';
+  'A3';
 
 module.exports = {
   SERVER_VERSION,

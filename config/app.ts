@@ -1,8 +1,8 @@
 ﻿export const APP_NAME = 'Moment';
 export const APP_VERSION =
-  'pré-alpha 0.2.8';
+  'pré-alpha 0.2.9';
 
 export const APP_REVISION =
-  'A1';
+  'A3';
 export const APP_TAGLINE =
   'Votre mémoire, simplement.';
