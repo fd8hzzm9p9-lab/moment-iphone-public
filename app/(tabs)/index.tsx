@@ -20,6 +20,16 @@ import {
   recordDiagnosticInteraction,
 } from '../../services/diagnosticService';
 
+import {
+  type PendingMemory,
+  addPendingMemory,
+  deletePendingMemory,
+  getPendingMemories,
+  recordPendingRetry,
+  recordPendingRetryFailure,
+  resolvePendingMemory,
+} from '../../services/pendingMemoryService';
+
 import { STORAGE_KEY } from '../../config/storage';
 
 import {
@@ -1388,6 +1398,55 @@ export default function MemoryScreen() {
     setSouvenirErrorMessage,
   ] = useState('');
 
+  /*
+   * SOUIVENIRS_EN_ATTENTE_PHASE2
+   */
+
+  const [
+    pendingMemories,
+    setPendingMemories,
+  ] =
+    useState<PendingMemory[]>(
+      []
+    );
+
+  const [
+    lastFailedMemory,
+    setLastFailedMemory,
+  ] =
+    useState<{
+      text: string;
+      reason: string;
+      diagnosticId: string;
+    } | null>(
+      null
+    );
+
+  const [
+    pendingRetryInProgress,
+    setPendingRetryInProgress,
+  ] =
+    useState(false);
+
+  const [
+    pendingRetryMessage,
+    setPendingRetryMessage,
+  ] =
+    useState('');
+
+  /*
+   * PENDING_MEMORIES_COLLAPSIBLE_PHASE3
+   *
+   * La liste reste repliée par défaut afin
+   * de ne pas polluer l'affichage Souviens-toi.
+   */
+
+  const [
+    pendingMemoriesExpanded,
+    setPendingMemoriesExpanded,
+  ] =
+    useState(false);
+
   const [
     etapeTraitement,
     setEtapeTraitement,
@@ -1551,6 +1610,24 @@ useEffect(() => {
   }, [
     souvenirEnCours,
   ]);
+
+  /* ======================================================= */
+  /* SOUVENIRS EN ATTENTE                                    */
+  /* ======================================================= */
+
+  const refreshPendingMemories =
+    async () => {
+      const items =
+        await getPendingMemories();
+
+      setPendingMemories(
+        items
+      );
+    };
+
+  useEffect(() => {
+    void refreshPendingMemories();
+  }, []);
 
   /* ======================================================= */
   /* CHARGEMENT                                              */
@@ -2496,6 +2573,14 @@ const appliquerCorrectionServeur =
         ''
       );
 
+      setLastFailedMemory(
+        null
+      );
+
+      setPendingRetryMessage(
+        ''
+      );
+
       setTempsFinal(
         null
       );
@@ -2990,18 +3075,15 @@ if (
   messageErreur =
     '⚠️ Crédit API OpenAI épuisé. Moment ne peut plus analyser de nouveaux souvenirs.';
 
-  if (
-    Platform.OS === 'web'
-  ) {
-    window.alert(
-      'Crédit API OpenAI épuisé.\n\nMoment ne peut plus analyser de nouveaux souvenirs tant que le crédit API n’a pas été rechargé.'
-    );
-  } else {
-    Alert.alert(
-      'Crédit API OpenAI épuisé',
-      'Moment ne peut plus analyser de nouveaux souvenirs tant que le crédit API n’a pas été rechargé.'
-    );
-  }
+  /*
+   * Aucun popup supplémentaire ici.
+   *
+   * L'erreur reste disponible dans le message
+   * de traitement puis dans le détail du souvenir
+   * si l'utilisateur décide de le conserver.
+   *
+   * Cela évite le doublon popup + affichage Souviens-toi.
+   */
 }
 
 if (
@@ -3020,6 +3102,18 @@ setEtapeTraitement(
 setSouvenirErrorMessage(
   messageErreur
 );
+
+setLastFailedMemory({
+  text:
+    texte.trim(),
+
+  reason:
+    error instanceof Error
+      ? error.message
+      : 'UNKNOWN_ERROR',
+
+  diagnosticId,
+});
       } finally {
         if (
           requestId ===
@@ -3043,6 +3137,526 @@ setSouvenirErrorMessage(
   /* ======================================================= */
   /* BOUTON                                                  */
   /* ======================================================= */
+
+  /* ======================================================= */
+  /* SOUVENIRS EN ATTENTE                                    */
+  /* ======================================================= */
+
+  const garderSouvenirEnAttente =
+    async () => {
+      if (
+        !lastFailedMemory
+      ) {
+        return;
+      }
+
+      await addPendingMemory(
+        lastFailedMemory.text,
+        lastFailedMemory.reason,
+        lastFailedMemory.diagnosticId
+      );
+
+      await refreshPendingMemories();
+
+      setLastFailedMemory(
+        null
+      );
+
+      setSouvenirErrorMessage(
+        ''
+      );
+
+      setSouvenir(
+        ''
+      );
+
+      setPendingRetryMessage(
+        '⏳ Souvenir conservé pour un prochain essai local.'
+      );
+    };
+
+  const refuserSouvenirEnAttente =
+    () => {
+      setLastFailedMemory(
+        null
+      );
+    };
+
+  const supprimerSouvenirEnAttente =
+    async (
+      pendingId: string
+    ) => {
+      await deletePendingMemory(
+        pendingId
+      );
+
+      await refreshPendingMemories();
+
+      setPendingRetryMessage(
+        ''
+      );
+    };
+
+  const getPendingReasonLabel =
+    (
+      reason: string
+    ) => {
+      const value =
+        String(
+          reason || ''
+        );
+
+      switch (
+        value
+      ) {
+        case 'OPENAI_CREDIT_EXHAUSTED':
+          return 'Le traitement en ligne était indisponible : crédit OpenAI épuisé.';
+
+        case 'OPENAI_RATE_LIMIT':
+          return 'Le traitement en ligne était temporairement limité.';
+
+        case 'LOCAL_UNDERSTANDING_FAILED':
+          return 'Le moteur local de cette version ne comprend pas encore suffisamment ce souvenir.';
+
+        case 'LOCAL_RETRY_ERROR':
+          return 'Une erreur est survenue pendant le réessai local.';
+
+        case 'NO_LOCAL_EVENT':
+          return 'Le moteur local n’a pas encore réussi à transformer ce texte en souvenir exploitable.';
+
+        case 'DATE_CONFIRMATION_REQUIRED':
+          return 'Ce souvenir nécessite encore une confirmation de date.';
+
+        case 'CORRECTION_REQUIRES_USER':
+          return 'Ce souvenir nécessite une correction ou une décision de ta part.';
+
+        case 'LOCAL_CONFLICT_REQUIRES_USER':
+          return 'Moment a détecté une information potentiellement contradictoire qui nécessite ta confirmation.';
+
+        case 'UNKNOWN_ERROR':
+          return 'Moment n’a pas réussi à enregistrer ce souvenir.';
+
+        default:
+          break;
+      }
+
+      if (
+        value
+          .toLowerCase()
+          .includes(
+            'credit'
+          )
+      ) {
+        return 'Le traitement en ligne était indisponible : crédit OpenAI épuisé.';
+      }
+
+      if (
+        value
+          .toLowerCase()
+          .includes(
+            'network'
+          ) ||
+        value
+          .toLowerCase()
+          .includes(
+            'connexion'
+          )
+      ) {
+        return 'Moment n’a pas pu joindre le service nécessaire au traitement.';
+      }
+
+      if (
+        value
+          .toLowerCase()
+          .includes(
+            'timeout'
+          )
+      ) {
+        return 'Le traitement a dépassé le délai prévu.';
+      }
+
+      return value ||
+        'Moment n’a pas réussi à enregistrer ce souvenir.';
+    };
+
+  const reessayerSouvenirsEnAttente =
+    async () => {
+      if (
+        pendingRetryInProgress ||
+        pendingMemories.length ===
+          0
+      ) {
+        return;
+      }
+
+      setPendingRetryInProgress(
+        true
+      );
+
+      setPendingRetryMessage(
+        ''
+      );
+
+      let successCount =
+        0;
+
+      let failedCount =
+        0;
+
+      /*
+       * On travaille sur un snapshot de la file,
+       * mais la vraie mémoire évolue au fur et
+       * à mesure des succès.
+       */
+      const pendingSnapshot = [
+        ...pendingMemories,
+      ];
+
+      let workingMemories = [
+        ...evenements,
+      ];
+
+      try {
+        for (
+          const pending of
+            pendingSnapshot
+        ) {
+          const diagnosticId =
+            createDiagnosticId(
+              'understand'
+            );
+
+          await recordPendingRetry(
+            pending.id,
+            diagnosticId
+          );
+
+          await recordDiagnosticInteraction({
+            diagnostic_id:
+              diagnosticId,
+
+            feature:
+              'understand',
+
+            input:
+              pending.text,
+
+            created_at:
+              new Date()
+                .toISOString(),
+
+            app_version:
+              APP_VERSION,
+          });
+
+          try {
+            const startedAt =
+              Date.now();
+
+            const response =
+              await fetch(
+                `${SERVER_URL}/understand`,
+                {
+                  method:
+                    'POST',
+
+                  headers: {
+                    'Content-Type':
+                      'application/json',
+                  },
+
+                  body:
+                    JSON.stringify({
+                      text:
+                        pending.text,
+
+                      memories:
+                        workingMemories,
+
+                      diagnostic_id:
+                        diagnosticId,
+
+                      /*
+                       * REGLE ABSOLUE :
+                       * jamais d'OpenAI pendant
+                       * un réessai de la file.
+                       */
+                      local_only:
+                        true,
+                    }),
+                }
+              );
+
+            let data:
+              MemoryInput | null =
+                null;
+
+            try {
+              data =
+                await response.json();
+            } catch {
+              data = null;
+            }
+
+            if (
+              !response.ok
+            ) {
+              failedCount +=
+                1;
+
+              const reason =
+                (
+                  data as
+                    | (
+                        MemoryInput & {
+                          code?: string;
+                          error?: string;
+                        }
+                      )
+                    | null
+                )?.code ||
+                (
+                  data as
+                    | (
+                        MemoryInput & {
+                          error?: string;
+                        }
+                      )
+                    | null
+                )?.error ||
+                `HTTP_${response.status}`;
+
+              await recordPendingRetryFailure(
+                pending.id,
+                reason,
+                diagnosticId
+              );
+
+              continue;
+            }
+
+            /*
+             * On refuse toute situation qui
+             * nécessite encore une décision
+             * utilisateur.
+             */
+
+            if (
+              data
+                ?.date_confirmation
+                ?.required
+            ) {
+              failedCount +=
+                1;
+
+              await recordPendingRetryFailure(
+                pending.id,
+                'DATE_CONFIRMATION_REQUIRED',
+                diagnosticId
+              );
+
+              continue;
+            }
+
+            if (
+              data
+                ?.correction_request
+                ?.detected
+            ) {
+              failedCount +=
+                1;
+
+              await recordPendingRetryFailure(
+                pending.id,
+                'CORRECTION_REQUIRES_USER',
+                diagnosticId
+              );
+
+              continue;
+            }
+
+            const rawEvents =
+              Array.isArray(
+                data?.events
+              )
+                ? data.events
+                : [];
+
+            if (
+              rawEvents.length ===
+                0
+            ) {
+              failedCount +=
+                1;
+
+              await recordPendingRetryFailure(
+                pending.id,
+                'NO_LOCAL_EVENT',
+                diagnosticId
+              );
+
+              continue;
+            }
+
+            const normalizedEvents =
+              rawEvents.map(
+                event =>
+                  normalizeEvent(
+                    event,
+                    pending.text
+                  )
+              );
+
+            /*
+             * On ne valide pas automatiquement
+             * un souvenir créant un conflit.
+             */
+
+            const conflict =
+              normalizedEvents.find(
+                event =>
+                  findConflict(
+                    workingMemories,
+                    event
+                  ) !== null
+              );
+
+            if (
+              conflict
+            ) {
+              failedCount +=
+                1;
+
+              await recordPendingRetryFailure(
+                pending.id,
+                'LOCAL_CONFLICT_REQUIRES_USER',
+                diagnosticId
+              );
+
+              continue;
+            }
+
+            const duration =
+              (
+                Date.now() -
+                startedAt
+              ) /
+              1000;
+
+            const finalEvents =
+              normalizedEvents.map(
+                event => ({
+                  ...event,
+
+                  processing_time:
+                    duration,
+                })
+              );
+
+            /*
+             * IMPORTANT :
+             *
+             * 1. On construit la vraie mémoire.
+             * 2. On la sauvegarde réellement.
+             * 3. Seulement APRES on retire le
+             *    souvenir de la file d'attente.
+             *
+             * Ainsi, un pending ne disparaît
+             * jamais avant que sa mémoire
+             * définitive soit persistée.
+             */
+
+            const nextMemories = [
+              ...finalEvents,
+              ...workingMemories,
+            ];
+
+            await AsyncStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify(
+                nextMemories
+              )
+            );
+
+            workingMemories =
+              nextMemories;
+
+            setEvenements(
+              nextMemories
+            );
+
+            const parser =
+              (
+                data as
+                  | (
+                      MemoryInput & {
+                        local_understanding?: {
+                          parser?: string;
+                        };
+                      }
+                    )
+                  | null
+              )
+                ?.local_understanding
+                ?.parser ||
+              '';
+
+            await resolvePendingMemory(
+              pending.id,
+              finalEvents.map(
+                event =>
+                  event.id
+              ),
+              diagnosticId,
+              parser
+            );
+
+            successCount +=
+              1;
+
+          } catch (
+            error
+          ) {
+            failedCount +=
+              1;
+
+            await recordPendingRetryFailure(
+              pending.id,
+              error instanceof Error
+                ? error.message
+                : 'LOCAL_RETRY_ERROR',
+              diagnosticId
+            );
+          }
+        }
+
+        await refreshPendingMemories();
+
+        if (
+          successCount > 0 &&
+          failedCount > 0
+        ) {
+          setPendingRetryMessage(
+            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''} · ${failedCount} reste${failedCount > 1 ? 'nt' : ''} en attente.`
+          );
+        } else if (
+          successCount > 0
+        ) {
+          setPendingRetryMessage(
+            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''}. Aucun souvenir ne reste en attente.`
+          );
+        } else {
+          setPendingRetryMessage(
+            `⏳ Aucun souvenir supplémentaire n’est encore compris localement. ${failedCount} reste${failedCount > 1 ? 'nt' : ''} en attente.`
+          );
+        }
+
+      } finally {
+        setPendingRetryInProgress(
+          false
+        );
+      }
+    };
 
 const souviensToi =
   async () => {
@@ -3466,6 +4080,314 @@ return (
                       }{' '}
                       s
                     </Text>
+                  )
+                  : null
+              }
+            </View>
+          )
+          : null
+      }
+
+      {
+        !souvenirEnCours &&
+        lastFailedMemory
+          ? (
+            <View
+              style={
+                styles.pendingQuestionContainer
+              }
+            >
+              <Text
+                style={
+                  styles.pendingQuestionText
+                }
+              >
+                Moment n’a pas pu enregistrer ce souvenir.
+                {'\n'}
+                Veux-tu le garder pour réessayer localement plus tard ?
+              </Text>
+
+              <View
+                style={
+                  styles.pendingQuestionActions
+                }
+              >
+                <Pressable
+                  style={
+                    styles.pendingNoButton
+                  }
+                  onPress={
+                    refuserSouvenirEnAttente
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingNoButtonText
+                    }
+                  >
+                    Non
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={
+                    styles.pendingYesButton
+                  }
+                  onPress={
+                    garderSouvenirEnAttente
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingYesButtonText
+                    }
+                  >
+                    Oui, garder
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )
+          : null
+      }
+
+      {
+        !souvenirEnCours &&
+        pendingRetryMessage
+          ? (
+            <Text
+              style={
+                styles.pendingRetryMessage
+              }
+            >
+              {
+                pendingRetryMessage
+              }
+            </Text>
+          )
+          : null
+      }
+
+      {
+        !souvenirEnCours &&
+        pendingMemories.length >
+          0
+          ? (
+            <View
+              style={
+                styles.pendingMemoriesContainer
+              }
+            >
+              <Pressable
+                onPress={() =>
+                  setPendingMemoriesExpanded(
+                    current =>
+                      !current
+                  )
+                }
+                style={
+                  ({
+                    pressed,
+                  }) => [
+                    styles.pendingMemoriesHeader,
+
+                    pressed &&
+                      styles.pendingMemoriesHeaderPressed,
+                  ]
+                }
+              >
+                <View
+                  style={
+                    styles.pendingMemoriesHeaderLeft
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingMemoriesTitle
+                    }
+                  >
+                    ⏳ {
+                      pendingMemories.length
+                    } souvenir{
+                      pendingMemories.length >
+                      1
+                        ? 's'
+                        : ''
+                    } en attente
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.pendingMemoriesHeaderHint
+                    }
+                  >
+                    {
+                      pendingMemoriesExpanded
+                        ? 'Appuie pour replier'
+                        : 'Appuie pour afficher'
+                    }
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.pendingMemoriesToggleButton
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingMemoriesArrow
+                    }
+                  >
+                    {
+                      pendingMemoriesExpanded
+      ? '▲'
+      : '▼'
+                    }
+                  </Text>
+                </View>
+              </Pressable>
+
+              {
+                pendingMemoriesExpanded
+                  ? (
+                    <View
+                      style={
+                        styles.pendingMemoriesExpandedContent
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.pendingMemoriesInfo
+                        }
+                      >
+                        Ces souvenirs ne font pas encore partie de Ma mémoire.
+                        {'\n'}
+                        Les réessais utilisent uniquement le moteur local de Moment.
+                      </Text>
+
+                      <Pressable
+                        style={[
+                          styles.pendingRetryButton,
+
+                          pendingRetryInProgress &&
+                            styles.buttonDisabled,
+                        ]}
+                        disabled={
+                          pendingRetryInProgress
+                        }
+                        onPress={
+                          reessayerSouvenirsEnAttente
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.pendingRetryButtonText
+                          }
+                        >
+                          {
+                            pendingRetryInProgress
+                              ? 'Réessai local en cours…'
+                              : '↻ Réessayer les souvenirs'
+                          }
+                        </Text>
+                      </Pressable>
+
+                      {
+                        pendingMemories.map(
+                          pending => (
+                            <View
+                              key={
+                                pending.id
+                              }
+                              style={
+                                styles.pendingMemoryCard
+                              }
+                            >
+                              <Text
+                                style={
+                                  styles.pendingMemoryText
+                                }
+                              >
+                                {
+                                  pending.text
+                                }
+                              </Text>
+
+                              <View
+                                style={
+                                  styles.pendingReasonContainer
+                                }
+                              >
+                                <Text
+                                  style={
+                                    styles.pendingReasonLabel
+                                  }
+                                >
+                                  Pourquoi ce souvenir est en attente ?
+                                </Text>
+
+                                <Text
+                                  style={
+                                    styles.pendingReasonText
+                                  }
+                                >
+                                  {
+                                    getPendingReasonLabel(
+                                      pending.last_reason ||
+                                      pending.initial_reason
+                                    )
+                                  }
+                                </Text>
+                              </View>
+
+                              <Text
+                                style={
+                                  styles.pendingMemoryMeta
+                                }
+                              >
+                                Tentative{
+                                  pending.attempt_count >
+                                  1
+                                    ? 's'
+                                    : ''
+                                } : {
+                                  pending.attempt_count
+                                } · depuis {
+                                  pending.created_app_version
+                                }
+                              </Text>
+
+                              <Pressable
+                                onPress={() =>
+                                  supprimerSouvenirEnAttente(
+                                    pending.id
+                                  )
+                                }
+                                style={
+                                  ({
+                                    pressed,
+                                  }) => [
+                                    styles.pendingDeleteButton,
+
+                                    pressed &&
+                                      styles.pendingDeleteButtonPressed,
+                                  ]
+                                }
+                              >
+                                <Text
+                                  style={
+                                    styles.pendingDeleteText
+                                  }
+                                >
+                                  Supprimer de la liste
+                                </Text>
+                              </Pressable>
+                            </View>
+                          )
+                        )
+                      }
+                    </View>
                   )
                   : null
               }
@@ -4242,6 +5164,458 @@ const styles =
     /* ===================================================== */
     /* TRAITEMENT                                            */
     /* ===================================================== */
+
+    /* ===================================================== */
+    /* SOUVENIRS EN ATTENTE                                  */
+    /* ===================================================== */
+
+    pendingQuestionContainer: {
+      width:
+        '100%',
+
+      maxWidth:
+        500,
+
+      marginTop:
+        2,
+
+      marginBottom:
+        10,
+
+      paddingHorizontal:
+        16,
+
+      paddingVertical:
+        14,
+
+      backgroundColor:
+        '#FFF8E7',
+
+      borderRadius:
+        14,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E8D9AE',
+    },
+
+    pendingQuestionText: {
+      textAlign:
+        'center',
+
+      fontSize:
+        14,
+
+      lineHeight:
+        20,
+
+      color:
+        '#5B5140',
+
+      fontWeight:
+        '600',
+    },
+
+    pendingQuestionActions: {
+      marginTop:
+        12,
+
+      flexDirection:
+        'row',
+
+      justifyContent:
+        'center',
+
+      gap:
+        10,
+    },
+
+    pendingNoButton: {
+      minWidth:
+        90,
+
+      paddingVertical:
+        10,
+
+      paddingHorizontal:
+        18,
+
+      borderRadius:
+        12,
+
+      alignItems:
+        'center',
+
+      backgroundColor:
+        '#F0EFEC',
+    },
+
+    pendingNoButtonText: {
+      color:
+        '#555555',
+
+      fontSize:
+        14,
+
+      fontWeight:
+        '600',
+    },
+
+    pendingYesButton: {
+      minWidth:
+        120,
+
+      paddingVertical:
+        10,
+
+      paddingHorizontal:
+        18,
+
+      borderRadius:
+        12,
+
+      alignItems:
+        'center',
+
+      backgroundColor:
+        '#1F2937',
+    },
+
+    pendingYesButtonText: {
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        14,
+
+      fontWeight:
+        '600',
+    },
+
+    pendingRetryMessage: {
+      width:
+        '100%',
+
+      maxWidth:
+        500,
+
+      marginBottom:
+        10,
+
+      textAlign:
+        'center',
+
+      fontSize:
+        13,
+
+      lineHeight:
+        19,
+
+      color:
+        '#666666',
+    },
+
+    pendingMemoriesContainer: {
+      width:
+        '100%',
+
+      maxWidth:
+        500,
+
+      marginTop:
+        4,
+
+      marginBottom:
+        12,
+
+      backgroundColor:
+        '#F8F7F4',
+
+      borderRadius:
+        15,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E3DFD8',
+
+      overflow:
+        'hidden',
+    },
+
+    pendingMemoriesHeader: {
+      minHeight:
+        54,
+
+      paddingHorizontal:
+        15,
+
+      paddingVertical:
+        10,
+
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'space-between',
+    },
+
+    pendingMemoriesHeaderPressed: {
+      backgroundColor:
+        '#F1EFEB',
+    },
+
+    pendingMemoriesHeaderLeft: {
+      flex:
+        1,
+
+      paddingRight:
+        12,
+    },
+
+    pendingMemoriesTitle: {
+      fontSize:
+        15,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#24211D',
+    },
+
+    pendingMemoriesHeaderHint: {
+      marginTop:
+        2,
+
+      fontSize:
+        11,
+
+      color:
+        '#99958E',
+    },
+
+pendingMemoriesToggleButton: {
+  width:
+    34,
+
+  height:
+    34,
+
+  borderRadius:
+    8,
+
+  backgroundColor:
+    '#F0EFEC',
+
+  borderWidth:
+    1,
+
+  borderColor:
+    '#DDD9D2',
+
+  alignItems:
+    'center',
+
+  justifyContent:
+    'center',
+},
+
+pendingMemoriesArrow: {
+  fontSize:
+    11,
+
+  color:
+    '#77736D',
+
+  textAlign:
+    'center',
+},
+
+    pendingMemoriesExpandedContent: {
+      paddingHorizontal:
+        14,
+
+      paddingBottom:
+        14,
+
+      borderTopWidth:
+        1,
+
+      borderTopColor:
+        '#E7E3DD',
+    },
+
+    pendingMemoriesInfo: {
+      marginTop:
+        12,
+
+      fontSize:
+        12,
+
+      lineHeight:
+        18,
+
+      color:
+        '#777777',
+    },
+
+    pendingRetryButton: {
+      marginTop:
+        12,
+
+      marginBottom:
+        5,
+
+      minHeight:
+        44,
+
+      borderRadius:
+        13,
+
+      paddingHorizontal:
+        14,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#1F2937',
+    },
+
+    pendingRetryButtonText: {
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        14,
+
+      fontWeight:
+        '700',
+    },
+
+    pendingMemoryCard: {
+      marginTop:
+        10,
+
+      padding:
+        12,
+
+      backgroundColor:
+        '#FFFFFF',
+
+      borderRadius:
+        12,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E5E1DC',
+    },
+
+    pendingMemoryText: {
+      fontSize:
+        14,
+
+      lineHeight:
+        20,
+
+      fontWeight:
+        '600',
+
+      color:
+        '#333333',
+    },
+
+    pendingReasonContainer: {
+      marginTop:
+        10,
+
+      padding:
+        10,
+
+      borderRadius:
+        10,
+
+      backgroundColor:
+        '#F8F7F4',
+    },
+
+    pendingReasonLabel: {
+      fontSize:
+        11,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#77736D',
+    },
+
+    pendingReasonText: {
+      marginTop:
+        4,
+
+      fontSize:
+        12,
+
+      lineHeight:
+        18,
+
+      color:
+        '#55514C',
+    },
+
+    pendingMemoryMeta: {
+      marginTop:
+        8,
+
+      fontSize:
+        11,
+
+      color:
+        '#999999',
+    },
+
+    pendingDeleteButton: {
+      alignSelf:
+        'flex-start',
+
+      marginTop:
+        9,
+
+      paddingVertical:
+        5,
+
+      paddingHorizontal:
+        2,
+    },
+
+    pendingDeleteButtonPressed: {
+      opacity:
+        0.55,
+    },
+
+    pendingDeleteText: {
+      fontSize:
+        12,
+
+      color:
+        '#A14B4B',
+
+      fontWeight:
+        '600',
+    },
 
     processingContainer: {
       width: '100%',

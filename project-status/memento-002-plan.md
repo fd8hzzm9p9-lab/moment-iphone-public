@@ -6,8 +6,8 @@
 **Étape actuelle :** MEMENTO 002-07 — TERMINÉ  
 **Prochaine étape :** MEMENTO 002-08 — pré-alpha 0.2.8  
 **Progression :** 7 / 23 étapes terminées  
-**Date du fichier :** 08/08/2026
-**Heure du fichier :** 11:14
+**Date du fichier :** 08/08/2026  
+**Heure du fichier :** 12:20
 
 ## Objectif global
 
@@ -15,12 +15,16 @@ Optimiser le fonctionnement de Moment afin de réduire au maximum les accès et 
 
 ## Priorité immédiate — interface alpha
 
-Avant de poursuivre les dictionnaires, **MEMENTO 002-04** doit modifier l’interface très rapidement afin que les pré-testeurs disposent immédiatement de deux repères essentiels :
+Avant de poursuivre les dictionnaires, **MEMENTO 002-04** devait modifier l’interface afin que les pré-testeurs disposent immédiatement de repères clairs pour comprendre les fonctions encore en développement et transmettre leurs résultats de test.
 
-1. un accès clair à **« Envoyer le feedback »**, qui servira ensuite à exporter automatiquement le dossier de diagnostic ;
-2. un écran clair dans **Préviens-moi**, actuellement non opérationnel, indiquant que la fonctionnalité est en cours de développement / arrive prochainement.
+Cette base est maintenant opérationnelle et a été enrichie pendant la pré-alpha 0.2.7 par :
 
-L’objectif est qu’un testeur qui ouvre Préviens-moi ne pense pas que l’application est cassée ou que l’onglet ne fonctionne pas.
+1. un accès clair à **« Envoyer le feedback »** ;
+2. un écran structuré dans **Préviens-moi** ;
+3. un accès **« Comment tester Moment ? »** destiné à permettre au pré-testeur de comprendre seul le principe de Moment, les objectifs des tests et les limites actuelles de la pré-alpha ;
+4. une gestion des souvenirs qui n’ont pas pu être enregistrés.
+
+L’objectif est qu’un testeur puisse utiliser Moment avec un minimum d’explications extérieures et ne considère pas automatiquement un comportement encore non pris en charge comme une panne globale de l’application.
 
 ## Architecture retenue
 
@@ -34,6 +38,8 @@ Le testeur doit pouvoir appuyer sur un seul bouton **« Envoyer le feedback »**
 
 Le paquet doit permettre de reconstruire et analyser une session sans recontacter le testeur.
 
+Les souvenirs temporairement placés en attente ainsi que leur historique de tentative doivent également pouvoir être intégrés au feedback afin de mesurer les progrès du moteur Local First entre plusieurs versions de Moment.
+
 Exemple de paquet :
 
 ```text
@@ -43,57 +49,3 @@ moment-feedback-YYYY-MM-DD-session.zip
 ├── local-fallbacks.jsonl
 ├── errors.jsonl
 └── app-info.json
-```
-
-## Plan actualisé
-
-| Étape | Version | Objectif | État |
-|---:|---|---|---|
-| **002-01** | pré-alpha 0.2.1 | Synchroniser le suivi projet et ouvrir officiellement MEMENTO 002 | 🟢 **TERMINÉ** |
-| **002-02** | pré-alpha 0.2.2 | Auditer /understand et identifier les appels OpenAI évitables | 🟢 **TERMINÉ** |
-| **002-03** | pré-alpha 0.2.3 | Mettre en place et valider l’architecture Local First → fallback OpenAI | 🟢 **TERMINÉ** |
-| **002-04** | pré-alpha 0.2.4 | Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel | 🟢 **TERMINÉ** |
-| **002-05** | pré-alpha 0.2.5 | Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs | 🟢 **TERMINÉ** |
-| **002-06** | pré-alpha 0.2.6 | Créer le paquet de diagnostic alpha exportable en un bouton | 🟢 **TERMINÉ** |
-| **002-07** | pré-alpha 0.2.7 | Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/ | 🟢 **TERMINÉ** |
-| **002-08** | pré-alpha 0.2.8 | Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude, relations | 🔵 **PROCHAINE ÉTAPE** |
-| **002-09** | pré-alpha 0.2.9 | Étendre les dictionnaires : lieux/résidence, travail, rendez-vous, invitations, actions | ⚪ **À FAIRE** |
-| **002-10** | pré-alpha 0.2.10 | Construire le moteur commun d’analyse lexicale + conceptuelle + structurelle | ⚪ **À FAIRE** |
-| **002-11** | pré-alpha 0.2.11 | Mettre en place confiance et sécurité : local si suffisamment certain, sinon OpenAI | ⚪ **À FAIRE** |
-| **002-12** | pré-alpha 0.2.12 | Intégrer complètement ce moteur à Souviens-toi | ⚪ **À FAIRE** |
-| **002-13** | pré-alpha 0.2.13 | Comprendre localement les relations familiales/personnelles | ⚪ **À FAIRE** |
-| **002-14** | pré-alpha 0.2.14 | Construire et exploiter le réseau de connaissances entre personnes, faits, lieux et dates | ⚪ **À FAIRE** |
-| **002-15** | pré-alpha 0.2.15 | Intégrer le Local First à Rappelle-moi et répondre localement lorsque possible | ⚪ **À FAIRE** |
-| **002-16** | pré-alpha 0.2.16 | Gérer localement ambiguïtés, négations, incertitudes, confirmations et réfutations | ⚪ **À FAIRE** |
-| **002-17** | pré-alpha 0.2.17 | Préparer le moteur commun pour l’activation future de Préviens-moi | ⚪ **À FAIRE** |
-| **002-18** | pré-alpha 0.2.18 | Optimiser le fallback OpenAI restant et réduire le contexte/tokens envoyés | ⚪ **À FAIRE** |
-| **002-19** | pré-alpha 0.2.19 | Mesurer appels locaux/OpenAI, causes de fallback, temps et économies | ⚪ **À FAIRE** |
-| **002-20** | pré-alpha 0.2.20 | Exploiter les feedbacks alpha pour enrichir dictionnaires et règles sans recontacter le testeur | ⚪ **À FAIRE** |
-| **002-21** | pré-alpha 0.2.21 | Rejouer le scénario complet Élise/Axelle avec objectif 0 appel OpenAI | ⚪ **À FAIRE** |
-| **002-22** | pré-alpha 0.2.22 | Tests de non-régression et validation globale du Local First | ⚪ **À FAIRE** |
-| **002-23** | pré-alpha 0.2.23 | Clôturer MEMENTO 002 : bilan, documentation, architecture et état final du projet | ⚪ **À FAIRE** |
-
-## Scénario de référence
-
-Le scénario **Élise / Axelle** reste le test cible de fin de MEMENTO 002, avec un objectif de **0 appel OpenAI** lorsque la chaîne est suffisamment structurée et couverte localement.
-
-## Étape actuelle
-
-### MEMENTO 002-07 — pré-alpha 0.2.7
-
-Créer l’architecture des dictionnaires conceptuels partagés et le dossier `server/knowledge/`.
-
-Objectifs de cette étape :
-
-- créer un point d’entrée unique pour les connaissances partagées ;
-- séparer les futures connaissances fondamentales, les domaines fonctionnels et les éléments partagés ;
-- préparer MEMENTO 002-08 sans remplir prématurément ses dictionnaires ;
-- ne modifier aucun comportement fonctionnel déjà validé ;
-- conserver le principe Local First → fallback OpenAI lorsque le traitement local n’est pas suffisamment certain.
-
-## Prochaine étape
-
-### MEMENTO 002-08 — pré-alpha 0.2.8
-
-Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude et relations.
-

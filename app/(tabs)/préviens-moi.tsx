@@ -55,6 +55,32 @@ export default function PreventMeScreen() {
   ] =
     useState(false);
 
+  const [
+    showTestHelp,
+    setShowTestHelp,
+  ] =
+    useState(false);
+
+  const [
+    openHelpSection,
+    setOpenHelpSection,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const toggleHelpSection =
+    (
+      section: string
+    ) => {
+      setOpenHelpSection(
+        current =>
+          current === section
+            ? null
+            : section
+      );
+    };
+
   const refreshPendingCount =
     useCallback(
       async () => {
@@ -338,16 +364,43 @@ export default function PreventMeScreen() {
             Tu testes Moment ?
           </Text>
 
+          <Pressable
+            onPress={() => {
+              setOpenHelpSection(
+                null
+              );
+
+              setShowTestHelp(
+                true
+              );
+            }}
+            style={
+              ({
+                pressed,
+              }) => [
+                styles.testHelpButton,
+                pressed &&
+                  styles.buttonPressed,
+              ]
+            }
+          >
+            <Text
+              style={
+                styles.testHelpButtonText
+              }
+            >
+              ❓ Comment tester Moment ?
+            </Text>
+          </Pressable>
+
           <Text
             style={
               styles.feedbackText
             }
           >
-            Envoie régulièrement ton feedback pendant tes tests,
-            même si tout fonctionne correctement.
+            Aide-nous à améliorer cette pré-version pendant tes essais.
             {'\n'}
-            Cela nous permet d’analyser et améliorer le
-            fonctionnement réel de Moment.
+            Envoie régulièrement ton feedback, même lorsque tout fonctionne correctement.
           </Text>
 
           <View
@@ -441,6 +494,204 @@ export default function PreventMeScreen() {
           }
         </View>
       </View>
+
+      {/* =================================================== */}
+      {/* AIDE PRÉ-TESTEUR                                    */}
+      {/* =================================================== */}
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={
+          showTestHelp
+        }
+        onRequestClose={
+          () =>
+            setShowTestHelp(
+              false
+            )
+        }
+      >
+        <View
+          style={
+            styles.modalBackdrop
+          }
+        >
+          <View
+            style={
+              styles.testHelpModalCard
+            }
+          >
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <Text
+                style={
+                  styles.modalTitle
+                }
+              >
+                Comment tester Moment ?
+              </Text>
+
+              <Pressable
+                onPress={
+                  () =>
+                    setShowTestHelp(
+                      false
+                    )
+                }
+              >
+                <Text
+                  style={
+                    styles.closeButton
+                  }
+                >
+                  Fermer
+                </Text>
+              </Pressable>
+            </View>
+
+            <Text
+              style={
+                styles.testHelpIntro
+              }
+            >
+              Pas besoin de tout lire avant de commencer :
+              utilise Moment naturellement. Ouvre simplement
+              les rubriques qui t’intéressent.
+            </Text>
+
+            <ScrollView
+              showsVerticalScrollIndicator={
+                false
+              }
+            >
+              <HelpSection
+                title="🧠 À quoi sert Moment ?"
+                open={
+                  openHelpSection ===
+                  'purpose'
+                }
+                onPress={() =>
+                  toggleHelpSection(
+                    'purpose'
+                  )
+                }
+              >
+                Moment est une application de mémoire personnelle.
+                {'\n\n'}
+                Dans « Souviens-toi », raconte-lui naturellement
+                ce que tu souhaites garder en mémoire : un événement,
+                une personne, un rendez-vous, un lieu ou une information.
+                {'\n\n'}
+                Dans « Rappelle-moi », pose ensuite tes questions
+                naturellement pour retrouver ce que Moment a mémorisé.
+              </HelpSection>
+
+              <HelpSection
+                title="🧪 Comment dois-je le tester ?"
+                open={
+                  openHelpSection ===
+                  'testing'
+                }
+                onPress={() =>
+                  toggleHelpSection(
+                    'testing'
+                  )
+                }
+              >
+                Utilise Moment comme tu aurais réellement envie
+                de l’utiliser.
+                {'\n\n'}
+                Ne cherche surtout pas les « bonnes phrases ».
+                Écris comme tu parlerais normalement : phrases
+                courtes ou longues, précises ou imprécises.
+                {'\n\n'}
+                Utilise tes propres exemples, puis demande à Moment
+                de retrouver les informations que tu lui as données.
+              </HelpSection>
+
+              <HelpSection
+                title="🚧 Pourquoi certaines choses ne fonctionnent pas ?"
+                open={
+                  openHelpSection ===
+                  'limits'
+                }
+                onPress={() =>
+                  toggleHelpSection(
+                    'limits'
+                  )
+                }
+              >
+                Tu utilises une pré-alpha : Moment est encore en
+                plein développement.
+                {'\n\n'}
+                Certaines situations fonctionnent déjà, d’autres
+                seulement en partie, et certaines ne sont pas encore
+                prises en charge.
+                {'\n\n'}
+                Nous travaillons actuellement à permettre à Moment
+                de comprendre et retrouver un maximum d’informations
+                directement avec son moteur local, sans dépendre
+                systématiquement d’une intelligence artificielle
+                en ligne.
+                {'\n\n'}
+                Une phrase non comprise ou une question sans réponse
+                peut donc arriver. Trouver ces limites fait justement
+                partie du test.
+              </HelpSection>
+
+              <HelpSection
+                title="📤 Quand envoyer mon feedback ?"
+                open={
+                  openHelpSection ===
+                  'feedback'
+                }
+                onPress={() =>
+                  toggleHelpSection(
+                    'feedback'
+                  )
+                }
+              >
+                Envoie régulièrement ton feedback après plusieurs
+                essais, même lorsque tout semble fonctionner.
+                {'\n\n'}
+                Fais-le aussi lorsqu’une réponse, une compréhension
+                ou un comportement te paraît étrange ou incorrect.
+                {'\n\n'}
+                Pas besoin de prendre des notes ni de nous expliquer
+                techniquement le problème : Moment conserve les
+                informations de diagnostic utiles à l’analyse de
+                tes derniers essais.
+              </HelpSection>
+
+              <HelpSection
+                title="🎯 Qu’est-ce qui nous intéresse particulièrement ?"
+                open={
+                  openHelpSection ===
+                  'targets'
+                }
+                onPress={() =>
+                  toggleHelpSection(
+                    'targets'
+                  )
+                }
+              >
+                Tout ce qui ne correspond pas à ce que tu attendais :
+                mauvaise compréhension, souvenir mal enregistré,
+                réponse incorrecte, absence de réponse, comportement
+                surprenant ou lenteur inhabituelle.
+                {'\n\n'}
+                Mais ce qui fonctionne bien nous intéresse aussi :
+                cela permet de savoir quelles parties de Moment
+                deviennent suffisamment fiables.
+              </HelpSection>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* =================================================== */}
       {/* MODALE NOUVEAUTÉS — ELLE PEUT DÉFILER              */}
@@ -555,6 +806,73 @@ export default function PreventMeScreen() {
           </View>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+type HelpSectionProps = {
+  title: string;
+  open: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+};
+
+function HelpSection({
+  title,
+  open,
+  onPress,
+  children,
+}: HelpSectionProps) {
+  return (
+    <View
+      style={
+        styles.helpSection
+      }
+    >
+      <Pressable
+        onPress={
+          onPress
+        }
+        style={
+          ({
+            pressed,
+          }) => [
+            styles.helpSectionHeader,
+            pressed &&
+              styles.helpSectionPressed,
+          ]
+        }
+      >
+        <Text
+          style={
+            styles.helpSectionTitle
+          }
+        >
+          {title}
+        </Text>
+
+        <Text
+          style={
+            styles.helpSectionArrow
+          }
+        >
+          {open ? '▲' : '▼'}
+        </Text>
+      </Pressable>
+
+      {
+        open
+          ? (
+            <Text
+              style={
+                styles.helpSectionContent
+              }
+            >
+              {children}
+            </Text>
+          )
+          : null
+      }
     </View>
   );
 }
@@ -849,6 +1167,52 @@ const styles =
         'center',
     },
 
+    testHelpButton: {
+      width:
+        '100%',
+
+      minHeight:
+        44,
+
+      marginTop:
+        10,
+
+      paddingHorizontal:
+        16,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#2563EB',
+
+      borderRadius:
+        13,
+
+      backgroundColor:
+        '#EFF6FF',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+    },
+
+    testHelpButtonText: {
+      fontSize:
+        14,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#1D4ED8',
+
+      textAlign:
+        'center',
+    },
+
     feedbackText: {
       marginTop:
         6,
@@ -986,6 +1350,127 @@ const styles =
 
       textAlign:
         'center',
+    },
+
+    testHelpModalCard: {
+      maxHeight:
+        '86%',
+
+      backgroundColor:
+        '#FFFFFF',
+
+      borderTopLeftRadius:
+        24,
+
+      borderTopRightRadius:
+        24,
+
+      paddingHorizontal:
+        22,
+
+      paddingTop:
+        20,
+
+      paddingBottom:
+        30,
+    },
+
+    testHelpIntro: {
+      marginBottom:
+        14,
+
+      fontSize:
+        14,
+
+      lineHeight:
+        20,
+
+      color:
+        '#64748B',
+    },
+
+    helpSection: {
+      marginBottom:
+        9,
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E2E8F0',
+
+      borderRadius:
+        14,
+
+      overflow:
+        'hidden',
+
+      backgroundColor:
+        '#FFFFFF',
+    },
+
+    helpSectionHeader: {
+      minHeight:
+        50,
+
+      paddingHorizontal:
+        14,
+
+      paddingVertical:
+        12,
+
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+    },
+
+    helpSectionPressed: {
+      backgroundColor:
+        '#F8FAFC',
+    },
+
+    helpSectionTitle: {
+      flex:
+        1,
+
+      paddingRight:
+        10,
+
+      fontSize:
+        14,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#0F172A',
+    },
+
+    helpSectionArrow: {
+      fontSize:
+        10,
+
+      color:
+        '#64748B',
+    },
+
+    helpSectionContent: {
+      paddingHorizontal:
+        14,
+
+      paddingBottom:
+        15,
+
+      fontSize:
+        14,
+
+      lineHeight:
+        20,
+
+      color:
+        '#475569',
     },
 
     modalBackdrop: {

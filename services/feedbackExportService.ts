@@ -27,6 +27,10 @@ import {
   getPendingDiagnosticInteractions,
 } from './diagnosticService';
 
+import {
+  getPendingMemoryDiagnosticSnapshot,
+} from './pendingMemoryService';
+
 function buildFileName(
   momentDeviceId:
     string
@@ -96,6 +100,9 @@ function buildFileName(
 export async function exportMomentFeedback() {
   const interactions =
     await getPendingDiagnosticInteractions();
+
+  const pendingMemories =
+    await getPendingMemoryDiagnosticSnapshot();
 
   if (
     interactions.length === 0
@@ -247,6 +254,9 @@ export async function exportMomentFeedback() {
 
       interactions,
     },
+
+    pending_memories:
+      pendingMemories,
 
     server:
       serverDiagnostics,

@@ -354,7 +354,11 @@ app.post(
         memories,
         confirmed_calendar_date,
         diagnostic_id,
+        local_only,
       } = req.body;
+
+      const localOnly =
+        local_only === true;
 
       if (
         !text ||
@@ -465,6 +469,7 @@ app.post(
       /* =================================================== */
 
       if (
+        !localOnly &&
         isCorrectionRequest(
           text
         )
@@ -1937,6 +1942,50 @@ correctionData =
         result =
           localResult;
       } else {
+
+        if (
+          localOnly
+        ) {
+          console.log(
+            '🧪 LOCAL ONLY : compréhension locale insuffisante'
+          );
+
+          logDiagnostic({
+            diagnostic_id:
+              diagnosticId,
+
+            feature:
+              'understand',
+
+            event:
+              'local_only_failed',
+
+            reason:
+              'local_understanding_not_confident',
+          });
+
+          return res
+            .status(422)
+            .json({
+              input:
+                text.trim(),
+
+              events:
+                [],
+
+              conflict:
+                null,
+
+              local_only:
+                true,
+
+              code:
+                'LOCAL_UNDERSTANDING_FAILED',
+
+              message:
+                'Moment ne comprend pas encore ce souvenir localement.',
+            });
+        }
 
         console.log(
           '🌐 LOCAL FIRST : fallback OpenAI nécessaire'
