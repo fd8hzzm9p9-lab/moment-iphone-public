@@ -47,3 +47,5 @@ app-example
 
 # Moment diagnostics alpha
 server/diagnostics/*.jsonl
+
+server/data/

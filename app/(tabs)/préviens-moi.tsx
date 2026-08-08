@@ -771,6 +771,20 @@ export default function PreventMeScreen() {
                         {note.version}
                       </Text>
 
+                      {
+                        note.date
+                          ? (
+                            <Text
+                              style={
+                                styles.releaseDate
+                              }
+                            >
+                              (Ajoutée le {note.date})
+                            </Text>
+                          )
+                          : null
+                      }
+
                       <Text
                         style={
                           styles.releaseTitle
@@ -1563,6 +1577,20 @@ const styles =
 
       color:
         '#2563EB',
+    },
+
+    releaseDate: {
+      marginTop:
+        2,
+
+      fontSize:
+        12,
+
+      fontStyle:
+        'italic',
+
+      color:
+        '#94A3B8',
     },
 
     releaseTitle: {

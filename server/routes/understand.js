@@ -19,6 +19,10 @@ const {
   summarizeResponse,
 } = require('../utils/diagnostics');
 
+const {
+  createQuotaOpenAI,
+} = require('../utils/openai-alpha-quota');
+
 const helpers = {
   ...require('../utils/calendar'),
   ...require('../utils/core'),
@@ -383,6 +387,21 @@ app.post(
       const requestStartedAt =
         routeRequestStartedAt;
 
+      const quotaOpenai =
+        createQuotaOpenAI(
+          openai,
+          {
+            deviceId:
+              req.body
+                ?.moment_device_id,
+
+            feature:
+              'understand',
+
+            diagnosticId,
+          }
+        );
+
       const originalJson =
         res.json.bind(
           res
@@ -593,7 +612,7 @@ ${text.trim()}
 
         try {
           const correctionResponse =
-            await openai.responses.create({
+            await quotaOpenai.responses.create({
               model:
                 'gpt-5-mini',
 
@@ -2248,7 +2267,7 @@ correctionData =
 
         try {
           response =
-            await openai.responses.create(
+            await quotaOpenai.responses.create(
               {
                 model:
                   'gpt-5-mini',

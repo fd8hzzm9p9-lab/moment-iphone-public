@@ -15,6 +15,10 @@ const {
   serializeError,
   summarizeResponse,
 } = require('../utils/diagnostics');
+
+const {
+  createQuotaOpenAI,
+} = require('../utils/openai-alpha-quota');
 const helpers = {
   ...require('../utils/calendar'),
   ...require('../utils/core'),
@@ -161,6 +165,21 @@ app.post(
 
       const requestStartedAt =
         Date.now();
+
+      const quotaOpenai =
+        createQuotaOpenAI(
+          openai,
+          {
+            deviceId:
+              req.body
+                ?.moment_device_id,
+
+            feature:
+              'recall',
+
+            diagnosticId,
+          }
+        );
 
       const originalJson =
         res.json.bind(
@@ -1284,7 +1303,7 @@ Une déduction rejetée ne doit jamais servir de preuve.
 
 
       const response =
-        await openai.responses.create({
+        await quotaOpenai.responses.create({
           model:
             'gpt-5-mini',
 

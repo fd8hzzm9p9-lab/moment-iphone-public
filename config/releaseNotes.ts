@@ -1,5 +1,6 @@
 export type ReleaseNote = {
   version: string;
+  date?: string;
   title: string;
   changes: string[];
 };
@@ -9,6 +10,9 @@ export const RELEASE_NOTES:
     {
       version:
         'pré-alpha 0.2.7',
+
+      date:
+        '8 août 2026',
 
       title:
         'Tests et souvenirs en attente',
@@ -31,6 +35,9 @@ export const RELEASE_NOTES:
       version:
         'pré-alpha 0.2.6',
 
+      date:
+        '8 août 2026',
+
       title:
         'Feedback et suivi des tests',
 
@@ -50,6 +57,9 @@ export const RELEASE_NOTES:
       version:
         'pré-alpha 0.2.5',
 
+      date:
+        '7 août 2026',
+
       title:
         'Meilleur suivi des tests',
 
@@ -62,6 +72,9 @@ export const RELEASE_NOTES:
     {
       version:
         'pré-alpha 0.2.4',
+
+      date:
+        '7 août 2026',
 
       title:
         'Évolution de Préviens-moi',
@@ -76,6 +89,9 @@ export const RELEASE_NOTES:
     {
       version:
         'pré-alpha 0.2.3',
+
+      date:
+        '7 août 2026',
 
       title:
         'Premiers traitements locaux',

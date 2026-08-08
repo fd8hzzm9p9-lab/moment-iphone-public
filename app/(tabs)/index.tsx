@@ -17,6 +17,7 @@ import { SERVER_URL } from '../../config/server';
 
 import {
   createDiagnosticId,
+  getMomentDeviceId,
   recordDiagnosticInteraction,
 } from '../../services/diagnosticService';
 
@@ -1447,6 +1448,20 @@ export default function MemoryScreen() {
   ] =
     useState(false);
 
+  /*
+   * Retour rapide en haut de Souviens-toi.
+   */
+  const memoryScrollRef =
+    useRef<ScrollView>(
+      null
+    );
+
+  const [
+    showScrollToTop,
+    setShowScrollToTop,
+  ] =
+    useState(false);
+
   const [
     etapeTraitement,
     setEtapeTraitement,
@@ -2534,6 +2549,9 @@ const appliquerCorrectionServeur =
           'understand'
         );
 
+      const momentDeviceId =
+        await getMomentDeviceId();
+
       void recordDiagnosticInteraction({
         diagnostic_id:
           diagnosticId,
@@ -2623,6 +2641,9 @@ body:
 
     diagnostic_id:
       diagnosticId,
+
+    moment_device_id:
+      momentDeviceId,
   }),
 
               signal:
@@ -3326,6 +3347,9 @@ setLastFailedMemory({
               'understand'
             );
 
+          const momentDeviceId =
+            await getMomentDeviceId();
+
           await recordPendingRetry(
             pending.id,
             diagnosticId
@@ -3375,6 +3399,9 @@ setLastFailedMemory({
 
                       diagnostic_id:
                         diagnosticId,
+
+                      moment_device_id:
+                        momentDeviceId,
 
                       /*
                        * REGLE ABSOLUE :
@@ -3895,10 +3922,32 @@ return (
     }
   >
     <ScrollView
+      ref={
+        memoryScrollRef
+      }
+
       contentContainerStyle={
         styles.content
       }
+
       keyboardShouldPersistTaps="handled"
+
+      onScroll={
+        event => {
+          const scrollY =
+            event.nativeEvent
+              .contentOffset
+              .y;
+
+          setShowScrollToTop(
+            scrollY > 450
+          );
+        }
+      }
+
+      scrollEventThrottle={
+        100
+      }
     >
       <View
         style={
@@ -4608,6 +4657,46 @@ return (
         )}
     </ScrollView>
 
+    {
+      showScrollToTop
+        ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remonter en haut"
+            onPress={() => {
+              memoryScrollRef
+                .current
+                ?.scrollTo({
+                  y:
+                    0,
+
+                  animated:
+                    true,
+                });
+            }}
+            style={
+              ({
+                pressed,
+              }) => [
+                styles.scrollToTopButton,
+
+                pressed &&
+                  styles.scrollToTopButtonPressed,
+              ]
+            }
+          >
+            <Text
+              style={
+                styles.scrollToTopButtonText
+              }
+            >
+              ↑
+            </Text>
+          </Pressable>
+        )
+        : null
+    }
+
     {souvenirEnCours && (
       <View
         style={
@@ -4980,6 +5069,86 @@ const styles =
     container: {
       flex: 1,
       backgroundColor: '#F7F5F2',
+    },
+
+    scrollToTopButton: {
+      position:
+        'absolute',
+
+      right:
+        18,
+
+      bottom:
+        24,
+
+      width:
+        44,
+
+      height:
+        44,
+
+      borderRadius:
+        10,
+
+      backgroundColor:
+        '#F0EFEC',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E3DFD8',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      zIndex:
+        20,
+
+      elevation:
+        5,
+
+      shadowColor:
+        '#000000',
+
+      shadowOffset: {
+        width:
+          0,
+
+        height:
+          2,
+      },
+
+      shadowOpacity:
+        0.15,
+
+      shadowRadius:
+        4,
+    },
+
+    scrollToTopButtonPressed: {
+      opacity:
+        0.65,
+    },
+
+    scrollToTopButtonText: {
+      fontSize:
+        20,
+
+      lineHeight:
+        22,
+
+      color:
+        '#55514C',
+
+      fontWeight:
+        '600',
+
+      textAlign:
+        'center',
     },
 
     fullScreenThinking: {

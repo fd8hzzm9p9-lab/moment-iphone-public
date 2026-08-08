@@ -178,6 +178,7 @@ import { SERVER_URL } from '../../config/server';
 
 import {
   createDiagnosticId,
+  getMomentDeviceId,
   recordDiagnosticInteraction,
 } from '../../services/diagnosticService';
 
@@ -906,6 +907,9 @@ const lancerRecherche = async () => {
         'recall'
       );
 
+    const momentDeviceId =
+      await getMomentDeviceId();
+
     void recordDiagnosticInteraction({
       diagnostic_id:
         diagnosticId,
@@ -990,7 +994,11 @@ const lancerRecherche = async () => {
               question,
               memories: evenements,
 
-              diagnostic_id: diagnosticId,
+              diagnostic_id:
+                diagnosticId,
+
+              moment_device_id:
+                momentDeviceId,
             }),
 
             signal:
