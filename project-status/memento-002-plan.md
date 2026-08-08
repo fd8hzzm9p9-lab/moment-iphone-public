@@ -1,13 +1,13 @@
-# MEMENTO 002 — Optimisation Local First / réduction OpenAI
+﻿# MEMENTO 002 — Optimisation Local First / réduction OpenAI
 
 **Projet :** Moment  
 **État :** EN COURS  
-**Version actuelle :** pré-alpha 0.2.6  
-**Étape actuelle :** MEMENTO 002-06 — TERMINÉ  
-**Prochaine étape :** MEMENTO 002-07 — pré-alpha 0.2.7  
-**Progression :** 6 / 23 étapes terminées  
-**Date du fichier :** 08/08/2026  
-**Heure du fichier :** 10:54  
+**Version actuelle :** pré-alpha 0.2.7  
+**Étape actuelle :** MEMENTO 002-07 — TERMINÉ  
+**Prochaine étape :** MEMENTO 002-08 — pré-alpha 0.2.8  
+**Progression :** 7 / 23 étapes terminées  
+**Date du fichier :** 08/08/2026
+**Heure du fichier :** 11:14
 
 ## Objectif global
 
@@ -55,8 +55,8 @@ moment-feedback-YYYY-MM-DD-session.zip
 | **002-04** | pré-alpha 0.2.4 | Modifier immédiatement l’interface alpha : bouton « Envoyer le feedback », accès au diagnostic, et écran explicatif pour l’onglet Préviens-moi non encore opérationnel | 🟢 **TERMINÉ** |
 | **002-05** | pré-alpha 0.2.5 | Créer la journalisation automatique des interactions, essais locaux, fallbacks OpenAI et erreurs | 🟢 **TERMINÉ** |
 | **002-06** | pré-alpha 0.2.6 | Créer le paquet de diagnostic alpha exportable en un bouton | 🟢 **TERMINÉ** |
-| **002-07** | pré-alpha 0.2.7 | Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/ | 🔵 **PROCHAINE ÉTAPE** |
-| **002-08** | pré-alpha 0.2.8 | Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude, relations | ⚪ **À FAIRE** |
+| **002-07** | pré-alpha 0.2.7 | Créer l’architecture des dictionnaires conceptuels partagés et le dossier server/knowledge/ | 🟢 **TERMINÉ** |
+| **002-08** | pré-alpha 0.2.8 | Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude, relations | 🔵 **PROCHAINE ÉTAPE** |
 | **002-09** | pré-alpha 0.2.9 | Étendre les dictionnaires : lieux/résidence, travail, rendez-vous, invitations, actions | ⚪ **À FAIRE** |
 | **002-10** | pré-alpha 0.2.10 | Construire le moteur commun d’analyse lexicale + conceptuelle + structurelle | ⚪ **À FAIRE** |
 | **002-11** | pré-alpha 0.2.11 | Mettre en place confiance et sécurité : local si suffisamment certain, sinon OpenAI | ⚪ **À FAIRE** |
@@ -77,16 +77,23 @@ moment-feedback-YYYY-MM-DD-session.zip
 
 Le scénario **Élise / Axelle** reste le test cible de fin de MEMENTO 002, avec un objectif de **0 appel OpenAI** lorsque la chaîne est suffisamment structurée et couverte localement.
 
-## Prochaine étape
+## Étape actuelle
 
 ### MEMENTO 002-07 — pré-alpha 0.2.7
 
 Créer l’architecture des dictionnaires conceptuels partagés et le dossier `server/knowledge/`.
 
-Objectifs :
+Objectifs de cette étape :
 
-- créer la structure `server/knowledge/` ;
-- préparer l’organisation des dictionnaires conceptuels partagés ;
-- définir une architecture réutilisable par le moteur Local First ;
-- préparer MEMENTO 002-08 consacré aux dictionnaires fondamentaux ;
-- conserver tous les comportements déjà validés de Moment.
+- créer un point d’entrée unique pour les connaissances partagées ;
+- séparer les futures connaissances fondamentales, les domaines fonctionnels et les éléments partagés ;
+- préparer MEMENTO 002-08 sans remplir prématurément ses dictionnaires ;
+- ne modifier aucun comportement fonctionnel déjà validé ;
+- conserver le principe Local First → fallback OpenAI lorsque le traitement local n’est pas suffisamment certain.
+
+## Prochaine étape
+
+### MEMENTO 002-08 — pré-alpha 0.2.8
+
+Créer les dictionnaires fondamentaux : possessifs, pronoms, famille, négation, incertitude et relations.
+
