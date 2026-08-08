@@ -3,6 +3,6 @@ export const APP_VERSION =
   'pré-alpha 0.2.9';
 
 export const APP_REVISION =
-  'A3';
+  'A6';
 export const APP_TAGLINE =
   'Votre mémoire, simplement.';

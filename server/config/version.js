@@ -1,25 +1,31 @@
-/*
+﻿/*
  * =========================================================
  * VERSION SERVEUR MOMENT
  * =========================================================
  *
  * Ce compteur est GLOBAL.
  *
- * Il ne repart pas à S1 à chaque Memento.
+ * Il ne repart pas Ã  S1 Ã  chaque Memento.
  *
- * Toute évolution réelle du comportement serveur
- * validée doit incrémenter cette valeur :
+ * Toute Ã©volution rÃ©elle du comportement serveur
+ * validÃ©e doit incrÃ©menter cette valeur :
  *
- * S1 → S2 → S3 → ...
+ * S1 â†’ S2 â†’ S3 â†’ ...
  */
 
 const SERVER_VERSION =
-  'S4';
+  'S7';
 
 const EXPECTED_APP_REVISION =
-  'A3';
+  'A6';
 
 module.exports = {
   SERVER_VERSION,
   EXPECTED_APP_REVISION,
 };
+
+
+
+
+
+

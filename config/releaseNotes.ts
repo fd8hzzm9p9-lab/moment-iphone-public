@@ -24,6 +24,7 @@ export const RELEASE_NOTES:
         'Pendant les pré-tests avec Expo Go, un simple Reload permet de charger la dernière révision de Moment sans fermer complètement Expo Go.',
         'Le feedback enregistre la révision réellement exécutée sur le téléphone et la compare à celle attendue par le serveur.',
         'Le feedback permet maintenant de savoir si le testeur doit effectuer un Reload pour être totalement à jour.',
+        'Moment avertit désormais automatiquement le pré-testeur lorsqu’une nouvelle révision est disponible grâce à une fenêtre de mise à jour qui disparaît automatiquement dès que l’application est à jour et évite les boucles de rechargement répétées.',
       ],
     },
 
