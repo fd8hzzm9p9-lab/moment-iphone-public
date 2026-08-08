@@ -29,8 +29,12 @@ import {
 
 import {
   APP_NAME,
+  APP_REVISION,
   APP_VERSION,
 } from '../../config/app';
+
+import MomentVersion
+  from '../../components/MomentVersion';
 
 import {
   RELEASE_NOTES,
@@ -310,7 +314,7 @@ export default function PreventMeScreen() {
             '',
             `Code : ${requestCode}`,
             `Identifiant : ${momentDeviceId}`,
-            `Version : ${APP_VERSION}`,
+            `Version : ${APP_VERSION} ${APP_REVISION}`,
             '',
             'Merci de générer un code de recharge pour cette demande.',
           ].join(
@@ -470,13 +474,11 @@ export default function PreventMeScreen() {
               styles.versionContainer
             }
           >
-            <Text
-              style={
-                styles.headerVersion
-              }
-            >
-              {APP_VERSION}
-            </Text>
+            <MomentVersion
+                textStyle={
+                  styles.headerVersion
+                }
+              />
           </View>
         </View>
 

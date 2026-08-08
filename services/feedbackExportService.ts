@@ -15,6 +15,7 @@ import {
 
 import {
   APP_NAME,
+  APP_REVISION,
   APP_VERSION,
 } from '../config/app';
 
@@ -264,6 +265,130 @@ export async function exportMomentFeedback() {
   const alphaCreditDevice =
     await getLocalAlphaCreditSnapshot();
 
+  let versionControl:
+    any = {
+      available:
+        false,
+
+      checked_at:
+        new Date()
+          .toISOString(),
+
+      app_version:
+        APP_VERSION,
+
+      device_app_revision:
+        APP_REVISION,
+
+      expected_app_revision:
+        null,
+
+      server_version:
+        null,
+
+      app_revision_match:
+        false,
+
+      reload_required:
+        null,
+
+      fully_up_to_date:
+        false,
+    };
+
+  try {
+    const versionResponse =
+      await fetch(
+        `${SERVER_URL}/version`
+      );
+
+    if (
+      versionResponse.ok
+    ) {
+      const versionData =
+        await versionResponse
+          .json();
+
+      const expectedRevision =
+        typeof versionData
+          ?.expected_app_revision ===
+          'string'
+          ? versionData
+              .expected_app_revision
+              .trim()
+          : '';
+
+      const currentServerVersion =
+        typeof versionData
+          ?.server_version ===
+          'string'
+          ? versionData
+              .server_version
+              .trim()
+          : '';
+
+      const revisionMatch =
+        Boolean(
+          expectedRevision &&
+          APP_REVISION ===
+            expectedRevision
+        );
+
+      versionControl = {
+        available:
+          true,
+
+        checked_at:
+          new Date()
+            .toISOString(),
+
+        app_version:
+          APP_VERSION,
+
+        device_app_revision:
+          APP_REVISION,
+
+        expected_app_revision:
+          expectedRevision ||
+          null,
+
+        server_version:
+          currentServerVersion ||
+          null,
+
+        app_revision_match:
+          revisionMatch,
+
+        reload_required:
+          !revisionMatch,
+
+        fully_up_to_date:
+          Boolean(
+            revisionMatch &&
+            currentServerVersion
+          ),
+      };
+
+    } else {
+      versionControl = {
+        ...versionControl,
+
+        status:
+          versionResponse.status,
+      };
+    }
+
+  } catch (error) {
+    versionControl = {
+      ...versionControl,
+
+      error:
+        String(
+          error
+        ),
+    };
+  }
+
   const feedback = {
     format:
       'moment-feedback-v2',
@@ -306,7 +431,13 @@ export async function exportMomentFeedback() {
 
       version:
         APP_VERSION,
+
+      revision:
+        APP_REVISION,
     },
+
+    version_control:
+      versionControl,
 
     client: {
       interaction_count:

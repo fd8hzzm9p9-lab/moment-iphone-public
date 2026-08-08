@@ -47,6 +47,9 @@ import {
   APP_VERSION,
 } from '../../config/app';
 
+import MomentVersion
+  from '../../components/MomentVersion';
+
 import {
   MEMORY_PLACEHOLDER,
   MEMORY_PROCESSING_STEPS,
@@ -4047,13 +4050,11 @@ return (
             styles.versionContainer
           }
         >
-          <Text
-            style={
+          <MomentVersion
+            textStyle={
               styles.version
             }
-          >
-            {APP_VERSION}
-          </Text>
+          />
         </View>
 
         <Text

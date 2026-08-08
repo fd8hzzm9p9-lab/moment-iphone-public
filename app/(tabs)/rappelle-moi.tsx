@@ -211,6 +211,9 @@ import {
   APP_VERSION,
 } from '../../config/app';
 
+import MomentVersion
+  from '../../components/MomentVersion';
+
 import {
   RECALL_PROCESSING_STEPS,
   SEARCH_PLACEHOLDER,
@@ -1550,9 +1553,11 @@ if (
               styles.versionContainer
             }
           >
-            <Text style={styles.version}>
-              {APP_VERSION}
-            </Text>
+            <MomentVersion
+              textStyle={
+                styles.version
+              }
+            />
           </View>
 
           <Text style={styles.title}>

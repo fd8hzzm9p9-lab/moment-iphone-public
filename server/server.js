@@ -269,6 +269,35 @@ const openai = new OpenAI({
 /* ACCUEIL                                                     */
 /* ========================================================= */
 
+/* ========================================================= */
+/* VERSION SERVEUR MOMENT                                    */
+/* ========================================================= */
+
+const {
+  SERVER_VERSION,
+  EXPECTED_APP_REVISION,
+} = require(
+  './config/version'
+);
+
+app.get(
+  '/version',
+  (req, res) => {
+    res.json({
+      server_version:
+        SERVER_VERSION,
+
+      expected_app_revision:
+        EXPECTED_APP_REVISION,
+    });
+  }
+);
+
+
+/* ========================================================= */
+/* RACINE                                                    */
+/* ========================================================= */
+
 app.get(
   '/',
   (req, res) => {

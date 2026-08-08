@@ -9,37 +9,44 @@ const quotaFile =
     'alpha-openai-quotas.json'
   );
 
-function readData() {
-  if (
-    !fs.existsSync(
-      quotaFile
-    )
-  ) {
-    return {
-      devices: {},
-    };
-  }
+const namesFile =
+  path.join(
+    __dirname,
+    '..',
+    'data',
+    'alpha-tester-names.json'
+  );
 
+function readJson(
+  file,
+  fallback
+) {
   try {
+    if (
+      !fs.existsSync(
+        file
+      )
+    ) {
+      return fallback;
+    }
+
     return JSON.parse(
       fs.readFileSync(
-        quotaFile,
+        file,
         'utf8'
       )
     );
 
   } catch {
-    return {
-      devices: {},
-    };
+    return fallback;
   }
 }
 
 function shortId(
-  id
+  value
 ) {
   return String(
-    id || ''
+    value || ''
   )
     .replace(
       /^moment_/,
@@ -89,6 +96,40 @@ function formatDate(
   }
 }
 
+function getTesterName(
+  names,
+  deviceId
+) {
+  return String(
+    names
+      ?.testers
+      ?.[deviceId] ||
+    ''
+  ).trim();
+}
+
+function buildIdLabel(
+  deviceId,
+  testerName
+) {
+  const id =
+    shortId(
+      deviceId
+    );
+
+  if (
+    !testerName
+  ) {
+    return id;
+  }
+
+  return (
+    id +
+    '\n' +
+    testerName
+  );
+}
+
 function render() {
   console.clear();
 
@@ -103,7 +144,20 @@ function render() {
   console.log('');
 
   const data =
-    readData();
+    readJson(
+      quotaFile,
+      {
+        devices: {},
+      }
+    );
+
+  const names =
+    readJson(
+      namesFile,
+      {
+        testers: {},
+      }
+    );
 
   const devices =
     Object.values(
@@ -185,32 +239,40 @@ function render() {
           rechargeCount === 0
             ? 'NOUVEAU'
             : remaining <= 0
-              ? 'À RECHARGER'
+              ? 'A RECH.'
               : 'ACTIF';
 
+        const testerName =
+          getTesterName(
+            names,
+            device
+              ?.device_id
+          );
+
         return {
-          Testeur:
-            shortId(
+          'ID / Nom':
+            buildIdLabel(
               device
-                ?.device_id
+                ?.device_id,
+              testerName
             ),
 
           Statut:
             status,
 
-          Recharges:
+          'Nbre Rech.':
             rechargeCount,
 
-          'Total rechargé':
+          'Total rech.':
             totalRecharged,
 
-          Accordés:
+          'Don.':
             granted,
 
-          Utilisés:
+          Used:
             used,
 
-          Restants:
+          Rest:
             remaining,
 
           Appels:
@@ -220,28 +282,28 @@ function render() {
               0
             ),
 
-          'Tokens entrée':
+          'Tok. ent.':
             Number(
               usage
                 ?.input_tokens ||
               0
             ),
 
-          'Tokens sortie':
+          'Tok. sort.':
             Number(
               usage
                 ?.output_tokens ||
               0
             ),
 
-          'Tokens total':
+          'Tok. total':
             Number(
               usage
                 ?.total_tokens ||
               0
             ),
 
-          Understand:
+          Under:
             Number(
               usage
                 ?.understand_requests ||
@@ -278,20 +340,25 @@ function render() {
       b
     ) => {
       if (
-        a.Restants !==
-        b.Restants
+        a.Rest !==
+        b.Rest
       ) {
         return (
-          a.Restants -
-          b.Restants
+          a.Rest -
+          b.Rest
         );
       }
 
-      return (
-        a.Testeur
-          .localeCompare(
-            b.Testeur
-          )
+      return String(
+        a[
+          'ID / Nom'
+        ]
+      ).localeCompare(
+        String(
+          b[
+            'ID / Nom'
+          ]
+        )
       );
     }
   );
@@ -300,28 +367,6 @@ function render() {
     rows
   );
 
-  const totalRemaining =
-    rows.reduce(
-      (
-        total,
-        row
-      ) =>
-        total +
-        row.Restants,
-      0
-    );
-
-  const totalUsed =
-    rows.reduce(
-      (
-        total,
-        row
-      ) =>
-        total +
-        row.Utilisés,
-      0
-    );
-
   const totalRecharges =
     rows.reduce(
       (
@@ -329,7 +374,9 @@ function render() {
         row
       ) =>
         total +
-        row.Recharges,
+        row[
+          'Nbre Rech.'
+        ],
       0
     );
 
@@ -341,8 +388,30 @@ function render() {
       ) =>
         total +
         row[
-          'Total rechargé'
+          'Total rech.'
         ],
+      0
+    );
+
+  const totalUsed =
+    rows.reduce(
+      (
+        total,
+        row
+      ) =>
+        total +
+        row.Used,
+      0
+    );
+
+  const totalRemaining =
+    rows.reduce(
+      (
+        total,
+        row
+      ) =>
+        total +
+        row.Rest,
       0
     );
 
@@ -354,7 +423,7 @@ function render() {
       ) =>
         total +
         row[
-          'Tokens total'
+          'Tok. total'
         ],
       0
     );
@@ -366,7 +435,7 @@ function render() {
   );
 
   console.log(
-    `Recharges effectuées : ${totalRecharges}`
+    `Recharges : ${totalRecharges}`
   );
 
   console.log(

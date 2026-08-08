@@ -4,6 +4,10 @@ import AsyncStorage
 import * as Crypto
   from 'expo-crypto';
 
+import {
+  APP_REVISION,
+} from '../config/app';
+
 export const DIAGNOSTIC_STORAGE_KEY =
   'moment_diagnostic_interactions_v1';
 
@@ -35,6 +39,8 @@ export type DiagnosticInteraction = {
   created_at: string;
 
   app_version?: string;
+
+  app_revision?: string;
 };
 
 async function readArray(
@@ -134,8 +140,16 @@ export async function recordDiagnosticInteraction(
             .diagnostic_id
       );
 
+    const enrichedInteraction = {
+      ...interaction,
+
+      app_revision:
+        interaction.app_revision ||
+        APP_REVISION,
+    };
+
     const next = [
-      interaction,
+      enrichedInteraction,
       ...withoutDuplicate,
     ].slice(
       0,
