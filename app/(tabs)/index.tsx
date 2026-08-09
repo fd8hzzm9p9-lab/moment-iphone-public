@@ -1485,6 +1485,14 @@ export default function MemoryScreen() {
     useState(false);
 
   const [
+    memoryDisplayTab,
+    setMemoryDisplayTab,
+  ] =
+    useState<'memory' | 'pending'>(
+      'memory'
+    );
+
+  const [
     pendingDeleteAllModalVisible,
     setPendingDeleteAllModalVisible,
   ] =
@@ -3398,7 +3406,7 @@ setLastFailedMemory({
       await refreshPendingMemories();
 
       setPendingRetryMessage(
-        '🗑️ Souvenir supprimé de la liste.'
+        ''
       );
     };
 
@@ -3455,7 +3463,7 @@ setLastFailedMemory({
       );
 
       setPendingRetryMessage(
-        `🗑️ ${snapshot.length} souvenir${snapshot.length > 1 ? 's' : ''} supprimé${snapshot.length > 1 ? 's' : ''} de la liste.`
+        ''
       );
     };
 
@@ -3475,7 +3483,7 @@ setLastFailedMemory({
         );
 
         setPendingRetryMessage(
-          `↩️ ${restoredCount} souvenir${restoredCount > 1 ? 's' : ''} restauré${restoredCount > 1 ? 's' : ''} dans la liste d’attente.`
+          ''
         );
       }
     };
@@ -4728,7 +4736,85 @@ return (
         </View>
       )}
 
+
+      {!souvenirEnCours && (
+        <View
+          style={
+            styles.memoryTabsContainer
+          }
+        >
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{
+              selected:
+                memoryDisplayTab ===
+                'memory',
+            }}
+            onPress={() =>
+              setMemoryDisplayTab(
+                'memory'
+              )
+            }
+            style={[
+              styles.memoryTab,
+              memoryDisplayTab ===
+                'memory' &&
+                styles.memoryTabActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.memoryTabText,
+                memoryDisplayTab ===
+                  'memory' &&
+                  styles.memoryTabTextActive,
+              ]}
+            >
+              Ma mémoire
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{
+              selected:
+                memoryDisplayTab ===
+                'pending',
+            }}
+            onPress={() => {
+              setMemoryDisplayTab(
+                'pending'
+              );
+              setPendingMemoriesExpanded(
+                true
+              );
+            }}
+            style={[
+              styles.memoryTab,
+              memoryDisplayTab ===
+                'pending' &&
+                styles.memoryTabActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.memoryTabText,
+                memoryDisplayTab ===
+                  'pending' &&
+                  styles.memoryTabTextActive,
+              ]}
+            >
+              En attente ({
+                pendingMemories.length
+              })
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       {
+        memoryDisplayTab ===
+          'pending' &&
         !souvenirEnCours &&
         pendingRetryMessage
           ? (
@@ -4746,6 +4832,8 @@ return (
       }
 
       {
+        memoryDisplayTab ===
+          'pending' &&
         !souvenirEnCours &&
         pendingDeletedRecoveryCount >
           0
@@ -4770,7 +4858,7 @@ return (
                   1
                     ? 's'
                     : ''
-                } récemment.
+                } récemment
               </Text>
 
               <View
@@ -4801,6 +4889,8 @@ return (
       }
 
       {
+        memoryDisplayTab ===
+          'pending' &&
         !souvenirEnCours &&
         pendingMemories.length >
           0
@@ -5156,7 +5246,10 @@ return (
         </Text>
       </Pressable>
 
-      {!loading &&
+      {
+        memoryDisplayTab ===
+          'memory' &&
+        !loading &&
         evenements.length >
           0 && (
           <View
@@ -6432,6 +6525,75 @@ const styles =
 
       color:
         '#666666',
+    },
+
+    memoryTabsContainer: {
+      width:
+        '100%',
+      maxWidth:
+        500,
+      marginTop:
+        16,
+      marginBottom:
+        12,
+      padding:
+        4,
+      flexDirection:
+        'row',
+      backgroundColor:
+        '#F0EFEC',
+      borderRadius:
+        14,
+      borderWidth:
+        1,
+      borderColor:
+        '#E3DFD8',
+      gap:
+        4,
+    },
+
+    memoryTab: {
+      flex:
+        1,
+      minHeight:
+        42,
+      paddingHorizontal:
+        10,
+      paddingVertical:
+        10,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      borderRadius:
+        10,
+    },
+
+    memoryTabActive: {
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth:
+        1,
+      borderColor:
+        '#D8D3CB',
+    },
+
+    memoryTabText: {
+      fontSize:
+        14,
+      fontWeight:
+        '600',
+      color:
+        '#77736D',
+      textAlign:
+        'center',
+    },
+
+    memoryTabTextActive: {
+      color:
+        '#24211D',
+      fontWeight:
+        '700',
     },
 
     pendingMemoriesContainer: {
