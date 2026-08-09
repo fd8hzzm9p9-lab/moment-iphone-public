@@ -17,7 +17,7 @@ const SERVER_VERSION =
   'S7';
 
 const EXPECTED_APP_REVISION =
-  'A6';
+  'A7';
 
 module.exports = {
   SERVER_VERSION,

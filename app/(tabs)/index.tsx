@@ -31,12 +31,18 @@ import {
 
 import {
   type PendingMemory,
+  PENDING_MEMORY_REFORMULATION_THRESHOLD,
   addPendingMemory,
   deletePendingMemory,
+  getLatestDeletedPendingMemoryCount,
   getPendingMemories,
+  getPendingMemoryFailureCount,
   recordPendingRetry,
   recordPendingRetryFailure,
   resolvePendingMemory,
+  restoreLatestDeletedPendingMemories,
+  shouldSuggestPendingMemoryEdit,
+  updatePendingMemoryText,
 } from '../../services/pendingMemoryService';
 
 import { STORAGE_KEY } from '../../config/storage';
@@ -73,6 +79,9 @@ const FORGET_MEMORY_LABEL =
   '🗑️ Oublier ce souvenir';
 
 const CLEAR_INPUT_LABEL = '×';
+
+const PENDING_RETRY_TIMEOUT_MS =
+  70000;
 
 /* ========================================================= */
 /* TYPES                                                     */
@@ -1456,6 +1465,11 @@ export default function MemoryScreen() {
   ] =
     useState('');
 
+  const [
+    pendingRetryCurrentText,
+    setPendingRetryCurrentText,
+  ] = useState('');
+
   /*
    * PENDING_MEMORIES_COLLAPSIBLE_PHASE3
    *
@@ -1468,6 +1482,54 @@ export default function MemoryScreen() {
     setPendingMemoriesExpanded,
   ] =
     useState(false);
+
+  const [
+    memoryDisplayTab,
+    setMemoryDisplayTab,
+  ] =
+    useState<'memory' | 'pending'>(
+      'memory'
+    );
+
+  const [
+    pendingDeleteAllModalVisible,
+    setPendingDeleteAllModalVisible,
+  ] =
+    useState(false);
+
+  const [
+    pendingDeleteOneId,
+    setPendingDeleteOneId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    pendingEditId,
+    setPendingEditId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    pendingEditText,
+    setPendingEditText,
+  ] =
+    useState('');
+
+  const [
+    pendingEditError,
+    setPendingEditError,
+  ] =
+    useState('');
+
+  const [
+    pendingDeletedRecoveryCount,
+    setPendingDeletedRecoveryCount,
+  ] =
+    useState(0);
 
   /*
    * Retour rapide en haut de Souviens-toi.
@@ -1653,11 +1715,21 @@ useEffect(() => {
 
   const refreshPendingMemories =
     async () => {
-      const items =
-        await getPendingMemories();
+      const [
+        items,
+        recoveryCount,
+      ] =
+        await Promise.all([
+          getPendingMemories(),
+          getLatestDeletedPendingMemoryCount(),
+        ]);
 
       setPendingMemories(
         items
+      );
+
+      setPendingDeletedRecoveryCount(
+        recoveryCount
       );
     };
 
@@ -3295,9 +3367,35 @@ setLastFailedMemory({
     };
 
   const supprimerSouvenirEnAttente =
-    async (
+    (
       pendingId: string
     ) => {
+      if (
+        pendingRetryInProgress
+      ) {
+        return;
+      }
+
+      setPendingDeleteOneId(
+        pendingId
+      );
+    };
+
+  const confirmerSuppressionSouvenirEnAttente =
+    async () => {
+      const pendingId =
+        pendingDeleteOneId;
+
+      if (
+        !pendingId
+      ) {
+        return;
+      }
+
+      setPendingDeleteOneId(
+        null
+      );
+
       await deletePendingMemory(
         pendingId
       );
@@ -3307,6 +3405,229 @@ setLastFailedMemory({
       setPendingRetryMessage(
         ''
       );
+    };
+
+  const supprimerTousSouvenirsEnAttente =
+    () => {
+      if (
+        pendingRetryInProgress ||
+        pendingMemories.length ===
+          0
+      ) {
+        return;
+      }
+
+      setPendingDeleteAllModalVisible(
+        true
+      );
+    };
+
+  const confirmerSuppressionTousSouvenirsEnAttente =
+    async () => {
+      if (
+        pendingRetryInProgress ||
+        pendingMemories.length ===
+          0
+      ) {
+        setPendingDeleteAllModalVisible(
+          false
+        );
+
+        return;
+      }
+
+      const snapshot = [
+        ...pendingMemories,
+      ];
+
+      setPendingDeleteAllModalVisible(
+        false
+      );
+
+      for (
+        const pending of
+          snapshot
+      ) {
+        await deletePendingMemory(
+          pending.id
+        );
+      }
+
+      await refreshPendingMemories();
+
+      setPendingMemoriesExpanded(
+        false
+      );
+
+      setPendingRetryMessage(
+        ''
+      );
+    };
+
+  const restaurerDerniereSuppression =
+    async () => {
+      const restoredCount =
+        await restoreLatestDeletedPendingMemories();
+
+      await refreshPendingMemories();
+
+      if (
+        restoredCount >
+          0
+      ) {
+        setPendingMemoriesExpanded(
+          true
+        );
+
+        setPendingRetryMessage(
+          ''
+        );
+      }
+    };
+
+  const ouvrirModificationSouvenirEnAttente =
+    (
+      pending:
+        PendingMemory
+    ) => {
+      if (
+        pendingRetryInProgress
+      ) {
+        return;
+      }
+
+      setPendingEditId(
+        pending.id
+      );
+
+      setPendingEditText(
+        pending.text
+      );
+
+      setPendingEditError(
+        ''
+      );
+    };
+
+  const annulerModificationSouvenirEnAttente =
+    () => {
+      setPendingEditId(
+        null
+      );
+
+      setPendingEditText(
+        ''
+      );
+
+      setPendingEditError(
+        ''
+      );
+    };
+
+  const enregistrerModificationSouvenirEnAttente =
+    async () => {
+      const pendingId =
+        pendingEditId;
+
+      const cleanText =
+        pendingEditText
+          .trim();
+
+      if (
+        !pendingId
+      ) {
+        return;
+      }
+
+      if (
+        !cleanText
+      ) {
+        setPendingEditError(
+          'Le souvenir ne peut pas être vide.'
+        );
+
+        return;
+      }
+
+      const current =
+        pendingMemories.find(
+          pending =>
+            pending.id ===
+              pendingId
+        );
+
+      if (
+        !current
+      ) {
+        setPendingEditError(
+          'Ce souvenir n’est plus disponible dans la liste.'
+        );
+
+        return;
+      }
+
+      if (
+        current.text ===
+          cleanText
+      ) {
+        setPendingEditError(
+          'Modifie le texte avant de l’enregistrer.'
+        );
+
+        return;
+      }
+
+      try {
+        const updated =
+          await updatePendingMemoryText(
+            pendingId,
+            cleanText
+          );
+
+        if (!updated) {
+          setPendingEditError(
+            'Moment n’a pas pu retrouver ce souvenir.'
+          );
+
+          return;
+        }
+
+        await refreshPendingMemories();
+
+        setPendingEditId(
+          null
+        );
+
+        setPendingEditText(
+          ''
+        );
+
+        setPendingEditError(
+          ''
+        );
+
+        setPendingRetryMessage(
+          '✏️ Souvenir modifié localement. Aucun envoi n’a été effectué.'
+        );
+      } catch (
+        error
+      ) {
+        if (
+          error instanceof Error &&
+          error.message ===
+            'PENDING_MEMORY_DUPLICATE_TEXT'
+        ) {
+          setPendingEditError(
+            'Un souvenir identique est déjà en attente.'
+          );
+
+          return;
+        }
+
+        setPendingEditError(
+          'Moment n’a pas pu enregistrer cette modification.'
+        );
+      }
     };
 
   const getPendingReasonLabel =
@@ -3333,6 +3654,9 @@ setLastFailedMemory({
         case 'LOCAL_RETRY_ERROR':
           return 'Une erreur est survenue pendant le réessai local.';
 
+        case 'RETRY_TIMEOUT':
+          return 'Le réessai a dépassé le délai maximal de 70 secondes.';
+
         case 'NO_LOCAL_EVENT':
           return 'Le moteur local n’a pas encore réussi à transformer ce texte en souvenir exploitable.';
 
@@ -3344,6 +3668,9 @@ setLastFailedMemory({
 
         case 'LOCAL_CONFLICT_REQUIRES_USER':
           return 'Moment a détecté une information potentiellement contradictoire qui nécessite ta confirmation.';
+
+        case 'PENDING_MEMORY_EDITED':
+          return 'Ce souvenir a été reformulé et attend un nouvel envoi volontaire.';
 
         case 'UNKNOWN_ERROR':
           return 'Moment n’a pas réussi à enregistrer ce souvenir.';
@@ -3392,7 +3719,16 @@ setLastFailedMemory({
     };
 
   const reessayerSouvenirsEnAttente =
-    async () => {
+    async (
+      pendingId: string
+    ) => {
+      const pendingSnapshot =
+        pendingMemories.filter(
+          pending =>
+            pending.id ===
+              pendingId
+        );
+
       if (
         pendingRetryInProgress ||
         pendingMemories.length ===
@@ -3416,13 +3752,15 @@ setLastFailedMemory({
         0;
 
       /*
-       * On travaille sur un snapshot de la file,
-       * mais la vraie mémoire évolue au fur et
+       * Le retry est strictement individuel.
+       *
+       * Aucun souvenir n'est relancé automatiquement :
+       * cette fonction ne traite que l'ID explicitement
+       * choisi par l'utilisateur.
+       *
+       * La vraie mémoire évolue au fur et
        * à mesure des succès.
        */
-      const pendingSnapshot = [
-        ...pendingMemories,
-      ];
 
       let workingMemories = [
         ...evenements,
@@ -3475,6 +3813,16 @@ setLastFailedMemory({
               false,
           });
 
+          const retryAbortController =
+            new AbortController();
+
+          const retryTimeout =
+            setTimeout(
+              () =>
+                retryAbortController.abort(),
+              PENDING_RETRY_TIMEOUT_MS
+            );
+
           try {
             const startedAt =
               Date.now();
@@ -3513,6 +3861,9 @@ setLastFailedMemory({
                       local_only:
                         false,
                     }),
+
+                  signal:
+                    retryAbortController.signal,
                 }
               );
 
@@ -3739,12 +4090,24 @@ setLastFailedMemory({
             failedCount +=
               1;
 
+            const failureReason =
+              error instanceof Error &&
+              error.name ===
+                'AbortError'
+                ? 'RETRY_TIMEOUT'
+                : error instanceof Error
+                  ? error.message ||
+                    'LOCAL_RETRY_ERROR'
+                  : 'LOCAL_RETRY_ERROR';
+
             await recordPendingRetryFailure(
               pending.id,
-              error instanceof Error
-                ? error.message
-                : 'LOCAL_RETRY_ERROR',
+              failureReason,
               diagnosticId
+            );
+          } finally {
+            clearTimeout(
+              retryTimeout
             );
           }
         }
@@ -3752,21 +4115,16 @@ setLastFailedMemory({
         await refreshPendingMemories();
 
         if (
-          successCount > 0 &&
-          failedCount > 0
-        ) {
-          setPendingRetryMessage(
-            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''} · ${failedCount} reste${failedCount > 1 ? 'nt' : ''} en attente.`
-          );
-        } else if (
           successCount > 0
         ) {
           setPendingRetryMessage(
-            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''}. Aucun souvenir ne reste en attente.`
+            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''}.`
           );
-        } else {
+        } else if (
+          failedCount > 0
+        ) {
           setPendingRetryMessage(
-            `⏳ Aucun souvenir supplémentaire n’est encore compris localement. ${failedCount} reste${failedCount > 1 ? 'nt' : ''} en attente.`
+            '⏳ Ce souvenir n’a pas pu être enregistré. Il reste en attente.'
           );
         }
 
@@ -4290,7 +4648,127 @@ return (
           : null
       }
 
+      {(souvenirEnCours || pendingRetryInProgress) && (
+        <View
+          style={
+            styles.processingContainer
+          }
+        >
+          <Text
+            style={
+              styles.thinkingTitle
+            }
+          >
+            🧠 Moment réfléchit…
+          </Text>
+
+          <Text
+            style={[
+              styles.processingText,
+              {
+                width: '100%',
+                textAlign: 'center',
+              },
+            ]}
+          >
+            {
+              etapeTraitement
+            }
+          </Text>
+
+          <Text
+            style={
+              styles.processingTime
+            }
+          >
+            ⏱️ Temps de traitement :{' '}
+            {tempsTraitement.toFixed(
+              1
+            )}{' '}
+            s
+          </Text>
+        </View>
+      )}
+
+
+      {!souvenirEnCours && (
+        <View
+          style={
+            styles.memoryTabsContainer
+          }
+        >
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{
+              selected:
+                memoryDisplayTab ===
+                'memory',
+            }}
+            onPress={() =>
+              setMemoryDisplayTab(
+                'memory'
+              )
+            }
+            style={[
+              styles.memoryTab,
+              memoryDisplayTab ===
+                'memory' &&
+                styles.memoryTabActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.memoryTabText,
+                memoryDisplayTab ===
+                  'memory' &&
+                  styles.memoryTabTextActive,
+              ]}
+            >
+              Ma mémoire
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{
+              selected:
+                memoryDisplayTab ===
+                'pending',
+            }}
+            onPress={() => {
+              setMemoryDisplayTab(
+                'pending'
+              );
+              setPendingMemoriesExpanded(
+                true
+              );
+            }}
+            style={[
+              styles.memoryTab,
+              memoryDisplayTab ===
+                'pending' &&
+                styles.memoryTabActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.memoryTabText,
+                memoryDisplayTab ===
+                  'pending' &&
+                  styles.memoryTabTextActive,
+              ]}
+            >
+              En attente ({
+                pendingMemories.length
+              })
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       {
+        memoryDisplayTab ===
+          'pending' &&
         !souvenirEnCours &&
         pendingRetryMessage
           ? (
@@ -4308,6 +4786,65 @@ return (
       }
 
       {
+        memoryDisplayTab ===
+          'pending' &&
+        !souvenirEnCours &&
+        pendingDeletedRecoveryCount >
+          0
+          ? (
+            <View
+              style={
+                styles.pendingQuestionContainer
+              }
+            >
+              <Text
+                style={
+                  styles.pendingQuestionText
+                }
+              >
+                {pendingDeletedRecoveryCount} souvenir{
+                  pendingDeletedRecoveryCount >
+                  1
+                    ? 's'
+                    : ''
+                } supprimé{
+                  pendingDeletedRecoveryCount >
+                  1
+                    ? 's'
+                    : ''
+                } récemment
+              </Text>
+
+              <View
+                style={
+                  styles.pendingQuestionActions
+                }
+              >
+                <Pressable
+                  style={
+                    styles.pendingYesButton
+                  }
+                  onPress={
+                    restaurerDerniereSuppression
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingYesButtonText
+                    }
+                  >
+                    ↩️ Restaurer la dernière suppression
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )
+          : null
+      }
+
+      {
+        memoryDisplayTab ===
+          'pending' &&
         !souvenirEnCours &&
         pendingMemories.length >
           0
@@ -4402,128 +4939,232 @@ return (
                       >
                         Ces souvenirs ne font pas encore partie de Ma mémoire.
                         {'\n'}
-                        Les réessais utilisent uniquement le moteur local de Moment.
+                        Aucun réessai n’est automatique. Après {PENDING_MEMORY_REFORMULATION_THRESHOLD} échecs sur un même texte, Moment propose de le reformuler avant un nouvel envoi volontaire.
                       </Text>
 
                       <Pressable
-                        style={[
-                          styles.pendingRetryButton,
+                        style={
+                          ({
+                            pressed,
+                          }) => [
+                            styles.pendingClearAllButton,
 
-                          pendingRetryInProgress &&
-                            styles.buttonDisabled,
-                        ]}
+                            pressed &&
+                              styles.pendingClearAllButtonPressed,
+                          ]
+                        }
                         disabled={
                           pendingRetryInProgress
                         }
                         onPress={
-                          reessayerSouvenirsEnAttente
+                          supprimerTousSouvenirsEnAttente
                         }
                       >
                         <Text
                           style={
-                            styles.pendingRetryButtonText
+                            styles.pendingClearAllText
                           }
                         >
-                          {
-                            pendingRetryInProgress
-                              ? 'Réessai local en cours…'
-                              : '↻ Réessayer les souvenirs'
-                          }
+                          Supprimer toute la liste
                         </Text>
                       </Pressable>
 
                       {
                         pendingMemories.map(
-                          pending => (
-                            <View
-                              key={
-                                pending.id
-                              }
-                              style={
-                                styles.pendingMemoryCard
-                              }
-                            >
-                              <Text
-                                style={
-                                  styles.pendingMemoryText
-                                }
-                              >
-                                {
-                                  pending.text
-                                }
-                              </Text>
+                          pending => {
+                            const failureCount =
+                              getPendingMemoryFailureCount(
+                                pending
+                              );
 
+                            const suggestEdit =
+                              shouldSuggestPendingMemoryEdit(
+                                pending
+                              );
+
+                            const wasEdited =
+                              Boolean(
+                                pending.last_edited_at
+                              );
+
+                            return (
                               <View
+                                key={
+                                  pending.id
+                                }
                                 style={
-                                  styles.pendingReasonContainer
+                                  styles.pendingMemoryCard
                                 }
                               >
                                 <Text
                                   style={
-                                    styles.pendingReasonLabel
-                                  }
-                                >
-                                  Pourquoi ce souvenir est en attente ?
-                                </Text>
-
-                                <Text
-                                  style={
-                                    styles.pendingReasonText
+                                    styles.pendingMemoryText
                                   }
                                 >
                                   {
-                                    getPendingReasonLabel(
-                                      pending.last_reason ||
-                                      pending.initial_reason
-                                    )
+                                    pending.text
                                   }
                                 </Text>
-                              </View>
 
-                              <Text
-                                style={
-                                  styles.pendingMemoryMeta
-                                }
-                              >
-                                Tentative{
-                                  pending.attempt_count >
-                                  1
-                                    ? 's'
-                                    : ''
-                                } : {
-                                  pending.attempt_count
-                                } · depuis {
-                                  pending.created_app_version
-                                }
-                              </Text>
-
-                              <Pressable
-                                onPress={() =>
-                                  supprimerSouvenirEnAttente(
-                                    pending.id
-                                  )
-                                }
-                                style={
-                                  ({
-                                    pressed,
-                                  }) => [
-                                    styles.pendingDeleteButton,
-
-                                    pressed &&
-                                      styles.pendingDeleteButtonPressed,
-                                  ]
-                                }
-                              >
-                                <Text
+                                <View
                                   style={
-                                    styles.pendingDeleteText
+                                    styles.pendingReasonContainer
                                   }
                                 >
-                                  Supprimer de la liste
+                                  <Text
+                                    style={
+                                      styles.pendingReasonLabel
+                                    }
+                                  >
+                                    Pourquoi ce souvenir est en attente ?
+                                  </Text>
+
+                                  <Text
+                                    style={
+                                      styles.pendingReasonText
+                                    }
+                                  >
+                                    {
+                                      getPendingReasonLabel(
+                                        pending.last_reason ||
+                                        pending.initial_reason
+                                      )
+                                    }
+                                  </Text>
+                                </View>
+
+                                <Text
+                                  style={
+                                    styles.pendingMemoryMeta
+                                  }
+                                >
+                                  Tentatives totales : {
+                                    pending.attempt_count
+                                  } · {
+                                    wasEdited
+                                      ? `Échecs depuis la dernière modification : ${failureCount}`
+                                      : `Échecs consécutifs : ${failureCount}`
+                                  } · depuis {
+                                    pending.created_app_version
+                                  }
                                 </Text>
-                              </Pressable>
-                            </View>
-                          )
+
+                                {
+                                  suggestEdit ||
+                                  wasEdited
+                                    ? (
+                                      <View
+                                        style={
+                                          styles.pendingReformulationContainer
+                                        }
+                                      >
+                                        <Text
+                                          style={
+                                            styles.pendingReformulationText
+                                          }
+                                        >
+                                          {
+                                            suggestEdit
+                                              ? '⚠️ Plusieurs tentatives ont échoué. Tu peux reformuler ce souvenir avant de le renvoyer.'
+                                              : '✏️ Ce souvenir a été reformulé. Tu peux encore le modifier avant son prochain envoi.'
+                                          }
+                                        </Text>
+
+                                        <Pressable
+                                          style={
+                                            styles.pendingEditButton
+                                          }
+                                          disabled={
+                                            pendingRetryInProgress
+                                          }
+                                          onPress={() =>
+                                            ouvrirModificationSouvenirEnAttente(
+                                              pending
+                                            )
+                                          }
+                                        >
+                                          <Text
+                                            style={
+                                              styles.pendingEditButtonText
+                                            }
+                                          >
+                                            {
+                                              wasEdited
+                                                ? '✏️ Modifier à nouveau'
+                                                : '✏️ Modifier ce souvenir'
+                                            }
+                                          </Text>
+                                        </Pressable>
+                                      </View>
+                                    )
+                                    : null
+                                }
+
+                                <Pressable
+                                  style={[
+                                    styles.pendingRetryButton,
+
+                                    pendingRetryInProgress &&
+                                      styles.buttonDisabled,
+                                  ]}
+                                  disabled={
+                                    pendingRetryInProgress
+                                  }
+                                  onPress={() =>
+                                    reessayerSouvenirsEnAttente(
+                                      pending.id
+                                    )
+                                  }
+                                >
+                                  <Text
+                                    style={
+                                      styles.pendingRetryButtonText
+                                    }
+                                  >
+                                    {
+                                      pendingRetryInProgress &&
+                                      pendingRetryCurrentText ===
+                                        pending.text
+                                        ? 'Réessai en cours…'
+                                        : wasEdited &&
+                                          failureCount ===
+                                            0
+                                          ? '↻ Envoyer le souvenir modifié'
+                                          : suggestEdit
+                                            ? '↻ Réessayer sans modifier'
+                                            : '↻ Réessayer ce souvenir'
+                                    }
+                                  </Text>
+                                </Pressable>
+
+                                <Pressable
+                                  onPress={() =>
+                                    supprimerSouvenirEnAttente(
+                                      pending.id
+                                    )
+                                  }
+                                  style={
+                                    ({
+                                      pressed,
+                                    }) => [
+                                      styles.pendingDeleteButton,
+
+                                      pressed &&
+                                        styles.pendingDeleteButtonPressed,
+                                    ]
+                                  }
+                                >
+                                  <Text
+                                    style={
+                                      styles.pendingDeleteText
+                                    }
+                                  >
+                                    Supprimer de la liste
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            );
+                          }
                         )
                       }
                     </View>
@@ -4599,7 +5240,10 @@ return (
         </Text>
       </Pressable>
 
-      {!loading &&
+      {
+        memoryDisplayTab ===
+          'memory' &&
+        !loading &&
         evenements.length >
           0 && (
           <View
@@ -4787,7 +5431,7 @@ return (
         : null
     }
 
-    {souvenirEnCours && (
+    {(souvenirEnCours || pendingRetryInProgress) && (
       <View
         style={
           styles.fullScreenThinking
@@ -4796,11 +5440,312 @@ return (
       >
         <MomentThinkingAnimation
           text={
-            souvenir
+            pendingRetryInProgress
+              ? pendingRetryCurrentText
+              : souvenir
           }
         />
       </View>
     )}
+
+    <Modal
+      visible={
+        pendingDeleteOneId !==
+          null
+      }
+      transparent
+      animationType="fade"
+      onRequestClose={() =>
+        setPendingDeleteOneId(
+          null
+        )
+      }
+    >
+      <View
+        style={
+          styles.modalOverlay
+        }
+      >
+        <View
+          style={
+            styles.modalContainer
+          }
+        >
+          <Text
+            style={
+              styles.modalTitle
+            }
+          >
+            🗑️ Supprimer ce souvenir en attente ?
+          </Text>
+
+          <Text
+            style={
+              styles.modalDescription
+            }
+          >
+            Ce souvenir sera retiré de la liste d’attente.
+            {'\n'}
+            Tu pourras le restaurer immédiatement si nécessaire.
+          </Text>
+
+          <View
+            style={
+              styles.modalActions
+            }
+          >
+            <Pressable
+              style={
+                styles.modalCancelButton
+              }
+              onPress={() =>
+                setPendingDeleteOneId(
+                  null
+                )
+              }
+            >
+              <Text
+                style={
+                  styles.modalCancelText
+                }
+              >
+                Annuler
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={
+                styles.modalConfirmButton
+              }
+              onPress={() => {
+                void confirmerSuppressionSouvenirEnAttente();
+              }}
+            >
+              <Text
+                style={
+                  styles.modalConfirmText
+                }
+              >
+                Supprimer
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+
+    <Modal
+      visible={
+        pendingEditId !==
+          null
+      }
+      transparent
+      animationType="fade"
+      onRequestClose={
+        annulerModificationSouvenirEnAttente
+      }
+    >
+      <View
+        style={
+          styles.modalOverlay
+        }
+      >
+        <View
+          style={
+            styles.modalContainer
+          }
+        >
+          <Text
+            style={
+              styles.modalTitle
+            }
+          >
+            ✏️ Modifier ce souvenir en attente
+          </Text>
+
+          <Text
+            style={
+              styles.modalDescription
+            }
+          >
+            Reformule le souvenir puis enregistre la modification.
+            {'\n'}
+            Cette étape est uniquement locale : aucun nouvel envoi n’est effectué.
+          </Text>
+
+          <TextInput
+            style={
+              styles.modalInput
+            }
+            value={
+              pendingEditText
+            }
+            onChangeText={
+              value => {
+                setPendingEditText(
+                  value
+                );
+
+                if (
+                  pendingEditError
+                ) {
+                  setPendingEditError(
+                    ''
+                  );
+                }
+              }
+            }
+            placeholder={
+              MEMORY_PLACEHOLDER
+            }
+            placeholderTextColor="#999999"
+            multiline
+            autoFocus
+          />
+
+          {
+            pendingEditError
+              ? (
+                <Text
+                  style={
+                    styles.pendingEditErrorText
+                  }
+                >
+                  {
+                    pendingEditError
+                  }
+                </Text>
+              )
+              : null
+          }
+
+          <View
+            style={
+              styles.modalActions
+            }
+          >
+            <Pressable
+              style={
+                styles.modalCancelButton
+              }
+              onPress={
+                annulerModificationSouvenirEnAttente
+              }
+            >
+              <Text
+                style={
+                  styles.modalCancelText
+                }
+              >
+                Annuler
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={
+                styles.modalConfirmButton
+              }
+              onPress={() => {
+                void enregistrerModificationSouvenirEnAttente();
+              }}
+            >
+              <Text
+                style={
+                  styles.modalConfirmText
+                }
+              >
+                Enregistrer la modification
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+
+    <Modal
+      visible={
+        pendingDeleteAllModalVisible
+      }
+      transparent
+      animationType="fade"
+      onRequestClose={() =>
+        setPendingDeleteAllModalVisible(
+          false
+        )
+      }
+    >
+      <View
+        style={
+          styles.modalOverlay
+        }
+      >
+        <View
+          style={
+            styles.modalContainer
+          }
+        >
+          <Text
+            style={
+              styles.modalTitle
+            }
+          >
+            🗑️ Supprimer tous les souvenirs en attente ?
+          </Text>
+
+          <Text
+            style={
+              styles.modalDescription
+            }
+          >
+            Les {pendingMemories.length} souvenirs de cette liste seront supprimés.
+            {'\n'}
+            Tu pourras restaurer immédiatement la dernière suppression si nécessaire.
+          </Text>
+
+          <View
+            style={
+              styles.modalActions
+            }
+          >
+            <Pressable
+              style={
+                styles.modalCancelButton
+              }
+              onPress={() =>
+                setPendingDeleteAllModalVisible(
+                  false
+                )
+              }
+            >
+              <Text
+                style={
+                  styles.modalCancelText
+                }
+              >
+                Annuler
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={
+                styles.modalConfirmButton
+              }
+              onPress={() => {
+                void confirmerSuppressionTousSouvenirsEnAttente();
+              }}
+            >
+              <Text
+                style={
+                  styles.modalConfirmText
+                }
+              >
+                Tout supprimer
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
 
     {/* =================================================== */}
     {/* MODALE DE RESAISIE                                  */}
@@ -5576,6 +6521,75 @@ const styles =
         '#666666',
     },
 
+    memoryTabsContainer: {
+      width:
+        '100%',
+      maxWidth:
+        500,
+      marginTop:
+        16,
+      marginBottom:
+        12,
+      padding:
+        4,
+      flexDirection:
+        'row',
+      backgroundColor:
+        '#F0EFEC',
+      borderRadius:
+        14,
+      borderWidth:
+        1,
+      borderColor:
+        '#E3DFD8',
+      gap:
+        4,
+    },
+
+    memoryTab: {
+      flex:
+        1,
+      minHeight:
+        42,
+      paddingHorizontal:
+        10,
+      paddingVertical:
+        10,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      borderRadius:
+        10,
+    },
+
+    memoryTabActive: {
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth:
+        1,
+      borderColor:
+        '#D8D3CB',
+    },
+
+    memoryTabText: {
+      fontSize:
+        14,
+      fontWeight:
+        '600',
+      color:
+        '#77736D',
+      textAlign:
+        'center',
+    },
+
+    memoryTabTextActive: {
+      color:
+        '#24211D',
+      fontWeight:
+        '700',
+    },
+
     pendingMemoriesContainer: {
       width:
         '100%',
@@ -5725,18 +6739,51 @@ pendingMemoriesArrow: {
         '#777777',
     },
 
-    pendingRetryButton: {
+    pendingClearAllButton: {
+      alignSelf:
+        'flex-end',
+
       marginTop:
-        12,
+        10,
 
       marginBottom:
-        5,
+        2,
+
+      paddingVertical:
+        7,
+
+      paddingHorizontal:
+        2,
+    },
+
+    pendingClearAllButtonPressed: {
+      opacity:
+        0.55,
+    },
+
+    pendingClearAllText: {
+      fontSize:
+        12,
+
+      color:
+        '#A14B4B',
+
+      fontWeight:
+        '700',
+    },
+
+    pendingRetryButton: {
+      marginTop:
+        10,
+
+      marginBottom:
+        2,
 
       minHeight:
-        44,
+        40,
 
       borderRadius:
-        13,
+        12,
 
       paddingHorizontal:
         14,
@@ -5844,6 +6891,94 @@ pendingMemoriesArrow: {
 
       color:
         '#999999',
+    },
+
+    pendingReformulationContainer: {
+      marginTop:
+        10,
+
+      padding:
+        10,
+
+      borderRadius:
+        10,
+
+      backgroundColor:
+        '#FFF8E7',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E8D9AE',
+    },
+
+    pendingReformulationText: {
+      fontSize:
+        12,
+
+      lineHeight:
+        18,
+
+      color:
+        '#5B5140',
+
+      fontWeight:
+        '600',
+    },
+
+    pendingEditButton: {
+      alignSelf:
+        'flex-start',
+
+      marginTop:
+        9,
+
+      paddingVertical:
+        7,
+
+      paddingHorizontal:
+        10,
+
+      borderRadius:
+        9,
+
+      backgroundColor:
+        '#F0EFEC',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#DDD9D2',
+    },
+
+    pendingEditButtonText: {
+      fontSize:
+        12,
+
+      color:
+        '#55514C',
+
+      fontWeight:
+        '700',
+    },
+
+    pendingEditErrorText: {
+      marginTop:
+        8,
+
+      fontSize:
+        12,
+
+      lineHeight:
+        18,
+
+      color:
+        '#A14B4B',
+
+      fontWeight:
+        '600',
     },
 
     pendingDeleteButton: {

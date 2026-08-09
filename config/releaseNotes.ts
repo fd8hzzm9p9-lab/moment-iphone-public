@@ -9,6 +9,24 @@ export const RELEASE_NOTES:
   ReleaseNote[] = [
     {
       version:
+        'pré-alpha 0.2.10',
+
+      date:
+        '10 août 2026',
+
+      title:
+        'Souvenirs en attente mieux organisés',
+
+      changes: [
+        'Les souvenirs qui n’ont pas pu être enregistrés restent disponibles dans « En attente » pour être traités plus tard.',
+        'Après plusieurs échecs, un souvenir en attente peut être modifié avant un nouvel envoi volontaire.',
+        'Les souvenirs en attente peuvent être supprimés puis restaurés après une suppression récente.',
+        '« Ma mémoire » et « En attente » sont désormais séparés pour rendre l’affichage plus clair.',
+        'La gestion des nouvelles tentatives et des traitements longs a été renforcée.',
+      ],
+    },
+    {
+      version:
         'pré-alpha 0.2.9',
 
       date:
