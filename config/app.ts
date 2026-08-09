@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 
 export const APP_ENVIRONMENT_LABEL =
   APP_NAME.toLowerCase().includes('dev')
-    ? 'DEV'
+    ? 'DEV — MEMENTO 002-08B'
     : '';
 export const APP_VERSION =
   'pré-alpha 0.2.9';
