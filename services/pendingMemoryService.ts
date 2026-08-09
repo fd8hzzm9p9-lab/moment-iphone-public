@@ -813,62 +813,26 @@ function getLatestDeletedBatch(
   history:
     any[]
 ): any[] {
-  const firstRelevantIndex =
-    history.findIndex(
-      item =>
-        item &&
-        typeof item === 'object' &&
-        (
-          typeof item.deleted_at ===
-            'string' ||
-          typeof item.restored_at ===
-            'string'
-        )
-    );
-
-  if (
-    firstRelevantIndex <
-      0
-  ) {
-    return [];
-  }
-
-  const firstRelevant =
-    history[
-      firstRelevantIndex
-    ];
-
   /*
-   * Une restauration plus récente ferme
-   * la dernière suppression disponible.
+   * L'historique est stocké du plus récent
+   * au plus ancien.
+   *
+   * Une restauration ne doit pas effacer
+   * les suppressions précédentes :
+   *
+   * suppression A
+   * suppression B + C
+   * restauration B + C
+   * => A doit encore être restaurable.
+   *
+   * On mémorise donc les IDs déjà restaurés
+   * pendant que l'on remonte l'historique.
    */
-  if (
-    typeof firstRelevant
-      .restored_at ===
-      'string'
-  ) {
-    return [];
-  }
-
-  const latestDeletedAt =
-    Date.parse(
-      firstRelevant.deleted_at
-    );
-
-  if (
-    Number.isNaN(
-      latestDeletedAt
-    )
-  ) {
-    return [];
-  }
-
-  const batch:
-    any[] = [];
+  const restoredIds =
+    new Set<string>();
 
   for (
-    let index =
-      firstRelevantIndex;
+    let index = 0;
     index <
       history.length;
     index += 1
@@ -879,37 +843,143 @@ function getLatestDeletedBatch(
     if (
       !item ||
       typeof item !==
-        'object' ||
-      typeof item.deleted_at !==
-        'string'
+        'object'
     ) {
-      break;
+      continue;
     }
 
-    const deletedAt =
+    if (
+      typeof item.restored_at ===
+        'string' &&
+      Array.isArray(
+        item.restored_pending_ids
+      )
+    ) {
+      for (
+        const restoredId of
+        item.restored_pending_ids
+      ) {
+        if (
+          typeof restoredId ===
+            'string'
+        ) {
+          restoredIds.add(
+            restoredId
+          );
+        }
+      }
+
+      continue;
+    }
+
+    if (
+      typeof item.deleted_at !==
+        'string' ||
+      typeof item.id !==
+        'string' ||
+      restoredIds.has(
+        item.id
+      )
+    ) {
+      continue;
+    }
+
+    const latestDeletedAt =
       Date.parse(
         item.deleted_at
       );
 
     if (
       Number.isNaN(
-        deletedAt
-      ) ||
-      Math.abs(
-        latestDeletedAt -
-        deletedAt
-      ) >
-        5000
+        latestDeletedAt
+      )
     ) {
-      break;
+      continue;
     }
 
-    batch.push(
-      item
-    );
+    const batch:
+      any[] = [];
+
+    for (
+      let batchIndex =
+        index;
+      batchIndex <
+        history.length;
+      batchIndex += 1
+    ) {
+      const batchItem =
+        history[
+          batchIndex
+        ];
+
+      if (
+        !batchItem ||
+        typeof batchItem !==
+          'object'
+      ) {
+        break;
+      }
+
+      /*
+       * Les marqueurs de restauration sont
+       * des frontières entre deux lots.
+       */
+      if (
+        typeof batchItem
+          .restored_at ===
+          'string'
+      ) {
+        break;
+      }
+
+      if (
+        typeof batchItem
+          .deleted_at !==
+          'string'
+      ) {
+        break;
+      }
+
+      const deletedAt =
+        Date.parse(
+          batchItem.deleted_at
+        );
+
+      if (
+        Number.isNaN(
+          deletedAt
+        ) ||
+        Math.abs(
+          latestDeletedAt -
+          deletedAt
+        ) >
+          5000
+      ) {
+        break;
+      }
+
+      if (
+        typeof batchItem.id ===
+          'string' &&
+        !restoredIds.has(
+          batchItem.id
+        )
+      ) {
+        batch.push(
+          batchItem
+        );
+      }
+    }
+
+    if (
+      batch.length >
+        0
+    ) {
+      return batch;
+    }
   }
 
-  return batch;
+  return [];
 }
 
 export async function
