@@ -31,7 +31,9 @@ import {
 
 import {
   type PendingMemory,
+  MAX_PENDING_MEMORY_ATTEMPTS,
   addPendingMemory,
+  canRetryPendingMemory,
   deletePendingMemory,
   getPendingMemories,
   recordPendingRetry,
@@ -3291,7 +3293,7 @@ setLastFailedMemory({
       );
 
       setPendingRetryMessage(
-        '⏳ Souvenir conservé pour un prochain essai local.'
+        '⏳ Souvenir conservé pour un prochain essai.'
       );
     };
 
@@ -3339,10 +3341,10 @@ setLastFailedMemory({
           return 'Le moteur local de cette version ne comprend pas encore suffisamment ce souvenir.';
 
         case 'LOCAL_RETRY_ERROR':
-          return 'Une erreur est survenue pendant le réessai local.';
+          return 'Une erreur est survenue pendant le réessai.';
 
         case 'NO_LOCAL_EVENT':
-          return 'Le moteur local n’a pas encore réussi à transformer ce texte en souvenir exploitable.';
+          return 'Moment n’a pas réussi à transformer ce texte en souvenir exploitable.';
 
         case 'DATE_CONFIRMATION_REQUIRED':
           return 'Ce souvenir nécessite encore une confirmation de date.';
@@ -3401,9 +3403,14 @@ setLastFailedMemory({
 
   const reessayerSouvenirsEnAttente =
     async () => {
+      const pendingSnapshot =
+        pendingMemories.filter(
+          canRetryPendingMemory
+        );
+
       if (
         pendingRetryInProgress ||
-        pendingMemories.length ===
+        pendingSnapshot.length ===
           0
       ) {
         return;
@@ -3446,13 +3453,12 @@ setLastFailedMemory({
         0;
 
       /*
-       * On travaille sur un snapshot de la file,
-       * mais la vraie mémoire évolue au fur et
+       * Le snapshot contient uniquement les souvenirs
+       * qui n'ont pas encore atteint la limite.
+       *
+       * La vraie mémoire évolue au fur et
        * à mesure des succès.
        */
-      const pendingSnapshot = [
-        ...pendingMemories,
-      ];
 
       let workingMemories = [
         ...evenements,
@@ -3481,11 +3487,8 @@ setLastFailedMemory({
 
           /*
            * Le retry reste dans le diagnostic
-           * pour l'analyse des tests.
-           *
-           * En revanche il ne compte pas comme
-           * une nouvelle interaction utilisateur
-           * pour le seuil d'envoi du feedback.
+           * et compte dans le feedback de test
+           * comme une tentative réelle.
            */
           await recordDiagnosticInteraction({
             diagnostic_id:
@@ -3539,9 +3542,10 @@ setLastFailedMemory({
                         momentDeviceId,
 
                       /*
-                       * REGLE ABSOLUE :
-                       * jamais d'OpenAI pendant
-                       * un réessai de la file.
+                       * Le réessai repasse par le traitement
+                       * normal de Moment :
+                       * Local First puis OpenAI seulement
+                       * si le local ne suffit pas.
                        */
                       local_only:
                         false,
@@ -3782,24 +3786,51 @@ setLastFailedMemory({
           }
         }
 
-        await refreshPendingMemories();
+        const remainingPending =
+          await getPendingMemories();
+
+        setPendingMemories(
+          remainingPending
+        );
+
+        const exhaustedCount =
+          remainingPending.filter(
+            pending =>
+              !canRetryPendingMemory(
+                pending
+              )
+          ).length;
+
+        const retryableCount =
+          remainingPending.length -
+          exhaustedCount;
+
+        const exhaustedMessage =
+          exhaustedCount > 0
+            ? ` · ${exhaustedCount} souvenir${exhaustedCount > 1 ? 's' : ''} bloqué${exhaustedCount > 1 ? 's' : ''} après ${MAX_PENDING_MEMORY_ATTEMPTS} tentatives.`
+            : '';
+
+        const retryableMessage =
+          retryableCount > 0
+            ? ` · ${retryableCount} souvenir${retryableCount > 1 ? 's' : ''} peut${retryableCount > 1 ? 'vent' : ''} encore être réessayé${retryableCount > 1 ? 's' : ''}.`
+            : '';
 
         if (
           successCount > 0 &&
           failedCount > 0
         ) {
           setPendingRetryMessage(
-            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''} · ${failedCount} reste${failedCount > 1 ? 'nt' : ''} en attente.`
+            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''} · ${failedCount} échec${failedCount > 1 ? 's' : ''} pendant ce réessai${exhaustedMessage}${retryableMessage}`
           );
         } else if (
           successCount > 0
         ) {
           setPendingRetryMessage(
-            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''}. Aucun souvenir ne reste en attente.`
+            `✅ ${successCount} souvenir${successCount > 1 ? 's' : ''} enregistré${successCount > 1 ? 's' : ''}.${exhaustedMessage}${retryableMessage}`
           );
         } else {
           setPendingRetryMessage(
-            `⏳ Aucun souvenir supplémentaire n’est encore compris localement. ${failedCount} reste${failedCount > 1 ? 'nt' : ''} en attente.`
+            `⏳ Aucun souvenir n’a pu être enregistré pendant ce réessai.${exhaustedMessage}${retryableMessage}`
           );
         }
 
@@ -4296,7 +4327,7 @@ return (
               >
                 Moment n’a pas pu enregistrer ce souvenir.
                 {'\n'}
-                Veux-tu le garder pour réessayer localement plus tard ?
+                Veux-tu le garder pour réessayer plus tard ?
               </Text>
 
               <View
@@ -4497,18 +4528,26 @@ return (
                       >
                         Ces souvenirs ne font pas encore partie de Ma mémoire.
                         {'\n'}
-                        Les réessais utilisent uniquement le moteur local de Moment.
+                        Chaque souvenir dispose de {MAX_PENDING_MEMORY_ATTEMPTS} tentatives au total. Un réessai utilise le traitement normal de Moment.
                       </Text>
 
                       <Pressable
                         style={[
                           styles.pendingRetryButton,
 
-                          pendingRetryInProgress &&
+                          (
+                            pendingRetryInProgress ||
+                            !pendingMemories.some(
+                              canRetryPendingMemory
+                            )
+                          ) &&
                             styles.buttonDisabled,
                         ]}
                         disabled={
-                          pendingRetryInProgress
+                          pendingRetryInProgress ||
+                          !pendingMemories.some(
+                            canRetryPendingMemory
+                          )
                         }
                         onPress={
                           reessayerSouvenirsEnAttente
@@ -4521,8 +4560,12 @@ return (
                         >
                           {
                             pendingRetryInProgress
-                              ? 'Réessai local en cours…'
-                              : '↻ Réessayer les souvenirs'
+                              ? 'Réessai en cours…'
+                              : pendingMemories.some(
+                                  canRetryPendingMemory
+                                )
+                                ? '↻ Réessayer les souvenirs'
+                                : `Limite de ${MAX_PENDING_MEMORY_ATTEMPTS} tentatives atteinte`
                           }
                         </Text>
                       </Pressable>
@@ -4587,10 +4630,28 @@ return (
                                     : ''
                                 } : {
                                   pending.attempt_count
+                                } / {
+                                  MAX_PENDING_MEMORY_ATTEMPTS
                                 } · depuis {
                                   pending.created_app_version
                                 }
                               </Text>
+
+                              {
+                                !canRetryPendingMemory(
+                                  pending
+                                )
+                                  ? (
+                                    <Text
+                                      style={
+                                        styles.pendingAttemptLimitText
+                                      }
+                                    >
+                                      ⛔ Limite atteinte : ce souvenir ne sera plus relancé.
+                                    </Text>
+                                  )
+                                  : null
+                              }
 
                               <Pressable
                                 onPress={() =>
@@ -5901,6 +5962,23 @@ pendingMemoriesArrow: {
 
       color:
         '#999999',
+    },
+
+    pendingAttemptLimitText: {
+      marginTop:
+        7,
+
+      fontSize:
+        12,
+
+      lineHeight:
+        18,
+
+      color:
+        '#A14B4B',
+
+      fontWeight:
+        '700',
     },
 
     pendingDeleteButton: {

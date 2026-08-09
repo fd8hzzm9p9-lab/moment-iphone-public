@@ -12,6 +12,10 @@ export const
   PENDING_MEMORY_HISTORY_KEY =
     'moment_pending_memories_history_v1';
 
+export const
+  MAX_PENDING_MEMORY_ATTEMPTS =
+    3;
+
 export type PendingMemoryEvent =
   | 'created'
   | 'retry'
@@ -79,6 +83,17 @@ export type PendingMemory = {
   history:
     PendingMemoryHistoryEntry[];
 };
+
+export function
+canRetryPendingMemory(
+  memory:
+    PendingMemory
+) {
+  return (
+    memory.attempt_count <
+    MAX_PENDING_MEMORY_ATTEMPTS
+  );
+}
 
 function createPendingId() {
   return (
@@ -275,6 +290,14 @@ recordPendingRetry(
       item => {
         if (
           item.id !== id
+        ) {
+          return item;
+        }
+
+        if (
+          !canRetryPendingMemory(
+            item
+          )
         ) {
           return item;
         }
