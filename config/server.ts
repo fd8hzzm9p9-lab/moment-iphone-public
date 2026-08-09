@@ -1,11 +1,11 @@
-﻿/* ========================================================= */
-/* CONFIGURATION SERVEUR CENTRALISÃ‰E                         */
+/* ========================================================= */
+/* CONFIGURATION SERVEUR CENTRALISÃƒâ€°E                         */
 /* ========================================================= */
 /*
- * Moment â€” prÃ©-0.1.0
+ * Moment Ã¢â‚¬â€ prÃƒÂ©-0.1.0
  *
- * URL Cloudflare gÃ©nÃ©rÃ©e automatiquement au dÃ©marrage.
+ * URL Cloudflare gÃƒÂ©nÃƒÂ©rÃƒÂ©e automatiquement au dÃƒÂ©marrage.
  */
 
 export const SERVER_URL =
-  'https://nato-maintenance-costs-proposition.trycloudflare.com';
+  'https://charming-infections-implement-unlike.trycloudflare.com';
