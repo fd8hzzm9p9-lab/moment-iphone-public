@@ -128,7 +128,7 @@ const {
  * automatique, mais avec davantage de marge.
  */
 const OPENAI_UNDERSTAND_TIMEOUT_MS =
-  60000;
+  25000;
 
 function registerUnderstandRoute(
   app,
@@ -2578,9 +2578,6 @@ const eventsNeedingDateConfirmation =
       const explicitDate =
         extractExplicitDateFromText(
           event.source_text ||
-          ''
-        ) ||
-        extractExplicitDateFromText(
           text
         );
 

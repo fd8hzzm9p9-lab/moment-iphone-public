@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$Projet = "C:\Users\jerry\moment-iphone"
+$Projet = "C:\Users\jerry\moment-dev"
 $ServerFile = "$Projet\config\server.ts"
 
 Write-Host ""
@@ -9,10 +9,10 @@ Write-Host ""
 
 Set-Location $Projet
 
-# Lance Cloudflare et récupère sa sortie
+# Lance Cloudflare et rÃ©cupÃ¨re sa sortie
 $process = New-Object System.Diagnostics.Process
 $process.StartInfo.FileName = "cloudflared"
-$process.StartInfo.Arguments = "tunnel --url http://192.168.1.12:3000"
+$process.StartInfo.Arguments = "tunnel --url http://127.0.0.1:3001"
 $process.StartInfo.WorkingDirectory = $Projet
 $process.StartInfo.UseShellExecute = $false
 $process.StartInfo.RedirectStandardOutput = $true
@@ -41,15 +41,15 @@ Write-Host "URL CLOUDFLARE :" -ForegroundColor Green
 Write-Host $url -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Green
 
-# Mise à jour automatique de config/server.ts
+# Mise Ã  jour automatique de config/server.ts
 @"
 /* ========================================================= */
-/* CONFIGURATION SERVEUR CENTRALISÉE                         */
+/* CONFIGURATION SERVEUR CENTRALISÃ‰E                         */
 /* ========================================================= */
 /*
- * Moment — pré-0.1.0
+ * Moment â€” prÃ©-0.1.0
  *
- * URL Cloudflare générée automatiquement au démarrage.
+ * URL Cloudflare gÃ©nÃ©rÃ©e automatiquement au dÃ©marrage.
  */
 
 export const SERVER_URL =
@@ -57,8 +57,9 @@ export const SERVER_URL =
 "@ | Set-Content -Path $ServerFile -Encoding UTF8
 
 Write-Host ""
-Write-Host "✅ config/server.ts mis à jour automatiquement." -ForegroundColor Green
+Write-Host "âœ… config/server.ts mis Ã  jour automatiquement." -ForegroundColor Green
 Write-Host ""
 
 # Le tunnel reste actif
 $process.WaitForExit()
+

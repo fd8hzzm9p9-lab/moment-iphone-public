@@ -1,11 +1,11 @@
-/*
+﻿/*
  * =========================================================
- * MOMENT — ROUTE /UNDERSTAND
+ * MOMENT Ã¢â‚¬â€ ROUTE /UNDERSTAND
  * MEMENTO 001-10
  * =========================================================
  *
  * Extraction structurelle depuis server/server.js.
- * La logique interne de la route est conservée.
+ * La logique interne de la route est conservÃƒÂ©e.
  */
 
 const {
@@ -165,7 +165,7 @@ function isDeterministicRelativeDateReference(
     "aujourd'hui",
     'demain',
     'apres demain',
-    'après demain',
+    'aprÃƒÂ¨s demain',
     'hier',
     'avant hier',
     'avant-hier',
@@ -335,11 +335,11 @@ app.post(
   '/understand',
   async (req, res) => {
     console.log(
-      '\n📥 ==============================='
+      '\nÃ°Å¸â€œÂ¥ ==============================='
     );
 
     console.log(
-      '📥 REQUÊTE /UNDERSTAND'
+      'Ã°Å¸â€œÂ¥ REQUÃƒÅ TE /UNDERSTAND'
     );
 
     const routeDiagnosticId =
@@ -379,7 +379,7 @@ app.post(
           .status(400)
           .json({
             error:
-              'Aucun texte reçu',
+              'Aucun texte reÃƒÂ§u',
           });
       }
 
@@ -472,7 +472,7 @@ app.post(
         );
 
       console.log(
-        '🧪 TEST CORRECTION :',
+        'Ã°Å¸Â§Âª TEST CORRECTION :',
         text.trim(),
         '=>',
         isCorrectionRequest(
@@ -481,12 +481,12 @@ app.post(
       );
 
       console.log(
-        '📝 Texte :',
+        'Ã°Å¸â€œÂ Texte :',
         text.trim()
       );
 
       console.log(
-        '🧠 Mémoires existantes :',
+        'Ã°Å¸Â§Â  MÃƒÂ©moires existantes :',
         existingMemories.length
       );
 
@@ -501,18 +501,18 @@ app.post(
         )
       ) {
         console.log(
-          '✏️ DEMANDE DE CORRECTION DÉTECTÉE'
+          'Ã¢Å“ÂÃ¯Â¸Â DEMANDE DE CORRECTION DÃƒâ€°TECTÃƒâ€°E'
         );
 
         const correctionPrompt = `
-Tu es le moteur de compréhension des corrections de l'application Moment.
+Tu es le moteur de comprÃƒÂ©hension des corrections de l'application Moment.
 
-L'utilisateur demande de modifier une information qui peut déjà
-exister dans sa mémoire.
+L'utilisateur demande de modifier une information qui peut dÃƒÂ©jÃƒÂ 
+exister dans sa mÃƒÂ©moire.
 
 Analyse UNIQUEMENT la demande de correction.
 
-Ne crée aucune information absente du texte.
+Ne crÃƒÂ©e aucune information absente du texte.
 
 Retourne UNIQUEMENT ce JSON :
 
@@ -531,60 +531,60 @@ Retourne UNIQUEMENT ce JSON :
   "new_time_end": ""
 }
 
-RÈGLES :
+RÃƒË†GLES :
 
-- person = personne explicitement concernée.
-- date_reference = date explicitement indiquée.
-- day_reference = jour de semaine explicitement indiqué.
-- context = objet ou contexte de l'information à modifier
-  (exemples : rendez-vous, visite, réunion, travail, anniversaire).
-- old_value = ancienne information explicitement indiquée.
-- new_value = nouvelle information explicitement demandée.
+- person = personne explicitement concernÃƒÂ©e.
+- date_reference = date explicitement indiquÃƒÂ©e.
+- day_reference = jour de semaine explicitement indiquÃƒÂ©.
+- context = objet ou contexte de l'information ÃƒÂ  modifier
+  (exemples : rendez-vous, visite, rÃƒÂ©union, travail, anniversaire).
+- old_value = ancienne information explicitement indiquÃƒÂ©e.
+- new_value = nouvelle information explicitement demandÃƒÂ©e.
 
 Pour les heures simples :
 - old_time = ancienne heure.
 - new_time = nouvelle heure.
 
 Pour une plage horaire :
-- old_time_start = ancienne heure de début.
+- old_time_start = ancienne heure de dÃƒÂ©but.
 - old_time_end = ancienne heure de fin.
-- new_time_start = nouvelle heure de début.
+- new_time_start = nouvelle heure de dÃƒÂ©but.
 - new_time_end = nouvelle heure de fin.
 
 IMPORTANT :
 
 Dans :
 
-"Corrige le rendez-vous de Julien du 12 août à 10h pour le mettre à 11h."
+"Corrige le rendez-vous de Julien du 12 aoÃƒÂ»t ÃƒÂ  10h pour le mettre ÃƒÂ  11h."
 
 la personne est Julien.
-la date est "12 août".
+la date est "12 aoÃƒÂ»t".
 l'ancienne heure est "10h".
 la nouvelle heure est "11h".
 
-Le nombre "12" de la date NE DOIT JAMAIS être considéré
+Le nombre "12" de la date NE DOIT JAMAIS ÃƒÂªtre considÃƒÂ©rÃƒÂ©
 comme une heure.
 
 Dans :
 
-"Marc travaille le lundi de 9h à 18h au lieu de 10h à 17h."
+"Marc travaille le lundi de 9h ÃƒÂ  18h au lieu de 10h ÃƒÂ  17h."
 
 l'ancienne plage est :
-9h → 18h
+9h Ã¢â€ â€™ 18h
 
 la nouvelle plage est :
-10h → 17h.
+10h Ã¢â€ â€™ 17h.
 
 Dans :
 
-"La réunion avec Sophie de vendredi à 9h est finalement à 10h."
+"La rÃƒÂ©union avec Sophie de vendredi ÃƒÂ  9h est finalement ÃƒÂ  10h."
 
 ancienne heure = 9h
 nouvelle heure = 10h.
 
 Dans :
 
-"Modifie la visite de Marc prévue mardi à 14h pour 15h."
+"Modifie la visite de Marc prÃƒÂ©vue mardi ÃƒÂ  14h pour 15h."
 
 ancienne heure = 14h
 nouvelle heure = 15h.
@@ -592,22 +592,22 @@ nouvelle heure = 15h.
 IMPORTANT POUR LES FORMULATIONS "AU LIEU DE" :
 
 Dans :
-"Marc travaille le lundi de 10h à 17h au lieu de 9h à 18h."
+"Marc travaille le lundi de 10h ÃƒÂ  17h au lieu de 9h ÃƒÂ  18h."
 
-ancienne plage = 9h → 18h
-nouvelle plage = 10h → 17h.
+ancienne plage = 9h Ã¢â€ â€™ 18h
+nouvelle plage = 10h Ã¢â€ â€™ 17h.
 
 Dans :
-"Marc travaille de 9h à 18h au lieu de 10h à 17h."
+"Marc travaille de 9h ÃƒÂ  18h au lieu de 10h ÃƒÂ  17h."
 
-ancienne plage = 10h → 17h
-nouvelle plage = 9h → 18h.
+ancienne plage = 10h Ã¢â€ â€™ 17h
+nouvelle plage = 9h Ã¢â€ â€™ 18h.
 
 Le segment introduit par "au lieu de" est l'information
-ancienne/corrigée lorsque la formulation dit d'abord
+ancienne/corrigÃƒÂ©e lorsque la formulation dit d'abord
 la nouvelle information puis "au lieu de" l'ancienne.
 
-Si une information n'est pas explicitement présente,
+Si une information n'est pas explicitement prÃƒÂ©sente,
 laisse le champ vide.
 
 Texte utilisateur :
@@ -648,7 +648,7 @@ correctionData =
   );
         } catch (error) {
           console.error(
-            '❌ Impossible de comprendre la correction :',
+            'Ã¢ÂÅ’ Impossible de comprendre la correction :',
             error
           );
 
@@ -726,7 +726,7 @@ correctionData =
             : '';
 
         console.log(
-          '🧠 CORRECTION COMPRISE :',
+          'Ã°Å¸Â§Â  CORRECTION COMPRISE :',
           correctionData
         );
 
@@ -811,7 +811,7 @@ correctionData =
           oldEnd
         ) {
           oldValue =
-            `${oldStart} à ${oldEnd}`;
+            `${oldStart} ÃƒÂ  ${oldEnd}`;
         }
 
         if (
@@ -820,7 +820,7 @@ correctionData =
           newEnd
         ) {
           newValue =
-            `${newStart} à ${newEnd}`;
+            `${newStart} ÃƒÂ  ${newEnd}`;
         }
 
         const normalizedRequest =
@@ -923,10 +923,10 @@ correctionData =
                 oldEnd;
 
               oldValue =
-                `${oldStart} à ${oldEnd}`;
+                `${oldStart} ÃƒÂ  ${oldEnd}`;
 
               newValue =
-                `${newStart} à ${newEnd}`;
+                `${newStart} ÃƒÂ  ${newEnd}`;
             }
           }
         }
@@ -954,7 +954,7 @@ correctionData =
         };
 
         console.log(
-          '🎯 CORRECTION NORMALISÉE :',
+          'Ã°Å¸Å½Â¯ CORRECTION NORMALISÃƒâ€°E :',
           {
             person,
             dateReference,
@@ -1186,7 +1186,7 @@ correctionData =
               message:
                 person
                   ? `Je ne trouve pas de souvenir correspondant pour ${person}.`
-                  : `Je ne trouve pas de souvenir correspondant à cette demande de correction.`,
+                  : `Je ne trouve pas de souvenir correspondant ÃƒÂ  cette demande de correction.`,
             },
           });
         }
@@ -1345,7 +1345,7 @@ correctionData =
                 ),
 
               message:
-                `J'ai trouvé plusieurs souvenirs pouvant correspondre à cette correction. Je ne peux pas déterminer lequel modifier avec certitude.`,
+                `J'ai trouvÃƒÂ© plusieurs souvenirs pouvant correspondre ÃƒÂ  cette correction. Je ne peux pas dÃƒÂ©terminer lequel modifier avec certitude.`,
             },
           });
         }
@@ -1421,10 +1421,10 @@ correctionData =
               );
 
             oldValue =
-              `${oldStart} à ${oldEnd}`;
+              `${oldStart} ÃƒÂ  ${oldEnd}`;
 
             newValue =
-              `${newStart} à ${newEnd}`;
+              `${newStart} ÃƒÂ  ${newEnd}`;
 
             normalizedCorrectionData.old_time_start =
               oldStart;
@@ -1582,8 +1582,8 @@ correctionData =
           correction_note:
             oldValue &&
             newValue
-              ? `Information corrigée de ${oldValue} à ${newValue}.`
-              : 'Information corrigée explicitement par l’utilisateur.',
+              ? `Information corrigÃƒÂ©e de ${oldValue} ÃƒÂ  ${newValue}.`
+              : 'Information corrigÃƒÂ©e explicitement par lÃ¢â‚¬â„¢utilisateur.',
 
           correction_type:
             correctionContext ||
@@ -1682,22 +1682,22 @@ correctionData =
         };
 
         console.log(
-          '🎯 MÉMOIRE CIBLE :',
+          'Ã°Å¸Å½Â¯ MÃƒâ€°MOIRE CIBLE :',
           memory.id
         );
 
         console.log(
-          '📊 SCORE CIBLE :',
+          'Ã°Å¸â€œÅ  SCORE CIBLE :',
           selectedCandidate.score
         );
 
         console.log(
-          '📝 ANCIENNE INFORMATION :',
+          'Ã°Å¸â€œÂ ANCIENNE INFORMATION :',
           oldDescription
         );
 
         console.log(
-          '🆕 NOUVELLE INFORMATION :',
+          'Ã°Å¸â€ â€¢ NOUVELLE INFORMATION :',
           newDescription
         );
 
@@ -1805,14 +1805,14 @@ correctionData =
             message:
               `Je vais corriger cette information :\n\n` +
               `${oldDescription}\n\n` +
-              `→ ${newDescription}\n\n` +
+              `Ã¢â€ â€™ ${newDescription}\n\n` +
               `Confirme-tu cette correction ?`,
           },
         });
       }
 
       /* =================================================== */
-      /* RÉFUTATION                                           */
+      /* RÃƒâ€°FUTATION                                           */
       /* =================================================== */
 
       if (
@@ -1917,7 +1917,7 @@ correctionData =
       }
 
             /* =================================================== */
-      /* LOCAL FIRST — MEMENTO 002                            */
+      /* LOCAL FIRST Ã¢â‚¬â€ MEMENTO 002                            */
       /* =================================================== */
 
       let result;
@@ -1931,7 +1931,7 @@ correctionData =
         localResult
       ) {
         console.log(
-          '⚡ LOCAL FIRST : compréhension locale utilisée'
+          'Ã¢Å¡Â¡ LOCAL FIRST : comprÃƒÂ©hension locale utilisÃƒÂ©e'
         );
 
         logDiagnostic({
@@ -1958,7 +1958,7 @@ correctionData =
         });
 
         console.log(
-          '⚡ Parser local :',
+          'Ã¢Å¡Â¡ Parser local :',
           localResult
             .local_understanding
             ?.parser ||
@@ -1973,7 +1973,7 @@ correctionData =
           localOnly
         ) {
           console.log(
-            '🧪 LOCAL ONLY : compréhension locale insuffisante'
+            'Ã°Å¸Â§Âª LOCAL ONLY : comprÃƒÂ©hension locale insuffisante'
           );
 
           logDiagnostic({
@@ -2014,7 +2014,7 @@ correctionData =
         }
 
         console.log(
-          '🌐 LOCAL FIRST : fallback OpenAI nécessaire'
+          'Ã°Å¸Å’Â LOCAL FIRST : fallback OpenAI nÃƒÂ©cessaire'
         );
 
         logDiagnostic({
@@ -2036,48 +2036,48 @@ correctionData =
         /* =================================================== */
   
         console.log(
-          '🧠 Analyse de la saisie...'
+          'Ã°Å¸Â§Â  Analyse de la saisie...'
         );
   
         const prompt = `
-  Tu es le moteur de mémoire de l'application Moment.
+  Tu es le moteur de mÃƒÂ©moire de l'application Moment.
   
-  Une saisie peut contenir un ou plusieurs événements.
+  Une saisie peut contenir un ou plusieurs ÃƒÂ©vÃƒÂ©nements.
   
-  RÈGLES ABSOLUES :
+  RÃƒË†GLES ABSOLUES :
   
   
   
-  1. Ne crée aucune information absente du texte.
-  2. Ne crée aucune relation non exprimée.
+  1. Ne crÃƒÂ©e aucune information absente du texte.
+  2. Ne crÃƒÂ©e aucune relation non exprimÃƒÂ©e.
   3. Ne transforme jamais une intention en action.
   4. Un fait explicitement dit reste explicite.
-  5. Une déduction doit être séparée des faits sources.
-  6. Ne déduis jamais qu'une personne était avec l'utilisateur
-     simplement parce qu'elle a été vue, mentionnée ou se trouvait
-     dans le même lieu.
+  5. Une dÃƒÂ©duction doit ÃƒÂªtre sÃƒÂ©parÃƒÂ©e des faits sources.
+  6. Ne dÃƒÂ©duis jamais qu'une personne ÃƒÂ©tait avec l'utilisateur
+     simplement parce qu'elle a ÃƒÂ©tÃƒÂ© vue, mentionnÃƒÂ©e ou se trouvait
+     dans le mÃƒÂªme lieu.
   
   EXEMPLES :
   
   "J'ai vu Marc au restaurant lundi."
   
-  => Marc est mentionné.
-  => Marc était au restaurant.
-  => Mais cela NE signifie PAS que Marc était avec moi.
+  => Marc est mentionnÃƒÂ©.
+  => Marc ÃƒÂ©tait au restaurant.
+  => Mais cela NE signifie PAS que Marc ÃƒÂ©tait avec moi.
   
-  "J'ai mangé avec Marc lundi."
+  "J'ai mangÃƒÂ© avec Marc lundi."
   
-  => Marc était explicitement avec moi.
+  => Marc ÃƒÂ©tait explicitement avec moi.
   
-  RÈGLE DE FORMULATION DES DESCRIPTIONS :
+  RÃƒË†GLE DE FORMULATION DES DESCRIPTIONS :
   
-  Le champ "description" doit être une phrase complète et naturelle
-  qui résume fidèlement le souvenir en s'adressant directement
-  à la personne qui utilise Moment.
+  Le champ "description" doit ÃƒÂªtre une phrase complÃƒÂ¨te et naturelle
+  qui rÃƒÂ©sume fidÃƒÂ¨lement le souvenir en s'adressant directement
+  ÃƒÂ  la personne qui utilise Moment.
   
-  Lorsque le texte source est formulé à la première personne
+  Lorsque le texte source est formulÃƒÂ© ÃƒÂ  la premiÃƒÂ¨re personne
   ("je", "j'", "moi", "mon", "ma", "mes"), la description DOIT
-  être reformulée à la deuxième personne ("tu", "toi", "ton",
+  ÃƒÂªtre reformulÃƒÂ©e ÃƒÂ  la deuxiÃƒÂ¨me personne ("tu", "toi", "ton",
   "ta", "tes").
   
   INTERDICTION ABSOLUE dans "description" :
@@ -2086,13 +2086,13 @@ correctionData =
   - "je"
   - "j'"
   
-  Ne supprime pas le sujet de la phrase pour éviter cette règle.
-  La description doit rester une phrase complète.
+  Ne supprime pas le sujet de la phrase pour ÃƒÂ©viter cette rÃƒÂ¨gle.
+  La description doit rester une phrase complÃƒÂ¨te.
   
   Exemples obligatoires :
   
-  "Je suis content de l'avancée du projet MOMENT."
-  => "Tu es content de l'avancée du projet MOMENT."
+  "Je suis content de l'avancÃƒÂ©e du projet MOMENT."
+  => "Tu es content de l'avancÃƒÂ©e du projet MOMENT."
   
   "J'ai vu Bob jeudi dernier."
   => "Tu as vu Bob jeudi dernier."
@@ -2109,7 +2109,7 @@ correctionData =
     "events": []
   }
   
-  Chaque événement :
+  Chaque ÃƒÂ©vÃƒÂ©nement :
   
   {
     "id": "",
@@ -2135,30 +2135,30 @@ correctionData =
     "source_text": "",
     "confidence": 0
   }
-    RÈGLE POUR LE CHAMP "facts" :
+    RÃƒË†GLE POUR LE CHAMP "facts" :
   
   Le champ "facts" contient uniquement des faits explicites
   qui apportent une information distincte de la description.
   
   Ne recopie jamais la description dans "facts".
   
-  Si la description exprime déjà entièrement le fait mémorisé,
-  "facts" doit être [].
+  Si la description exprime dÃƒÂ©jÃƒÂ  entiÃƒÂ¨rement le fait mÃƒÂ©morisÃƒÂ©,
+  "facts" doit ÃƒÂªtre [].
   
   Exemple :
   
-  "Je suis content de l'avancée du projet MOMENT."
+  "Je suis content de l'avancÃƒÂ©e du projet MOMENT."
   
   => description :
-  "Tu es content de l'avancée du projet MOMENT."
+  "Tu es content de l'avancÃƒÂ©e du projet MOMENT."
   
   => facts :
   []
   
-  Ne crée pas un fait séparé comme :
-  "Tu es content de l'avancée du projet MOMENT."
+  Ne crÃƒÂ©e pas un fait sÃƒÂ©parÃƒÂ© comme :
+  "Tu es content de l'avancÃƒÂ©e du projet MOMENT."
   
-  Types autorisés :
+  Types autorisÃƒÂ©s :
   
   "event"
   "thought"
@@ -2185,26 +2185,26 @@ correctionData =
   "generic"
   "unknown"
   
-  IMPORTANT — DIRECTION TEMPORELLE :
+  IMPORTANT Ã¢â‚¬â€ DIRECTION TEMPORELLE :
   
-  temporal_direction indique si le repère temporel
-  doit être compris comme passé, futur ou générique.
+  temporal_direction indique si le repÃƒÂ¨re temporel
+  doit ÃƒÂªtre compris comme passÃƒÂ©, futur ou gÃƒÂ©nÃƒÂ©rique.
   
   "past" :
-  l'événement est situé dans le passé.
+  l'ÃƒÂ©vÃƒÂ©nement est situÃƒÂ© dans le passÃƒÂ©.
   
   "future" :
-  l'événement est prévu ou situé dans le futur.
+  l'ÃƒÂ©vÃƒÂ©nement est prÃƒÂ©vu ou situÃƒÂ© dans le futur.
   
   "generic" :
-  le repère temporel ne désigne pas un jour précis.
+  le repÃƒÂ¨re temporel ne dÃƒÂ©signe pas un jour prÃƒÂ©cis.
   
   "unknown" :
-  la direction temporelle ne peut pas être déterminée.
+  la direction temporelle ne peut pas ÃƒÂªtre dÃƒÂ©terminÃƒÂ©e.
   
   EXEMPLES :
   
-  "J'y suis allé dimanche."
+  "J'y suis allÃƒÂ© dimanche."
   => date_reference = "dimanche"
   => temporal_direction = "past"
   
@@ -2224,15 +2224,15 @@ correctionData =
   => date_reference = "mardi"
   => temporal_direction = "future"
   
-  "J'y suis allé un dimanche."
+  "J'y suis allÃƒÂ© un dimanche."
   => date_reference = "un dimanche"
   => temporal_direction = "generic"
   
-  "Un dimanche, j'y suis allé."
+  "Un dimanche, j'y suis allÃƒÂ©."
   => date_reference = "un dimanche"
   => temporal_direction = "generic"
   
-  "Je vais à la piscine mardi prochain."
+  "Je vais ÃƒÂ  la piscine mardi prochain."
   => date_reference = "mardi prochain"
   => temporal_direction = "future"
   
@@ -2242,15 +2242,15 @@ correctionData =
   
   IMPORTANT :
   
-  date_reference décrit la date ou le repère temporel
-  explicitement présent dans le texte utilisateur.
+  date_reference dÃƒÂ©crit la date ou le repÃƒÂ¨re temporel
+  explicitement prÃƒÂ©sent dans le texte utilisateur.
   
   created_at doit rester vide.
   
   source_text doit reprendre la partie exacte
-  du texte utilisateur correspondant à l'événement.
+  du texte utilisateur correspondant ÃƒÂ  l'ÃƒÂ©vÃƒÂ©nement.
   
-  Ne convertis pas toi-même un jour de semaine en date :
+  Ne convertis pas toi-mÃƒÂªme un jour de semaine en date :
   le serveur s'en chargera.
   
   Texte utilisateur :
@@ -2290,10 +2290,10 @@ correctionData =
                 /*
                  * Important :
                  * aucun retry automatique pour
-                 * cette requête.
+                 * cette requÃƒÂªte.
                  *
                  * Moment doit reprendre la main
-                 * après le timeout configure ci-dessus.
+                 * aprÃƒÂ¨s le timeout configure ci-dessus.
                  */
                 maxRetries:
                   0,
@@ -2335,7 +2335,7 @@ correctionData =
               .status(504)
               .json({
                 error:
-                  'Délai OpenAI dépassé',
+                  'DÃƒÂ©lai OpenAI dÃƒÂ©passÃƒÂ©',
 
                 code:
                   'OPENAI_TIMEOUT',
@@ -2344,7 +2344,7 @@ correctionData =
                   'openai_timeout',
 
                 message:
-                  'Moment n’a pas pu enregistrer ce souvenir pour le moment.',
+                  'Moment nÃ¢â‚¬â„¢a pas pu enregistrer ce souvenir pour le moment.',
               });
           }
 
@@ -2392,12 +2392,12 @@ correctionData =
       );
   } catch (error) {
     console.error(
-      '❌ JSON compréhension invalide :',
+      'Ã¢ÂÅ’ JSON comprÃƒÂ©hension invalide :',
       response.output_text
     );
   
     console.error(
-      '❌ Détail parsing :',
+      'Ã¢ÂÅ’ DÃƒÂ©tail parsing :',
       error
     );
 
@@ -2425,13 +2425,13 @@ correctionData =
       .status(500)
       .json({
         error:
-          'Le cerveau de Moment a produit une réponse invalide',
+          'Le cerveau de Moment a produit une rÃƒÂ©ponse invalide',
 
         code:
           'OPENAI_INVALID_JSON',
 
         message:
-          'Moment a reçu une réponse inexploitable pendant l’analyse du souvenir.',
+          'Moment a reÃƒÂ§u une rÃƒÂ©ponse inexploitable pendant lÃ¢â‚¬â„¢analyse du souvenir.',
       });
   }
   
@@ -2455,23 +2455,23 @@ correctionData =
       /*
        * IMPORTANT :
        *
-       * Une date explicitement écrite comme :
+       * Une date explicitement ÃƒÂ©crite comme :
        *
-       *   "12 août"
+       *   "12 aoÃƒÂ»t"
        *
-       * est considérée comme certaine.
+       * est considÃƒÂ©rÃƒÂ©e comme certaine.
        *
-       * En revanche, une référence temporelle comme :
+       * En revanche, une rÃƒÂ©fÃƒÂ©rence temporelle comme :
        *
        *   "lundi"
        *   "vendredi"
        *   "vendredi prochain"
        *   "demain"
-       *   "après-demain"
+       *   "aprÃƒÂ¨s-demain"
        *   "dans 3 jours"
        *
-       * peut être transformée par Moment en date calendaire
-       * proposée, mais cette date doit être présentée à
+       * peut ÃƒÂªtre transformÃƒÂ©e par Moment en date calendaire
+       * proposÃƒÂ©e, mais cette date doit ÃƒÂªtre prÃƒÂ©sentÃƒÂ©e ÃƒÂ 
        * l'utilisateur pour confirmation.
        *
        * Exemple :
@@ -2480,12 +2480,12 @@ correctionData =
        * vendredi = 07/08/2026
        *
        * => "vendredi" doit proposer :
-       *    "vendredi 7 août 2026"
+       *    "vendredi 7 aoÃƒÂ»t 2026"
        *
        * et demander confirmation.
        */
 console.log(
-  '🧪 DATE CHECK AVANT CONFIRMATION :',
+  'Ã°Å¸Â§Âª DATE CHECK AVANT CONFIRMATION :',
   result.events.map(event => ({
     date_reference: event.date_reference,
     temporal_direction: event.temporal_direction,
@@ -2501,7 +2501,7 @@ result.events =
   );
 
 console.log(
-  '🧪 DATE CHECK APRÈS ENRICHISSEMENT :',
+  'Ã°Å¸Â§Âª DATE CHECK APRÃƒË†S ENRICHISSEMENT :',
   result.events.map(
     event => ({
       date_reference:
@@ -2525,7 +2525,7 @@ const enrichedEvents =
   );
 
 console.log(
-  '🧪 DATE CHECK APRÈS ENRICHISSEMENT :',
+  'Ã°Å¸Â§Âª DATE CHECK APRÃƒË†S ENRICHISSEMENT :',
   enrichedEvents.map(
     event => ({
       date_reference:
@@ -2655,10 +2655,10 @@ const eventsNeedingDateConfirmation =
             : firstEvent.proposed_date_reference;
 
         /*
-         * Si l'utilisateur a confirmé une date proposée par
+         * Si l'utilisateur a confirmÃƒÂ© une date proposÃƒÂ©e par
          * Moment, on ne redemande pas de confirmation.
          *
-         * Les événements seront ensuite normalisés avec
+         * Les ÃƒÂ©vÃƒÂ©nements seront ensuite normalisÃƒÂ©s avec
          * confirmed_calendar_date.
          */
 
@@ -2666,7 +2666,7 @@ const eventsNeedingDateConfirmation =
           confirmed_calendar_date
         ) {
           console.log(
-            '📅 DATE CONFIRMÉE PAR L’UTILISATEUR :',
+            'Ã°Å¸â€œâ€¦ DATE CONFIRMÃƒâ€°E PAR LÃ¢â‚¬â„¢UTILISATEUR :',
             confirmed_calendar_date
           );
         } else {
@@ -2752,9 +2752,9 @@ const eventsNeedingDateConfirmation =
             };
 
             /*
-             * Si l'utilisateur a explicitement confirmé
-             * une date proposée par Moment, cette date devient
-             * la date réelle de l'événement.
+             * Si l'utilisateur a explicitement confirmÃƒÂ©
+             * une date proposÃƒÂ©e par Moment, cette date devient
+             * la date rÃƒÂ©elle de l'ÃƒÂ©vÃƒÂ©nement.
              */
 
             if (
@@ -2824,9 +2824,9 @@ const eventsNeedingDateConfirmation =
                 correctedMemory,
 
               message:
-                `J'avais enregistré que ${contradiction.newSituation.person} ` +
+                `J'avais enregistrÃƒÂ© que ${contradiction.newSituation.person} ` +
                 `travaillait ${contradiction.newSituation.day} ` +
-                `à ${contradiction.oldSituation.location}. ` +
+                `ÃƒÂ  ${contradiction.oldSituation.location}. ` +
                 `La nouvelle information indique ` +
                 `${contradiction.newSituation.location}. ` +
                 `Voulez-vous corriger cette information ?`,
@@ -2836,7 +2836,7 @@ const eventsNeedingDateConfirmation =
       }
 
       console.log(
-        '📅 EVENTS FINAUX AVANT ENVOI :',
+        'Ã°Å¸â€œâ€¦ EVENTS FINAUX AVANT ENVOI :',
         JSON.stringify(
           result.events,
           null,
@@ -2870,7 +2870,7 @@ const eventsNeedingDateConfirmation =
 
     } catch (error) {
   console.error(
-    '❌ Erreur OpenAI /understand :',
+    'Ã¢ÂÅ’ Erreur OpenAI /understand :',
     error
   );
 
@@ -2915,9 +2915,9 @@ const eventsNeedingDateConfirmation =
   });
 
   /*
-   * L'ancien événement générique est conservé
-   * temporairement pour compatibilité avec les
-   * diagnostics déjà existants.
+   * L'ancien ÃƒÂ©vÃƒÂ©nement gÃƒÂ©nÃƒÂ©rique est conservÃƒÂ©
+   * temporairement pour compatibilitÃƒÂ© avec les
+   * diagnostics dÃƒÂ©jÃƒÂ  existants.
    */
 
   logDiagnostic({
@@ -2963,7 +2963,7 @@ const eventsNeedingDateConfirmation =
       .status(402)
       .json({
         error:
-          'Crédit API OpenAI épuisé',
+          'CrÃƒÂ©dit API OpenAI ÃƒÂ©puisÃƒÂ©',
 
         code:
           'OPENAI_CREDIT_EXHAUSTED',
@@ -2975,7 +2975,7 @@ const eventsNeedingDateConfirmation =
           'credit_exhausted',
 
         message:
-          'Moment ne peut plus analyser de nouveaux souvenirs car le crédit API OpenAI est épuisé.',
+          'Moment ne peut plus analyser de nouveaux souvenirs car le crÃƒÂ©dit API OpenAI est ÃƒÂ©puisÃƒÂ©.',
       });
   }
 
@@ -2998,7 +2998,7 @@ const eventsNeedingDateConfirmation =
           'rate_limit',
 
         message:
-          'Moment reçoit temporairement trop de requêtes. Réessayez dans quelques instants.',
+          'Moment reÃƒÂ§oit temporairement trop de requÃƒÂªtes. RÃƒÂ©essayez dans quelques instants.',
       });
   }
 
@@ -3006,7 +3006,7 @@ const eventsNeedingDateConfirmation =
     .status(500)
     .json({
       error:
-        'Erreur lors de la compréhension de la mémoire',
+        'Erreur lors de la comprÃƒÂ©hension de la mÃƒÂ©moire',
 
       code:
         'UNDERSTAND_ERROR',
@@ -3018,7 +3018,7 @@ const eventsNeedingDateConfirmation =
         classifiedError.reason,
 
       message:
-        'Moment a rencontré une erreur pendant l’analyse du souvenir.',
+        'Moment a rencontrÃƒÂ© une erreur pendant lÃ¢â‚¬â„¢analyse du souvenir.',
     });
 }
   }
@@ -3029,3 +3029,4 @@ const eventsNeedingDateConfirmation =
 module.exports = {
   registerUnderstandRoute,
 };
+

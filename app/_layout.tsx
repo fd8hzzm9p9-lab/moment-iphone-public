@@ -18,6 +18,7 @@ import React, {
 
 import {
   Alert,
+  AppState,
 } from 'react-native';
 
 import 'react-native-reanimated';
@@ -27,7 +28,13 @@ import {
 } from '@/hooks/use-color-scheme';
 
 import {
+  SERVER_URL,
+} from '../config/server';
+
+
+import {
   FEEDBACK_ALERT_THRESHOLD,
+  getMomentDeviceId,
   getPendingDiagnosticCount,
 } from '../services/diagnosticService';
 
@@ -86,6 +93,117 @@ export default function RootLayout() {
         clearTimeout(
           timer
         );
+    },
+    []
+  );
+
+  useEffect(
+    () => {
+      /*
+       * Présence testeur :
+       *
+       * - ping immédiat quand Moment est actif ;
+       * - ping toutes les 60 secondes ;
+       * - aucun ping lorsque l'app est en arrière-plan.
+       */
+
+      let heartbeatInterval:
+        ReturnType<typeof setInterval> |
+        null =
+          null;
+
+      const sendHeartbeat =
+        async () => {
+          try {
+            const momentDeviceId =
+              await getMomentDeviceId();
+
+            await fetch(
+              `${SERVER_URL}/alpha-presence/heartbeat`,
+              {
+                method:
+                  'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                body:
+                  JSON.stringify({
+                    moment_device_id:
+                      momentDeviceId,
+                  }),
+              }
+            );
+          } catch {
+            /*
+             * Le heartbeat ne doit jamais gêner
+             * l'utilisation normale de Moment.
+             */
+          }
+        };
+
+      const stopHeartbeat =
+        () => {
+          if (
+            heartbeatInterval
+          ) {
+            clearInterval(
+              heartbeatInterval
+            );
+
+            heartbeatInterval =
+              null;
+          }
+        };
+
+      const startHeartbeat =
+        () => {
+          stopHeartbeat();
+
+          void sendHeartbeat();
+
+          heartbeatInterval =
+            setInterval(
+              () => {
+                void sendHeartbeat();
+              },
+              60000
+            );
+        };
+
+      /*
+       * Au montage du RootLayout, on démarre
+       * immédiatement le heartbeat.
+       *
+       * Sur Android, AppState.currentState peut
+       * ne pas encore être "active" au tout premier
+       * rendu. Attendre uniquement AppState pouvait
+       * donc empêcher complètement le heartbeat.
+       */
+      startHeartbeat();
+
+      const subscription =
+        AppState.addEventListener(
+          'change',
+          nextState => {
+            if (
+              nextState ===
+              'active'
+            ) {
+              startHeartbeat();
+            } else {
+              stopHeartbeat();
+            }
+          }
+        );
+
+      return () => {
+        stopHeartbeat();
+
+        subscription.remove();
+      };
     },
     []
   );

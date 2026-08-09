@@ -1199,74 +1199,6 @@ function redeemRechargeCode(deviceId, rechargeCode) {
   };
 }
 
-
-/*
- * =========================================================
- * PRÉSENCE TESTEURS — HEARTBEAT
- * =========================================================
- *
- * Aucun appel OpenAI.
- * Enregistre uniquement la dernière présence connue
- * de l'application auprès du serveur Moment.
- */
-
-function recordTesterHeartbeat(
-  deviceId
-) {
-  const cleanDeviceId =
-    normalizeDeviceId(
-      deviceId
-    );
-
-  if (!cleanDeviceId) {
-    const error =
-      new Error(
-        'Identifiant appareil manquant'
-      );
-
-    error.code =
-      'MISSING_DEVICE_ID';
-
-    error.status =
-      400;
-
-    throw error;
-  }
-
-  const store =
-    readStore();
-
-  const state =
-    ensureCreditFields(
-      getOrCreateDevice(
-        store,
-        cleanDeviceId
-      )
-    );
-
-  const now =
-    new Date()
-      .toISOString();
-
-  state.last_seen_at =
-    now;
-
-  writeStore(
-    store
-  );
-
-  return {
-    ok:
-      true,
-
-    moment_device_id:
-      cleanDeviceId,
-
-    last_seen_at:
-      now,
-  };
-}
-
 function getQuotaFeedbackSnapshot(deviceId) {
   const cleanDeviceId =
     normalizeDeviceId(
@@ -1420,5 +1352,4 @@ module.exports = {
   createRechargeCode,
   redeemRechargeCode,
   getQuotaFeedbackSnapshot,
-  recordTesterHeartbeat,
 };
