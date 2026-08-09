@@ -128,7 +128,7 @@ const {
  * automatique, mais avec davantage de marge.
  */
 const OPENAI_UNDERSTAND_TIMEOUT_MS =
-  25000;
+  60000;
 
 function registerUnderstandRoute(
   app,

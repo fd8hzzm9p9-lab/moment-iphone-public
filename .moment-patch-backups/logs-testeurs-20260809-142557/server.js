@@ -1,9 +1,9 @@
 /*
  * =========================================================
- * MOMENT â€” SERVER
+ * MOMENT — SERVER
  * =========================================================
- * VERSION : prÃ©-0.1.0 â€” corrections RDV + horaires +
- * prÃ©sence + dÃ©ductions + chronologie
+ * VERSION : pré-0.1.0 — corrections RDV + horaires +
+ * présence + déductions + chronologie
  * =========================================================
  */
 
@@ -153,9 +153,9 @@ app.use(express.json());
  *
  * Ce middleware :
  * - conserve les diagnostics techniques existants ;
- * - affiche un rÃ©sumÃ© humain pour /understand et /recall ;
- * - ne modifie aucune logique mÃ©tier ;
- * - exploite uniquement les donnÃ©es dÃ©jÃ  envoyÃ©es par l'app.
+ * - affiche un résumé humain pour /understand et /recall ;
+ * - ne modifie aucune logique métier ;
+ * - exploite uniquement les données déjà envoyées par l'app.
  */
 
 app.use(
@@ -286,39 +286,39 @@ app.use(
 
     console.log('');
     console.log(
-      'â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•'
+      '╔══════════════════════════════════════════════════════════════'
     );
 
     console.log(
-      'â•‘ ðŸ§ª ACTIVITÃ‰ TESTEUR MOMENT'
+      '║ 🧪 ACTIVITÉ TESTEUR MOMENT'
     );
 
     console.log(
-      'â• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•'
+      '╠══════════════════════════════════════════════════════════════'
     );
 
     console.log(
-      `â•‘ ðŸ‘¤ Testeur      : ${shortDeviceId}`
+      `║ 👤 Testeur      : ${shortDeviceId}`
     );
 
     console.log(
-      `â•‘ ðŸ†” Appareil     : ${deviceId || 'identifiant indisponible'}`
+      `║ 🆔 Appareil     : ${deviceId || 'identifiant indisponible'}`
     );
 
     console.log(
-      `â•‘ ðŸ• Heure        : ${parisDateTime}`
+      `║ 🕐 Heure        : ${parisDateTime}`
     );
 
     console.log(
-      `â•‘ ðŸ§  Fonction     : ${commandLabel}`
+      `║ 🧠 Commande     : ${commandLabel}`
     );
 
     console.log(
-      'â•‘'
+      '║'
     );
 
     console.log(
-      `â•‘ ðŸ“ Demande      : "${input}"`
+      `║ 📝 Demande      : "${input}"`
     );
 
     if (
@@ -326,7 +326,7 @@ app.use(
         null
     ) {
       console.log(
-        `â•‘ ðŸ’³ CrÃ©dit avant : ${creditsBefore}`
+        `║ 💳 Crédit avant : ${creditsBefore}`
       );
     }
 
@@ -436,7 +436,7 @@ app.use(
             300;
 
         let treatment =
-          'INDÃ‰TERMINÃ‰';
+          'INDÉTERMINÉ';
 
         if (
           creditsBefore !==
@@ -447,8 +447,8 @@ app.use(
           treatment =
             creditsAfter <
               creditsBefore
-              ? 'OPENAI UTILISÃ‰'
-              : 'SANS CRÃ‰DIT OPENAI';
+              ? 'OPENAI UTILISÉ'
+              : 'SANS CRÉDIT OPENAI';
         }
 
         const resultLabel =
@@ -456,247 +456,17 @@ app.use(
             ? (
                 feature ===
                   'understand'
-                  ? 'TRAITEMENT TERMINÃ‰'
-                  : 'RÃ‰PONSE ENVOYÃ‰E'
+                  ? 'TRAITEMENT TERMINÉ'
+                  : 'RÉPONSE ENVOYÉE'
               )
             : 'ERREUR';
-        /*
-         * MOMENT_READABLE_TESTER_LOG_V1
-         * Resume lisible des elements compris/enregistres.
-         */
-
-        const readableEvents =
-          Array.isArray(
-            payload?.events
-          )
-            ? payload.events
-            : [];
-
-        const greenField =
-          field =>
-            `\x1b[32m{${field}}\x1b[0m`;
-
-        const readableValue =
-          value => {
-            if (
-              value === null ||
-              value === undefined ||
-              value === ''
-            ) {
-              return '-';
-            }
-
-            if (
-              Array.isArray(
-                value
-              )
-            ) {
-              return value.length
-                ? value.join(', ')
-                : '-';
-            }
-
-            return String(value);
-          };
-
-        const readableCalendarDate =
-          value => {
-            const clean =
-              String(
-                value || ''
-              ).trim();
-
-            const match =
-              clean.match(
-                /^(\d{4})-(\d{2})-(\d{2})$/
-              );
-
-            if (!match) {
-              return clean || '-';
-            }
-
-            return (
-              `${match[3]}/` +
-              `${match[2]}/` +
-              `${match[1]}`
-            );
-          };
-
-        const readableTemporalDirection =
-          value => {
-            if (value === 'past') {
-              return 'Passe';
-            }
-
-            if (value === 'future') {
-              return 'Futur';
-            }
-
-            if (value === 'present') {
-              return 'Present';
-            }
-
-            return readableValue(value);
-          };
-
-        const readableLocalOnly =
-          req.body?.local_only === true;
-
-        const readableOpenAiUsed =
-          creditsBefore !== null &&
-          creditsAfter !== null &&
-          creditsAfter < creditsBefore;
-
-        const readableErrorCode =
-          String(
-            payload?.code || ''
-          );
-
-        const readableOpenAiFailed =
-          !successful &&
-          (
-            readableErrorCode.startsWith(
-              'OPENAI_'
-            ) ||
-            String(
-              payload?.error || ''
-            )
-              .toLowerCase()
-              .includes('openai')
-          );
-
-        const readableOpenAiLabel =
-          readableOpenAiUsed
-            ? 'OUI'
-            : readableOpenAiFailed
-              ? 'OUI - ECHEC'
-              : 'NON';
-
-        const readableModeLabel =
-          readableLocalOnly
-            ? 'LOCAL UNIQUEMENT'
-            : 'LOCAL FIRST';
-
-        if (
-          feature === 'understand' &&
-          successful &&
-          readableEvents.length > 0
-        ) {
-          console.log('');
-          console.log(
-            '\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550'
-          );
-
-          console.log(
-            `\u2551 \u{1F4BE} ELEMENTS COMPRIS / ENREGISTRES : ${readableEvents.length}`
-          );
-
-          console.log(
-            '\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550'
-          );
-
-          readableEvents.forEach(
-            (
-              event,
-              index
-            ) => {
-              console.log(
-                '\u2551'
-              );
-
-              console.log(
-                `\u2551 #${index + 1} ELEMENT`
-              );
-
-              console.log(
-                `\u2551 \u{1F4DD} Source       : "${readableValue(event?.source_text)}"  ${greenField('source_text')}`
-              );
-
-              console.log(
-                `\u2551 \u{1F9E0} Compris      : ${readableValue(event?.description)}  ${greenField('description')}`
-              );
-
-              console.log(
-                `\u2551 \u{1F4C5} Date         : ${readableValue(event?.date_reference)}  ${greenField('date_reference')}`
-              );
-
-              console.log(
-                `\u2551 \u{1F4C6} Date reelle  : ${readableCalendarDate(event?.calendar_date)}  ${greenField('calendar_date')}`
-              );
-
-              console.log(
-                `\u2551 \u{1F570}\uFE0F Temporalite  : ${readableTemporalDirection(event?.temporal_direction)}  ${greenField('temporal_direction')}`
-              );
-
-              if (
-                Array.isArray(event?.people) &&
-                event.people.length > 0
-              ) {
-                console.log(
-                  `\u2551 \u{1F464} Personne(s)  : ${readableValue(event.people)}  ${greenField('people')}`
-                );
-              }
-
-              if (
-                Array.isArray(event?.places) &&
-                event.places.length > 0
-              ) {
-                console.log(
-                  `\u2551 \u{1F4CD} Lieu(x)      : ${readableValue(event.places)}  ${greenField('places')}`
-                );
-              }
-
-              if (
-                Array.isArray(event?.actions) &&
-                event.actions.length > 0
-              ) {
-                console.log(
-                  `\u2551 \u{1F528} Action(s)    : ${readableValue(event.actions)}  ${greenField('actions')}`
-                );
-              }
-
-              if (
-                event?.confidence !== undefined
-              ) {
-                console.log(
-                  `\u2551 \u{1F3AF} Confiance    : ${readableValue(event.confidence)}  ${greenField('confidence')}`
-                );
-              }
-            }
-          );
-
-          console.log(
-            '\u2551'
-          );
-        }
 
         console.log(
-          '\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550'
+          '║'
         );
 
         console.log(
-          '\u2551 \u{1F527} TRAITEMENT'
-        );
-
-        console.log(
-          '\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550'
-        );
-
-        console.log(
-          `\u2551 \u{1F9E9} Mode         : ${readableModeLabel}`
-        );
-
-        console.log(
-          `\u2551 \u{1F916} OpenAI       : ${readableOpenAiLabel}`
-        );
-
-
-        console.log(
-          'â•‘'
-        );
-
-        console.log(
-          `â•‘ ðŸ¤– Traitement   : ${treatment}`
+          `║ 🤖 Traitement   : ${treatment}`
         );
 
         if (
@@ -706,16 +476,16 @@ app.use(
             null
         ) {
           console.log(
-            `â•‘ ðŸ’³ CrÃ©dit       : ${creditsBefore} â†’ ${creditsAfter}`
+            `║ 💳 Crédit       : ${creditsBefore} → ${creditsAfter}`
           );
         }
 
         console.log(
-          `â•‘ â±ï¸ DurÃ©e        : ${(durationMs / 1000).toFixed(1)} s`
+          `║ ⏱️ Durée        : ${(durationMs / 1000).toFixed(1)} s`
         );
 
         console.log(
-          `â•‘ ${successful ? 'âœ…' : 'âŒ'} RÃ©sultat      : ${resultLabel} (HTTP ${res.statusCode})`
+          `║ ${successful ? '✅' : '❌'} Résultat      : ${resultLabel} (HTTP ${res.statusCode})`
         );
 
         if (
@@ -725,15 +495,15 @@ app.use(
             payload?.code ||
             payload?.error ||
             payload?.message ||
-            'Erreur non dÃ©taillÃ©e';
+            'Erreur non détaillée';
 
           console.log(
-            `â•‘ âš ï¸ Motif        : ${String(reason)}`
+            `║ ⚠️ Motif        : ${String(reason)}`
           );
         }
 
         console.log(
-          'â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•'
+          '╚══════════════════════════════════════════════════════════════'
         );
 
         console.log('');
@@ -818,7 +588,7 @@ registerRecallRoute(
 
 
 /* ========================================================= */
-/* CRÃ‰DITS DE TEST â€” MEMENTO 002-08                           */
+/* CRÉDITS DE TEST — MEMENTO 002-08                           */
 /* ========================================================= */
 
 app.post(
@@ -875,7 +645,7 @@ app.post(
       return res
         .status(error?.status || 500)
         .json({
-          error: error?.message || 'Code refusÃ©.',
+          error: error?.message || 'Code refusé.',
           code: error?.code || 'ALPHA_CREDIT_REDEEM_ERROR',
         });
     }
@@ -896,14 +666,14 @@ app.post(
         .status(error?.status || 500)
         .json({
           available: false,
-          error: error?.message || 'DonnÃ©es indisponibles.',
+          error: error?.message || 'Données indisponibles.',
         });
     }
   }
 );
 
 /* ========================================================= */
-/* PRÃ‰SENCE TESTEURS â€” HEARTBEAT                             */
+/* PRÉSENCE TESTEURS — HEARTBEAT                             */
 /* ========================================================= */
 
 app.post(
@@ -927,7 +697,7 @@ app.post(
 
           error:
             error?.message ||
-            'PrÃ©sence indisponible.',
+            'Présence indisponible.',
 
           code:
             error?.code ||
@@ -988,23 +758,23 @@ app.listen(
   '0.0.0.0',
   () => {
     console.log(
-      `ðŸ§  Serveur Moment lancÃ© sur le port ${PORT}`
+      `🧠 Serveur Moment lancé sur le port ${PORT}`
     );
 
     console.log(
-      'ðŸš¨ VERSION STRICTE PRESENCE + DEDUCTIONS VALIDEES ACTIVE'
+      '🚨 VERSION STRICTE PRESENCE + DEDUCTIONS VALIDEES ACTIVE'
     );
 
     console.log(
-      'âœï¸ CORRECTIONS RDV + HORAIRES DE TRAVAIL ACTIVEES'
+      '✏️ CORRECTIONS RDV + HORAIRES DE TRAVAIL ACTIVEES'
     );
 
     console.log(
-      'ðŸ“… ANCRAGE CALENDAIRE RÃ‰EL ACTIF'
+      '📅 ANCRAGE CALENDAIRE RÉEL ACTIF'
     );
 
     console.log(
-      'ðŸ—“ï¸ Date Paris actuelle :',
+      '🗓️ Date Paris actuelle :',
       getCurrentParisDate()
     );
   }

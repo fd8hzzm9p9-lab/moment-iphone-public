@@ -238,28 +238,6 @@ function render() {
               ? 'A RECH.'
               : 'ACTIF';
 
-        const lastSeenAt =
-          device
-            ?.last_seen_at ||
-          null;
-
-        const lastSeenMs =
-          lastSeenAt
-            ? new Date(
-                lastSeenAt
-              ).getTime()
-            : 0;
-
-        const isOnline =
-          Number.isFinite(
-            lastSeenMs
-          ) &&
-          lastSeenMs > 0 &&
-          (
-            Date.now() -
-            lastSeenMs
-          ) <= 90000;
-
         const testerName =
           getTesterName(
             names,
@@ -275,18 +253,8 @@ function render() {
               testerName
             ),
 
-          Crédit:
+          Statut:
             status,
-
-          'En ligne':
-            isOnline
-              ? '🟢 OUI'
-              : '⚫ NON',
-
-          'Vu':
-            formatDate(
-              lastSeenAt
-            ),
 
           'Nbre Rech.':
             rechargeCount,

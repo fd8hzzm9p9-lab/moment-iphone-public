@@ -9,7 +9,12 @@
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "group": "moment-backend",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
     },
     {
       "label": "☁️ Cloudflare",
@@ -19,7 +24,12 @@
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "group": "moment-backend",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
     },
     {
       "label": "📱 Expo",
@@ -29,7 +39,12 @@
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "group": "moment-frontend",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
     },
     {
       "label": "📊 Crédits testeurs",
@@ -39,7 +54,12 @@
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": [],
+      "presentation": {
+        "group": "moment-frontend",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
     },
     {
       "label": "🚀 Démarrer Moment",

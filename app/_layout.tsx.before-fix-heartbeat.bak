@@ -173,16 +173,12 @@ export default function RootLayout() {
             );
         };
 
-      /*
-       * Au montage du RootLayout, on démarre
-       * immédiatement le heartbeat.
-       *
-       * Sur Android, AppState.currentState peut
-       * ne pas encore être "active" au tout premier
-       * rendu. Attendre uniquement AppState pouvait
-       * donc empêcher complètement le heartbeat.
-       */
-      startHeartbeat();
+      if (
+        AppState.currentState ===
+        'active'
+      ) {
+        startHeartbeat();
+      }
 
       const subscription =
         AppState.addEventListener(

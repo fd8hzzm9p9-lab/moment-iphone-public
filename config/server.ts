@@ -8,4 +8,4 @@
  */
 
 export const SERVER_URL =
-  'https://diameter-suspended-pride-himself.trycloudflare.com';
+  'https://nato-maintenance-costs-proposition.trycloudflare.com';
