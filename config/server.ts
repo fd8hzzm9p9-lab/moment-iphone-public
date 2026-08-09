@@ -8,4 +8,4 @@
  */
 
 export const SERVER_URL =
-  'https://relocation-cooking-sticky-mine.trycloudflare.com';
+  'https://dust-sheets-printable-webmasters.trycloudflare.com';

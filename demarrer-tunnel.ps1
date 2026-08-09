@@ -1,65 +1,508 @@
 ﻿$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
-$Projet = "C:\Users\jerry\moment-dev"
-$ServerFile = "$Projet\config\server.ts"
+$ProjectRoot = $PSScriptRoot
+$ServerFile = Join-Path $ProjectRoot "config\server.ts"
+$ServerHost = "127.0.0.1"
+$ServerPort = 3001
+$OriginUrl = "http://${ServerHost}:${ServerPort}"
+$ReadyFile = Join-Path $env:TEMP "momentdev-cloudflare-ready.json"
 
-Write-Host ""
-Write-Host "=== CLOUDFLARE TUNNEL ===" -ForegroundColor Cyan
-Write-Host ""
+function Write-Tagged {
+    param(
+        [string]$Tag,
+        [string]$Message,
+        [ConsoleColor]$Color
+    )
 
-Set-Location $Projet
+    Write-Host $Tag -NoNewline -ForegroundColor $Color
+    Write-Host " $Message" -ForegroundColor White
+}
 
-# Lance Cloudflare et rÃ©cupÃ¨re sa sortie
-$process = New-Object System.Diagnostics.Process
-$process.StartInfo.FileName = "cloudflared"
-$process.StartInfo.Arguments = "tunnel --url http://127.0.0.1:3001"
-$process.StartInfo.WorkingDirectory = $Projet
-$process.StartInfo.UseShellExecute = $false
-$process.StartInfo.RedirectStandardOutput = $true
-$process.StartInfo.RedirectStandardError = $true
-$process.StartInfo.CreateNoWindow = $true
+function Log-OK {
+    param([string]$Message)
+    Write-Tagged "[OK]" $Message Green
+}
 
-$process.Start() | Out-Null
+function Log-KO {
+    param([string]$Message)
+    Write-Tagged "[KO]" $Message Red
+}
 
-$url = $null
+function Log-INFO {
+    param([string]$Message)
 
-while (-not $url) {
-    $line = $process.StandardError.ReadLine()
+    Write-Host "[INFO] " -NoNewline -ForegroundColor Gray
+    Write-Host $Message -ForegroundColor White
+}
 
-    if ($line) {
-        Write-Host $line
+function Test-TcpPort {
+    param(
+        [string]$HostName,
+        [int]$Port,
+        [int]$TimeoutMs = 1000
+    )
 
-        if ($line -match 'https://[a-zA-Z0-9-]+\.trycloudflare\.com') {
-            $url = $matches[0]
+    $client = New-Object System.Net.Sockets.TcpClient
+
+    try {
+        $async = $client.BeginConnect(
+            $HostName,
+            $Port,
+            $null,
+            $null
+        )
+
+        if (
+            -not $async.AsyncWaitHandle.WaitOne(
+                $TimeoutMs
+            )
+        ) {
+            return $false
         }
+
+        $client.EndConnect(
+            $async
+        )
+
+        return $true
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $client.Close()
     }
 }
 
+function Wait-Server {
+    $deadline = (Get-Date).AddSeconds(60)
+
+    while (
+        (Get-Date) -lt $deadline
+    ) {
+        if (
+            Test-TcpPort `
+                -HostName $ServerHost `
+                -Port $ServerPort `
+                -TimeoutMs 1000
+        ) {
+            return $true
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    return $false
+}
+
+function Get-ConfiguredServerUrl {
+    $bytes = [IO.File]::ReadAllBytes(
+        $ServerFile
+    )
+
+    $latin1 = [Text.Encoding]::GetEncoding(
+        28591
+    )
+
+    $text = $latin1.GetString(
+        $bytes
+    )
+
+    $match = [regex]::Match(
+        $text,
+        'https://[a-zA-Z0-9-]+\.trycloudflare\.com'
+    )
+
+    if (
+        $match.Success
+    ) {
+        return $match.Value
+    }
+
+    return $null
+}
+
+function Resolve-PublicTunnelIp {
+    param(
+        [string]$HostName
+    )
+
+    foreach (
+        $dnsServer in @(
+            "1.1.1.1",
+            "8.8.8.8"
+        )
+    ) {
+        try {
+            $answers = @(
+                Resolve-DnsName `
+                    $HostName `
+                    -Server $dnsServer `
+                    -Type A `
+                    -ErrorAction Stop |
+                    Where-Object {
+                        $_.IPAddress
+                    }
+            )
+
+            if (
+                $answers.Count -gt 0
+            ) {
+                return [string]$answers[0].IPAddress
+            }
+        }
+        catch {
+        }
+    }
+
+    return $null
+}
+
+function Test-TunnelDirect {
+    param(
+        [string]$BaseUrl,
+        [string]$IpAddress
+    )
+
+    if (
+        -not $BaseUrl -or
+        -not $IpAddress
+    ) {
+        return $false
+    }
+
+    $hostName = ([Uri]$BaseUrl).Host
+    $testUrl = $BaseUrl + "/__moment_launcher_test__"
+
+    $status = & curl.exe `
+        --resolve "$($hostName):443:$IpAddress" `
+        --connect-timeout 5 `
+        --max-time 10 `
+        --silent `
+        --output NUL `
+        --write-out "%{http_code}" `
+        $testUrl 2>$null
+
+    if (
+        $LASTEXITCODE -ne 0
+    ) {
+        return $false
+    }
+
+    $status = ([string]$status).Trim()
+
+    return (
+        $status -match
+        '^[1-5][0-9][0-9]$'
+    )
+}
+
+function Replace-ServerUrlBinary {
+    param(
+        [string]$NewUrl
+    )
+
+    $bytes = [IO.File]::ReadAllBytes(
+        $ServerFile
+    )
+
+    $latin1 = [Text.Encoding]::GetEncoding(
+        28591
+    )
+
+    $text = $latin1.GetString(
+        $bytes
+    )
+
+    $matches = [regex]::Matches(
+        $text,
+        'https://[a-zA-Z0-9-]+\.trycloudflare\.com'
+    )
+
+    if (
+        $matches.Count -ne 1
+    ) {
+        throw "SERVER_URL Cloudflare trouvee $($matches.Count) fois dans config/server.ts."
+    }
+
+    $match = $matches[0]
+    $newBytes = [Text.Encoding]::ASCII.GetBytes(
+        $NewUrl
+    )
+
+    $output = New-Object IO.MemoryStream
+
+    try {
+        $output.Write(
+            $bytes,
+            0,
+            $match.Index
+        )
+
+        $output.Write(
+            $newBytes,
+            0,
+            $newBytes.Length
+        )
+
+        $after = $match.Index + $match.Length
+
+        $output.Write(
+            $bytes,
+            $after,
+            $bytes.Length - $after
+        )
+
+        [IO.File]::WriteAllBytes(
+            $ServerFile,
+            $output.ToArray()
+        )
+    }
+    finally {
+        $output.Dispose()
+    }
+}
+
+function Stop-StaleMomentDevTunnels {
+    try {
+        $processes = Get-CimInstance `
+            Win32_Process `
+            -Filter "Name='cloudflared.exe'" `
+            -ErrorAction SilentlyContinue
+
+        foreach (
+            $item in $processes
+        ) {
+            $commandLine = [string]$item.CommandLine
+
+            if (
+                $commandLine -match
+                '--url\s+http://(?:localhost|127\.0\.0\.1):3001(?:\s|$)'
+            ) {
+                Stop-Process `
+                    -Id $item.ProcessId `
+                    -Force `
+                    -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    catch {
+    }
+}
+
+function Write-ReadyMarker {
+    param(
+        [string]$Url
+    )
+
+    $payload = @{
+        url = $Url
+        created_at = (
+            Get-Date
+        ).ToUniversalTime().ToString(
+            "o"
+        )
+    } | ConvertTo-Json -Compress
+
+    [IO.File]::WriteAllText(
+        $ReadyFile,
+        $payload,
+        (
+            New-Object System.Text.UTF8Encoding(
+                $false
+            )
+        )
+    )
+}
+
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "URL CLOUDFLARE :" -ForegroundColor Green
-Write-Host $url -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Green
-
-# Mise Ã  jour automatique de config/server.ts
-@"
-/* ========================================================= */
-/* CONFIGURATION SERVEUR CENTRALISÃ‰E                         */
-/* ========================================================= */
-/*
- * Moment â€” prÃ©-0.1.0
- *
- * URL Cloudflare gÃ©nÃ©rÃ©e automatiquement au dÃ©marrage.
- */
-
-export const SERVER_URL =
-  '$url';
-"@ | Set-Content -Path $ServerFile -Encoding UTF8
-
-Write-Host ""
-Write-Host "âœ… config/server.ts mis Ã  jour automatiquement." -ForegroundColor Green
+Write-Host "=== CLOUDFLARE TUNNEL MOMENTDEV ===" -ForegroundColor Cyan
 Write-Host ""
 
-# Le tunnel reste actif
-$process.WaitForExit()
+try {
+    Set-Location $ProjectRoot
 
+    if (
+        Test-Path -LiteralPath $ReadyFile
+    ) {
+        Remove-Item `
+            -LiteralPath $ReadyFile `
+            -Force `
+            -ErrorAction SilentlyContinue
+    }
+
+    if (
+        -not (
+            Test-Path -LiteralPath $ServerFile
+        )
+    ) {
+        throw "config/server.ts introuvable."
+    }
+
+    Log-INFO "Attente du serveur MomentDEV sur le port 3001..."
+
+    if (
+        -not (
+            Wait-Server
+        )
+    ) {
+        throw "Le serveur MomentDEV n'ecoute pas sur 127.0.0.1:3001 apres 60 secondes."
+    }
+
+    Log-OK "Serveur MomentDEV joignable sur 127.0.0.1:3001"
+
+    Stop-StaleMomentDevTunnels
+
+    Log-INFO "Creation d'un nouveau tunnel MomentDEV"
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "cloudflared.exe"
+    $psi.Arguments = "tunnel --url $OriginUrl"
+    $psi.WorkingDirectory = $ProjectRoot
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $false
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+
+    $process.Start() | Out-Null
+
+    $url = $null
+    $deadline = (Get-Date).AddSeconds(60)
+
+    while (
+        -not $url -and
+        -not $process.HasExited -and
+        (Get-Date) -lt $deadline
+    ) {
+        $line = $process.StandardError.ReadLine()
+
+        if (
+            $line
+        ) {
+            Write-Host $line
+
+            if (
+                $line -match
+                'https://[a-zA-Z0-9-]+\.trycloudflare\.com'
+            ) {
+                $url = $matches[0]
+            }
+        }
+    }
+
+    if (
+        -not $url
+    ) {
+        throw "Aucune URL Cloudflare obtenue."
+    }
+
+    Log-OK "Nouvelle URL : $url"
+
+    $hostName = ([Uri]$url).Host
+    $publicIp = $null
+    $ready = $false
+    $validationDeadline = (Get-Date).AddSeconds(90)
+
+    Log-INFO "Validation via DNS public Cloudflare/Google..."
+
+    while (
+        -not $ready -and
+        -not $process.HasExited -and
+        (Get-Date) -lt $validationDeadline
+    ) {
+        $publicIp = Resolve-PublicTunnelIp `
+            -HostName $hostName
+
+        if (
+            $publicIp
+        ) {
+            if (
+                Test-TunnelDirect `
+                    -BaseUrl $url `
+                    -IpAddress $publicIp
+            ) {
+                $ready = $true
+                break
+            }
+        }
+
+        Start-Sleep -Seconds 2
+    }
+
+    if (
+        -not $ready
+    ) {
+        throw "Le tunnel Cloudflare MomentDEV n'est pas devenu joignable dans les 90 secondes."
+    }
+
+    Log-OK "Tunnel Cloudflare MomentDEV valide de bout en bout"
+
+    $backup = Join-Path `
+        $env:TEMP `
+        (
+            "momentdev-server-before-tunnel-" +
+            (Get-Date -Format "yyyyMMdd-HHmmss") +
+            ".ts"
+        )
+
+    [IO.File]::WriteAllBytes(
+        $backup,
+        [IO.File]::ReadAllBytes(
+            $ServerFile
+        )
+    )
+
+    Replace-ServerUrlBinary `
+        -NewUrl $url
+
+    $configuredUrl = Get-ConfiguredServerUrl
+
+    if (
+        $configuredUrl -ne $url
+    ) {
+        [IO.File]::WriteAllBytes(
+            $ServerFile,
+            [IO.File]::ReadAllBytes(
+                $backup
+            )
+        )
+
+        throw "Controle SERVER_URL echoue ; config/server.ts restaure."
+    }
+
+    Log-OK "config/server.ts mis a jour sans reencodage"
+    Log-OK "URL active : $url"
+
+    Write-ReadyMarker `
+        -Url $url
+
+    Log-OK "Signal de demarrage Expo MomentDEV cree"
+
+    Write-Host ""
+    Write-Host "CLOUDFLARE MOMENTDEV PRET" -ForegroundColor Green
+    Write-Host ""
+
+    while (
+        -not $process.HasExited
+    ) {
+        $line = $process.StandardError.ReadLine()
+
+        if (
+            $line
+        ) {
+            Write-Host $line
+        }
+    }
+
+    Log-KO "Le tunnel Cloudflare MomentDEV s'est arrete."
+}
+catch {
+    Log-KO $_.Exception.Message
+
+    Write-Host ""
+    Write-Host "CLOUDFLARE MOMENTDEV NON DEMARRE" -ForegroundColor Red
+}

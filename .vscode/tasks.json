@@ -2,72 +2,74 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "🧠 Serveur Moment",
+      "label": "🧠 Serveur MomentDEV",
       "type": "shell",
-      "command": "node server/server.js",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\terminal-projet.ps1\" -Role server",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PORT": "3001"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "momentdev-backend",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "☁️ Cloudflare MomentDEV",
+      "type": "shell",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\terminal-projet.ps1\" -Role cloudflare",
       "options": {
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
       "problemMatcher": [],
       "presentation": {
-        "group": "moment-backend",
+        "group": "momentdev-backend",
         "panel": "dedicated",
         "reveal": "always"
       }
     },
     {
-      "label": "☁️ Cloudflare",
+      "label": "📱 Expo MomentDEV",
       "type": "shell",
-      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\demarrer-tunnel.ps1\"",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\terminal-projet.ps1\" -Role expo",
       "options": {
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
       "problemMatcher": [],
       "presentation": {
-        "group": "moment-backend",
+        "group": "momentdev-frontend",
         "panel": "dedicated",
         "reveal": "always"
       }
     },
     {
-      "label": "📱 Expo",
+      "label": "📊 Crédits MomentDEV",
       "type": "shell",
-      "command": "npx.cmd expo start --tunnel",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\ouvrir-tableau-testeurs.ps1\"",
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "isBackground": true,
+      "isBackground": false,
       "problemMatcher": [],
       "presentation": {
-        "group": "moment-frontend",
-        "panel": "dedicated",
-        "reveal": "always"
+        "reveal": "never",
+        "panel": "dedicated"
       }
     },
     {
-      "label": "📊 Crédits testeurs",
-      "type": "shell",
-      "command": "node server/tools/watch-alpha-credits.js",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "isBackground": true,
-      "problemMatcher": [],
-      "presentation": {
-        "group": "moment-frontend",
-        "panel": "dedicated",
-        "reveal": "always"
-      }
-    },
-    {
-      "label": "🚀 Démarrer Moment",
+      "label": "🚀 Démarrer MomentDEV",
       "dependsOn": [
-        "🧠 Serveur Moment",
-        "☁️ Cloudflare",
-        "📱 Expo",
-        "📊 Crédits testeurs"
+        "🧠 Serveur MomentDEV",
+        "☁️ Cloudflare MomentDEV",
+        "📱 Expo MomentDEV",
+        "📊 Crédits MomentDEV"
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []
