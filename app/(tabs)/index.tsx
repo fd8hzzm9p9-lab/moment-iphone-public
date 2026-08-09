@@ -3472,7 +3472,7 @@ setLastFailedMemory({
               APP_VERSION,
 
             counts_toward_feedback:
-              false,
+              true,
           });
 
           try {
