@@ -2273,8 +2273,8 @@ correctionData =
           );
 
         try {
-          response =
-            await quotaOpenai.responses.create(
+      response =
+        await quotaOpenai.responses.create(
               {
                 model:
                   'gpt-5-mini',

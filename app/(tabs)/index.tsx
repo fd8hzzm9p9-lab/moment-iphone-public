@@ -42,6 +42,7 @@ import {
 import { STORAGE_KEY } from '../../config/storage';
 
 import {
+  APP_ENVIRONMENT_LABEL,
   APP_NAME,
   APP_TAGLINE,
   APP_VERSION,
@@ -1456,6 +1457,11 @@ export default function MemoryScreen() {
   ] =
     useState('');
 
+  const [
+    pendingRetryCurrentText,
+    setPendingRetryCurrentText,
+  ] = useState('');
+
   /*
    * PENDING_MEMORIES_COLLAPSIBLE_PHASE3
    *
@@ -1575,7 +1581,7 @@ const tempsTraitementCumuleRef =
 /* ======================================================= */
 
 useEffect(() => {
-  if (!souvenirEnCours) {
+  if (!souvenirEnCours && !pendingRetryInProgress) {
     return;
   }
 
@@ -1605,6 +1611,7 @@ useEffect(() => {
     clearInterval(interval);
 }, [
   souvenirEnCours,
+  pendingRetryInProgress,
 ]);
 
   /* ======================================================= */
@@ -1612,9 +1619,9 @@ useEffect(() => {
   /* ======================================================= */
 
   useEffect(() => {
-    if (!souvenirEnCours) {
-      return;
-    }
+    if (!souvenirEnCours && !pendingRetryInProgress) {
+    return;
+  }
 
     setIndexEtapeTraitement(0);
 
@@ -1644,8 +1651,9 @@ useEffect(() => {
     return () =>
       clearInterval(interval);
   }, [
-    souvenirEnCours,
-  ]);
+  souvenirEnCours,
+  pendingRetryInProgress,
+]);
 
   /* ======================================================= */
   /* SOUVENIRS EN ATTENTE                                    */
@@ -1803,7 +1811,7 @@ useEffect(() => {
         ]
       );
     };
-    
+
     const toggleMemoryExpanded =
       (
         eventId: string
@@ -3402,8 +3410,30 @@ setLastFailedMemory({
       }
 
       setPendingRetryInProgress(
-        true
-      );
+    true
+  );
+
+  processingStartTimeRef.current =
+    Date.now();
+
+  tempsTraitementCumuleRef.current =
+    0;
+
+  setTempsTraitement(
+    0
+  );
+
+  setTempsFinal(
+    null
+  );
+
+  setIndexEtapeTraitement(
+    0
+  );
+
+  setEtapeTraitement(
+    MEMORY_PROCESSING_STEPS[0]
+  );
 
       setPendingRetryMessage(
         ''
@@ -3433,6 +3463,9 @@ setLastFailedMemory({
           const pending of
             pendingSnapshot
         ) {
+      setPendingRetryCurrentText(
+        pending.text
+      );
           const diagnosticId =
             createDiagnosticId(
               'understand'
@@ -3771,10 +3804,17 @@ setLastFailedMemory({
         }
 
       } finally {
-        setPendingRetryInProgress(
-          false
-        );
-      }
+    processingStartTimeRef.current =
+      null;
+
+    setPendingRetryCurrentText(
+      ''
+    );
+
+    setPendingRetryInProgress(
+      false
+    );
+  }
     };
 
 const souviensToi =
@@ -4065,6 +4105,19 @@ return (
             }
           />
         </View>
+        {
+          APP_ENVIRONMENT_LABEL
+            ? (
+              <Text
+                style={
+                  styles.version
+                }
+              >
+                {APP_ENVIRONMENT_LABEL}
+              </Text>
+            )
+            : null
+        }
 
         <Text
           style={
@@ -4289,6 +4342,48 @@ return (
           )
           : null
       }
+
+      {(souvenirEnCours || pendingRetryInProgress) && (
+        <View
+          style={
+            styles.processingContainer
+          }
+        >
+          <Text
+            style={
+              styles.thinkingTitle
+            }
+          >
+            🧠 Moment réfléchit…
+          </Text>
+
+          <Text
+            style={[
+              styles.processingText,
+              {
+                width: '100%',
+                textAlign: 'center',
+              },
+            ]}
+          >
+            {
+              etapeTraitement
+            }
+          </Text>
+
+          <Text
+            style={
+              styles.processingTime
+            }
+          >
+            ⏱️ Temps de traitement :{' '}
+            {tempsTraitement.toFixed(
+              1
+            )}{' '}
+            s
+          </Text>
+        </View>
+      )}
 
       {
         !souvenirEnCours &&
@@ -4535,47 +4630,7 @@ return (
           : null
       }
 
-      {souvenirEnCours && (
-        <View
-          style={
-            styles.processingContainer
-          }
-        >
-          <Text
-            style={
-              styles.thinkingTitle
-            }
-          >
-            🧠 Moment réfléchit…
-          </Text>
 
-          <Text
-            style={[
-              styles.processingText,
-              {
-                width: '100%',
-                textAlign: 'center',
-              },
-            ]}
-          >
-            {
-              etapeTraitement
-            }
-          </Text>
-
-          <Text
-            style={
-              styles.processingTime
-            }
-          >
-            ⏱️ Temps de traitement :{' '}
-            {tempsTraitement.toFixed(
-              1
-            )}{' '}
-            s
-          </Text>
-        </View>
-      )}
 
       <Pressable
         style={
@@ -4787,7 +4842,7 @@ return (
         : null
     }
 
-    {souvenirEnCours && (
+    {(souvenirEnCours || pendingRetryInProgress) && (
       <View
         style={
           styles.fullScreenThinking
@@ -4796,7 +4851,9 @@ return (
       >
         <MomentThinkingAnimation
           text={
-            souvenir
+            pendingRetryInProgress
+              ? pendingRetryCurrentText
+              : souvenir
           }
         />
       </View>

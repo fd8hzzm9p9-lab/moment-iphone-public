@@ -1,4 +1,13 @@
-﻿export const APP_NAME = 'Moment';
+import Constants from 'expo-constants';
+
+﻿export const APP_NAME =
+  Constants.expoConfig?.name ||
+  'Moment';
+
+export const APP_ENVIRONMENT_LABEL =
+  APP_NAME.toLowerCase().includes('dev')
+    ? 'DEV'
+    : '';
 export const APP_VERSION =
   'pré-alpha 0.2.9';
 
