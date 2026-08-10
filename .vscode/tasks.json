@@ -4,7 +4,7 @@
     {
       "label": "🧠 Serveur Moment",
       "type": "shell",
-      "command": "node server/server.js",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\terminal-projet.ps1\" -Role server",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -19,7 +19,7 @@
     {
       "label": "☁️ Cloudflare",
       "type": "shell",
-      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\demarrer-tunnel.ps1\"",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\terminal-projet.ps1\" -Role cloudflare",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -34,7 +34,7 @@
     {
       "label": "📱 Expo",
       "type": "shell",
-      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\demarrer-expo.ps1\"",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\terminal-projet.ps1\" -Role expo",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -49,16 +49,15 @@
     {
       "label": "📊 Crédits testeurs",
       "type": "shell",
-      "command": "node server/tools/watch-alpha-credits.js",
+      "command": "powershell.exe -ExecutionPolicy Bypass -File \"${workspaceFolder}\\ouvrir-tableau-testeurs.ps1\"",
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "isBackground": true,
+      "isBackground": false,
       "problemMatcher": [],
       "presentation": {
-        "group": "moment-frontend",
-        "panel": "dedicated",
-        "reveal": "always"
+        "reveal": "never",
+        "panel": "dedicated"
       }
     },
     {

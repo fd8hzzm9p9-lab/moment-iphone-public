@@ -7,6 +7,22 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES:
   ReleaseNote[] = [
+{
+  version:
+    'pré-alpha 0.2.11',
+  date:
+    '10 août 2026',
+  title:
+    'Confort des tests et fiabilisation',
+  changes: [
+    'Simplification de la gestion des crédits de test : le solde actuel peut être ajusté directement côté administration, sans code de recharge à saisir par le testeur.',
+    'Amélioration des souvenirs en attente avec restauration fiabilisée et possibilité de suppression définitive.',
+    'Adaptation de Souviens-toi au clavier mobile afin de garder la zone de saisie et les actions accessibles pendant la saisie.',
+    'Fiabilisation du lancement de Moment avec un tunnel Cloudflare déjà actif afin d’éviter de bloquer inutilement le démarrage d’Expo.',
+    'Amélioration du contrôle de version pour éviter de proposer une révision plus ancienne que celle déjà installée.',
+  ],
+},
+
     {
       version:
         'pré-alpha 0.2.10',
@@ -18,11 +34,12 @@ export const RELEASE_NOTES:
         'Souvenirs en attente mieux organisés',
 
       changes: [
-        'Les souvenirs qui n’ont pas pu être enregistrés restent disponibles dans « En attente » pour être traités plus tard.',
-        'Après plusieurs échecs, un souvenir en attente peut être modifié avant un nouvel envoi volontaire.',
-        'Les souvenirs en attente peuvent être supprimés puis restaurés après une suppression récente.',
-        '« Ma mémoire » et « En attente » sont désormais séparés pour rendre l’affichage plus clair.',
-        'La gestion des nouvelles tentatives et des traitements longs a été renforcée.',
+        'Les souvenirs non compris peuvent rester en attente afin d’être repris plus tard sans être perdus.',
+        'Les nouvelles tentatives de traitement des souvenirs en attente ont été renforcées pour mieux gérer les échecs successifs.',
+        'Après plusieurs échecs, un souvenir en attente peut être modifié avant une nouvelle tentative.',
+        'La restauration des souvenirs récemment supprimés a été fiabilisée.',
+        'L’affichage distingue plus clairement Ma mémoire et les souvenirs En attente.',
+        'Les traitements longs et les nouvelles tentatives sont mieux pris en compte pendant les pré-tests.',
       ],
     },
     {

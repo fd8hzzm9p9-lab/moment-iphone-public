@@ -136,6 +136,105 @@ async function clearUpdateAttempt() {
   }
 }
 
+function parseRevision(
+  revision:
+    string
+): number[] {
+  const values =
+    String(
+      revision || ''
+    )
+      .toUpperCase()
+      .match(
+        /\d+/g
+      );
+
+  if (
+    !values ||
+    values.length ===
+      0
+  ) {
+    return [];
+  }
+
+  return values.map(
+    value =>
+      Number(
+        value
+      )
+  );
+}
+
+function isRevisionNewer(
+  candidate:
+    string,
+  current:
+    string
+) {
+  const candidateParts =
+    parseRevision(
+      candidate
+    );
+
+  const currentParts =
+    parseRevision(
+      current
+    );
+
+  /*
+   * Une revision illisible ne doit jamais
+   * provoquer une fausse proposition de MAJ.
+   */
+  if (
+    candidateParts.length ===
+      0 ||
+    currentParts.length ===
+      0
+  ) {
+    return false;
+  }
+
+  const length =
+    Math.max(
+      candidateParts.length,
+      currentParts.length
+    );
+
+  for (
+    let index = 0;
+    index < length;
+    index += 1
+  ) {
+    const candidateValue =
+      candidateParts[
+        index
+      ] ??
+      0;
+
+    const currentValue =
+      currentParts[
+        index
+      ] ??
+      0;
+
+    if (
+      candidateValue >
+      currentValue
+    ) {
+      return true;
+    }
+
+    if (
+      candidateValue <
+      currentValue
+    ) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 export default function MomentVersion({
   textStyle,
 }: Props) {
@@ -232,8 +331,10 @@ export default function MomentVersion({
             const updateNeeded =
               Boolean(
                 expectedRevision &&
-                expectedRevision !==
+                isRevisionNewer(
+                  expectedRevision,
                   APP_REVISION
+                )
               );
 
             /*

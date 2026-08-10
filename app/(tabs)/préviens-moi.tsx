@@ -15,7 +15,6 @@ import {
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -53,7 +52,6 @@ import {
 import {
   getAlphaCreditStatus,
   getCachedAlphaCreditRequest,
-  redeemAlphaCredits,
   requestAlphaCredits,
   type AlphaCreditStatus,
 } from '../../services/alphaCreditService';
@@ -102,12 +100,6 @@ export default function PreventMeScreen() {
     useState<AlphaCreditStatus | null>(
       null
     );
-
-  const [
-    rechargeCode,
-    setRechargeCode,
-  ] =
-    useState('');
 
   const [
     showTestHelp,
@@ -316,7 +308,7 @@ export default function PreventMeScreen() {
             `Identifiant : ${momentDeviceId}`,
             `Version : ${APP_VERSION} ${APP_REVISION}`,
             '',
-            'Merci de générer un code de recharge pour cette demande.',
+            'Merci de valider cette demande et de recharger directement ce testeur. Aucun code de recharge n’est à lui transmettre.',
           ].join(
             '\n'
           );
@@ -341,51 +333,6 @@ export default function PreventMeScreen() {
       }
     };
 
-  const validateRechargeCode =
-    async () => {
-      if (
-        creditLoading ||
-        !rechargeCode.trim()
-      ) {
-        return;
-      }
-
-      setCreditLoading(
-        true
-      );
-
-      try {
-        await redeemAlphaCredits(
-          rechargeCode
-        );
-
-        setRechargeCode('');
-
-        const status =
-          await getAlphaCreditStatus();
-
-        setCreditStatus(
-          status
-        );
-
-        Alert.alert(
-          'Crédit ajouté',
-          'Tu peux poursuivre tes tests.'
-        );
-      } catch (error) {
-        Alert.alert(
-          'Code refusé',
-          error instanceof Error
-            ? error.message
-            : 'Ce code ne peut pas être utilisé.'
-        );
-      } finally {
-        setCreditLoading(
-          false
-        );
-      }
-    };
-
   useEffect(
     () => {
       if (
@@ -397,6 +344,75 @@ export default function PreventMeScreen() {
     },
     [
       openCredit,
+    ]
+  );
+
+  /*
+   * MEMENTO 0.2.11 A
+   * Une demande en attente est rechargée côté administrateur.
+   * Aucun code n'est saisi par le testeur.
+   * Cette vérification n'effectue aucun appel OpenAI.
+   */
+  useEffect(
+    () => {
+      if (
+        !creditStatus?.pending
+      ) {
+        return;
+      }
+
+      let cancelled =
+        false;
+
+      const checkAdministrativeRecharge =
+        async () => {
+          try {
+            const status =
+              await getAlphaCreditStatus();
+
+            if (cancelled) {
+              return;
+            }
+
+            setCreditStatus(
+              status
+            );
+
+            if (
+              !status.pending
+            ) {
+              Alert.alert(
+                'Crédit rechargé',
+                'Ta recharge a été validée. Tu peux poursuivre tes tests.'
+              );
+            }
+          } catch {
+            /*
+             * Le prochain contrôle réessaiera.
+             * Aucun message technique côté testeur.
+             */
+          }
+        };
+
+      const timer =
+        setInterval(
+          () => {
+            void checkAdministrativeRecharge();
+          },
+          5000
+        );
+
+      return () => {
+        cancelled =
+          true;
+
+        clearInterval(
+          timer
+        );
+      };
+    },
+    [
+      creditStatus?.pending,
     ]
   );
 
@@ -854,7 +870,7 @@ export default function PreventMeScreen() {
                         styles.creditModalText
                       }
                     >
-                      Transmets ce code pour demander une recharge. Tu peux fermer cette fenêtre : le même code sera conservé.
+                      Envoie cette demande à l’équipe Moment. La recharge sera appliquée directement par l’administrateur : tu n’auras aucun code à saisir.
                     </Text>
 
                     <View
@@ -898,61 +914,16 @@ export default function PreventMeScreen() {
                       </Text>
                     </Pressable>
 
-                    <TextInput
-                      autoCapitalize="characters"
-                      autoCorrect={
-                        false
-                      }
-                      placeholder="Code de recharge reçu"
-                      value={
-                        rechargeCode
-                      }
-                      onChangeText={
-                        setRechargeCode
-                      }
+                    <Text
                       style={
-                        styles.creditRechargeInput
-                      }
-                    />
-
-                    <Pressable
-                      disabled={
-                        creditLoading ||
-                        !rechargeCode.trim()
-                      }
-                      onPress={
-                        validateRechargeCode
-                      }
-                      style={
-                        ({ pressed }) => [
-                          styles.creditPrimaryButton,
-                          (
-                            pressed ||
-                            creditLoading ||
-                            !rechargeCode.trim()
-                          ) &&
-                            styles.buttonPressed,
-                        ]
+                        styles.creditModalText
                       }
                     >
-                      {
-                        creditLoading
-                          ? (
-                            <ActivityIndicator
-                              color="#FFFFFF"
-                            />
-                          )
-                          : (
-                            <Text
-                              style={
-                                styles.creditPrimaryButtonText
-                              }
-                            >
-                              Valider le code
-                            </Text>
-                          )
-                      }
-                    </Pressable>
+                      ⏳ Demande en attente de validation. Moment vérifiera automatiquement la recharge.
+                    </Text>
+                    <ActivityIndicator
+                      color="#2563EB"
+                    />
                   </>
                 )
                 : (
@@ -2167,35 +2138,6 @@ const styles =
 
       textAlign:
         'center',
-    },
-
-    creditRechargeInput: {
-      width:
-        '100%',
-
-      minHeight:
-        48,
-
-      paddingHorizontal:
-        14,
-
-      borderWidth:
-        1,
-
-      borderColor:
-        '#CBD5E1',
-
-      borderRadius:
-        13,
-
-      backgroundColor:
-        '#FFFFFF',
-
-      fontSize:
-        15,
-
-      color:
-        '#0F172A',
     },
 
     creditPrimaryButton: {

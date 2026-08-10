@@ -91,7 +91,6 @@ try {
                 $configuredUrl = Get-ConfiguredServerUrl
 
                 if (
-                    $markerTime -ge $startedAt.AddSeconds(-10) -and
                     $configuredUrl -eq [string]$marker.url
                 ) {
                     $ready = $true

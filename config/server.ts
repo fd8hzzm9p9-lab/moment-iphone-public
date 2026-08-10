@@ -8,4 +8,4 @@
  */
 
 export const SERVER_URL =
-  'https://charming-infections-implement-unlike.trycloudflare.com';
+  'https://max-miles-disclosure-understand.trycloudflare.com';

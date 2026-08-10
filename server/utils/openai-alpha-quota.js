@@ -1410,7 +1410,175 @@ function getQuotaFeedbackSnapshot(deviceId) {
       ),
   };
 }
+/*
+ * =========================================================
+ * ADMIN — LISTE DES TESTEURS
+ * =========================================================
+ *
+ * Aucun appel OpenAI.
+ * Lecture seule du store des quotas.
+ */
 
+function getTesterAdminSnapshot() {
+  const store =
+    readStore();
+
+  /*
+   * Noms des testeurs.
+   * Fichier situé à côté de alpha-openai-quotas.json.
+   */
+
+  let testerNames = {};
+
+  try {
+    const testerNamesFile =
+      path.join(
+        dataDirectory,
+        'alpha-tester-names.json'
+      );
+
+    if (
+      fs.existsSync(
+        testerNamesFile
+      )
+    ) {
+      const parsed =
+        JSON.parse(
+          fs.readFileSync(
+            testerNamesFile,
+            'utf8'
+          )
+        );
+
+      testerNames =
+        parsed &&
+        typeof parsed.testers ===
+          'object' &&
+        parsed.testers !== null
+          ? parsed.testers
+          : {};
+    }
+  } catch (error) {
+    console.error(
+      '⚠️ Impossible de lire alpha-tester-names.json :',
+      error.message
+    );
+
+    testerNames = {};
+  }
+
+  const deviceStore =
+    store &&
+    typeof store.devices === 'object' &&
+    store.devices !== null
+      ? store.devices
+      : {};
+
+  const now =
+    Date.now();
+
+  return Object.entries(
+    deviceStore
+  )
+    .filter(
+      ([deviceId, state]) =>
+        deviceId &&
+        state &&
+        typeof state === 'object' &&
+        deviceId.startsWith(
+          'moment_'
+        )
+    )
+    .map(
+      ([deviceId, state]) => {
+        const lastSeen =
+          state.last_seen_at
+            ? new Date(
+                state.last_seen_at
+              ).getTime()
+            : 0;
+
+        const ageMs =
+          lastSeen
+            ? now - lastSeen
+            : Infinity;
+
+        let presenceStatus =
+          'INACTIF';
+
+        if (
+          ageMs <=
+          5 * 60 * 1000
+        ) {
+          presenceStatus =
+            'ACTIF';
+        } else if (
+          ageMs <=
+          30 * 60 * 1000
+        ) {
+          presenceStatus =
+            'RECENT';
+        }
+
+        return {
+          moment_device_id:
+            deviceId,
+
+          tester_name:
+            testerNames[
+              deviceId
+            ] ||
+            'Testeur inconnu',
+
+          short_id:
+            deviceId
+              .replace(
+                /^moment_/,
+                ''
+              )
+              .slice(
+                0,
+                8
+              ),
+
+          presence_status:
+            presenceStatus,
+
+          last_seen_at:
+            state.last_seen_at ||
+            null,
+
+          credits_remaining:
+            getRemaining(
+              ensureCreditFields(
+                state
+              )
+            ),
+
+          credits_used:
+            Number(
+              state.credits_used ||
+              0
+            ),
+
+          credits_granted:
+            Number(
+              state.credits_granted ||
+              0
+            ),
+        };
+      }
+    )
+    .sort(
+      (a, b) =>
+        new Date(
+          b.last_seen_at || 0
+        ).getTime() -
+        new Date(
+          a.last_seen_at || 0
+        ).getTime()
+    );
+}
 module.exports = {
   DEFAULT_OPENAI_QUOTA,
   createQuotaOpenAI,
@@ -1421,4 +1589,5 @@ module.exports = {
   redeemRechargeCode,
   getQuotaFeedbackSnapshot,
   recordTesterHeartbeat,
+  getTesterAdminSnapshot,
 };

@@ -1199,3 +1199,122 @@ getPendingMemoryDiagnosticSnapshot() {
     history,
   };
 }
+
+export async function
+permanentlyDeleteLatestDeletedPendingMemories() {
+  const history =
+    await readArray(
+      PENDING_MEMORY_HISTORY_KEY
+    );
+
+  const deletedBatch =
+    getLatestDeletedBatch(
+      history
+    );
+
+  if (
+    deletedBatch.length ===
+      0
+  ) {
+    return 0;
+  }
+
+  const deletedIds =
+    new Set(
+      deletedBatch
+        .map(
+          item =>
+            typeof item?.id ===
+              'string'
+              ? item.id
+              : ''
+        )
+        .filter(
+          Boolean
+        )
+    );
+
+  if (
+    deletedIds.size ===
+      0
+  ) {
+    return 0;
+  }
+
+  const current =
+    await getPendingMemories();
+
+  await writeArray(
+    PENDING_MEMORY_STORAGE_KEY,
+    current.filter(
+      item =>
+        !deletedIds.has(
+          item.id
+        )
+    )
+  );
+
+  const cleanedHistory =
+    history.filter(
+      item =>
+        !(
+          item &&
+          typeof item ===
+            'object' &&
+          typeof item.id ===
+            'string' &&
+          deletedIds.has(
+            item.id
+          )
+        )
+    );
+
+  const now =
+    new Date()
+      .toISOString();
+
+  /*
+   * "restored_at" sert uniquement de marqueur de fermeture
+   * compatible avec getLatestDeletedBatch() déjà validé.
+   * restored_pending_ids reste vide : aucun souvenir n'est restauré.
+   *
+   * Le contenu supprimé n'est pas conservé dans ce marqueur.
+   */
+  const permanentDeletionMarker = {
+    restored_at:
+      now,
+
+    restored_app_version:
+      APP_VERSION,
+
+    restored_pending_ids:
+      [],
+
+    permanently_deleted_at:
+      now,
+
+    permanently_deleted_app_version:
+      APP_VERSION,
+
+    permanently_deleted_pending_ids:
+      Array.from(
+        deletedIds
+      ),
+
+    history:
+      [],
+  };
+
+  await writeArray(
+    PENDING_MEMORY_HISTORY_KEY,
+    [
+      permanentDeletionMarker,
+      ...cleanedHistory,
+    ].slice(
+      0,
+      500
+    )
+  );
+
+  return deletedIds.size;
+}

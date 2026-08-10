@@ -2273,8 +2273,8 @@ correctionData =
           );
 
         try {
-          response =
-            await quotaOpenai.responses.create(
+      response =
+        await quotaOpenai.responses.create(
               {
                 model:
                   'gpt-5-mini',
@@ -2578,6 +2578,9 @@ const eventsNeedingDateConfirmation =
       const explicitDate =
         extractExplicitDateFromText(
           event.source_text ||
+          ''
+        ) ||
+        extractExplicitDateFromText(
           text
         );
 

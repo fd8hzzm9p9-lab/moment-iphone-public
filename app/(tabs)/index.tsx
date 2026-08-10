@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  findNodeHandle,
   Image,
   Modal,
   Platform,
@@ -40,6 +41,7 @@ import {
   recordPendingRetry,
   recordPendingRetryFailure,
   resolvePendingMemory,
+  permanentlyDeleteLatestDeletedPendingMemories,
   restoreLatestDeletedPendingMemories,
   shouldSuggestPendingMemoryEdit,
   updatePendingMemoryText,
@@ -48,6 +50,7 @@ import {
 import { STORAGE_KEY } from '../../config/storage';
 
 import {
+  APP_ENVIRONMENT_LABEL,
   APP_NAME,
   APP_TAGLINE,
   APP_VERSION,
@@ -1539,6 +1542,49 @@ export default function MemoryScreen() {
       null
     );
 
+  const memoryInputKeyboardRef =
+    useRef<View>(
+      null
+    );
+
+  const ensureMemoryInputVisible =
+    () => {
+      if (
+        Platform.OS ===
+          'web'
+      ) {
+        return;
+      }
+
+      setTimeout(
+        () => {
+          const inputNode =
+            findNodeHandle(
+              memoryInputKeyboardRef.current
+            );
+
+          if (!inputNode) {
+            return;
+          }
+
+          const responder =
+            (
+              memoryScrollRef.current as any
+            )
+              ?.getScrollResponder?.();
+
+          responder
+            ?.scrollResponderScrollNativeHandleToKeyboard?.(
+              inputNode,
+              120,
+              true
+            );
+        },
+        300
+      );
+    };
+
+
   const [
     showScrollToTop,
     setShowScrollToTop,
@@ -1637,7 +1683,7 @@ const tempsTraitementCumuleRef =
 /* ======================================================= */
 
 useEffect(() => {
-  if (!souvenirEnCours) {
+  if (!souvenirEnCours && !pendingRetryInProgress) {
     return;
   }
 
@@ -1667,6 +1713,7 @@ useEffect(() => {
     clearInterval(interval);
 }, [
   souvenirEnCours,
+  pendingRetryInProgress,
 ]);
 
   /* ======================================================= */
@@ -1674,9 +1721,9 @@ useEffect(() => {
   /* ======================================================= */
 
   useEffect(() => {
-    if (!souvenirEnCours) {
-      return;
-    }
+    if (!souvenirEnCours && !pendingRetryInProgress) {
+    return;
+  }
 
     setIndexEtapeTraitement(0);
 
@@ -1706,8 +1753,9 @@ useEffect(() => {
     return () =>
       clearInterval(interval);
   }, [
-    souvenirEnCours,
-  ]);
+  souvenirEnCours,
+  pendingRetryInProgress,
+]);
 
   /* ======================================================= */
   /* SOUVENIRS EN ATTENTE                                    */
@@ -1875,7 +1923,7 @@ useEffect(() => {
         ]
       );
     };
-    
+
     const toggleMemoryExpanded =
       (
         eventId: string
@@ -3355,7 +3403,7 @@ setLastFailedMemory({
       );
 
       setPendingRetryMessage(
-        '⏳ Souvenir conservé pour un prochain essai local.'
+        '⏳ Souvenir conservé pour un prochain essai.'
       );
     };
 
@@ -3462,6 +3510,63 @@ setLastFailedMemory({
       setPendingRetryMessage(
         ''
       );
+    };
+
+  const supprimerDefinitivementDerniereSuppression =
+    () => {
+      if (
+        pendingDeletedRecoveryCount <=
+          0
+      ) {
+        return;
+      }
+
+      const count =
+        pendingDeletedRecoveryCount;
+
+      Alert.alert(
+        'Supprimer définitivement ?',
+        count === 1
+          ? 'Ce souvenir sera supprimé définitivement. Il ne pourra plus être restauré.'
+          : `${count} souvenirs seront supprimés définitivement. Ils ne pourront plus être restaurés.`,
+        [
+          {
+            text:
+              'Annuler',
+            style:
+              'cancel',
+          },
+          {
+            text:
+              'Supprimer définitivement',
+            style:
+              'destructive',
+            onPress:
+              () => {
+                void confirmerSuppressionDefinitiveDerniereSuppression();
+              },
+          },
+        ]
+      );
+    };
+
+  const confirmerSuppressionDefinitiveDerniereSuppression =
+    async () => {
+      const deletedCount =
+        await permanentlyDeleteLatestDeletedPendingMemories();
+
+      await refreshPendingMemories();
+
+      if (
+        deletedCount >
+          0
+      ) {
+        setPendingRetryMessage(
+          deletedCount === 1
+            ? '🗑️ Souvenir supprimé définitivement.'
+            : `🗑️ ${deletedCount} souvenirs supprimés définitivement.`
+        );
+      }
     };
 
   const restaurerDerniereSuppression =
@@ -3652,13 +3757,13 @@ setLastFailedMemory({
           return 'Le moteur local de cette version ne comprend pas encore suffisamment ce souvenir.';
 
         case 'LOCAL_RETRY_ERROR':
-          return 'Une erreur est survenue pendant le réessai local.';
+          return 'Une erreur est survenue pendant le réessai.';
 
         case 'RETRY_TIMEOUT':
           return 'Le réessai a dépassé le délai maximal de 70 secondes.';
 
         case 'NO_LOCAL_EVENT':
-          return 'Le moteur local n’a pas encore réussi à transformer ce texte en souvenir exploitable.';
+          return 'Moment n’a pas réussi à transformer ce texte en souvenir exploitable.';
 
         case 'DATE_CONFIRMATION_REQUIRED':
           return 'Ce souvenir nécessite encore une confirmation de date.';
@@ -3731,15 +3836,37 @@ setLastFailedMemory({
 
       if (
         pendingRetryInProgress ||
-        pendingMemories.length ===
+        pendingSnapshot.length ===
           0
       ) {
         return;
       }
 
       setPendingRetryInProgress(
-        true
-      );
+    true
+  );
+
+  processingStartTimeRef.current =
+    Date.now();
+
+  tempsTraitementCumuleRef.current =
+    0;
+
+  setTempsTraitement(
+    0
+  );
+
+  setTempsFinal(
+    null
+  );
+
+  setIndexEtapeTraitement(
+    0
+  );
+
+  setEtapeTraitement(
+    MEMORY_PROCESSING_STEPS[0]
+  );
 
       setPendingRetryMessage(
         ''
@@ -3771,6 +3898,9 @@ setLastFailedMemory({
           const pending of
             pendingSnapshot
         ) {
+      setPendingRetryCurrentText(
+        pending.text
+      );
           const diagnosticId =
             createDiagnosticId(
               'understand'
@@ -3786,11 +3916,8 @@ setLastFailedMemory({
 
           /*
            * Le retry reste dans le diagnostic
-           * pour l'analyse des tests.
-           *
-           * En revanche il ne compte pas comme
-           * une nouvelle interaction utilisateur
-           * pour le seuil d'envoi du feedback.
+           * et compte dans le feedback de test
+           * comme une tentative réelle.
            */
           await recordDiagnosticInteraction({
             diagnostic_id:
@@ -3810,7 +3937,7 @@ setLastFailedMemory({
               APP_VERSION,
 
             counts_toward_feedback:
-              false,
+              true,
           });
 
           const retryAbortController =
@@ -3854,9 +3981,10 @@ setLastFailedMemory({
                         momentDeviceId,
 
                       /*
-                       * REGLE ABSOLUE :
-                       * jamais d'OpenAI pendant
-                       * un réessai de la file.
+                       * Le réessai repasse par le traitement
+                       * normal de Moment :
+                       * Local First puis OpenAI seulement
+                       * si le local ne suffit pas.
                        */
                       local_only:
                         false,
@@ -4129,10 +4257,17 @@ setLastFailedMemory({
         }
 
       } finally {
-        setPendingRetryInProgress(
-          false
-        );
-      }
+    processingStartTimeRef.current =
+      null;
+
+    setPendingRetryCurrentText(
+      ''
+    );
+
+    setPendingRetryInProgress(
+      false
+    );
+  }
     };
 
 const souviensToi =
@@ -4423,6 +4558,19 @@ return (
             }
           />
         </View>
+        {
+          APP_ENVIRONMENT_LABEL
+            ? (
+              <Text
+                style={
+                  styles.version
+                }
+              >
+                {APP_ENVIRONMENT_LABEL}
+              </Text>
+            )
+            : null
+        }
 
         <Text
           style={
@@ -4444,6 +4592,9 @@ return (
       </View>
 
       <View
+        ref={
+          memoryInputKeyboardRef
+        }
         style={
           styles.memoryInputContainer
         }
@@ -4464,6 +4615,9 @@ return (
           }
           onChangeText={
             setSouvenir
+          }
+          onFocus={
+            ensureMemoryInputVisible
           }
           multiline
           editable={
@@ -4601,7 +4755,7 @@ return (
               >
                 Moment n’a pas pu enregistrer ce souvenir.
                 {'\n'}
-                Veux-tu le garder pour réessayer localement plus tard ?
+                Veux-tu le garder pour réessayer plus tard ?
               </Text>
 
               <View
@@ -4817,7 +4971,15 @@ return (
 
               <View
                 style={
-                  styles.pendingQuestionActions
+                  [
+                    styles.pendingQuestionActions,
+                    {
+                      flexDirection:
+                        'column',
+                      alignItems:
+                        'stretch',
+                    },
+                  ]
                 }
               >
                 <Pressable
@@ -4834,6 +4996,30 @@ return (
                     }
                   >
                     ↩️ Restaurer la dernière suppression
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.pendingNoButton,
+                    {
+                      backgroundColor:
+                        '#FDECEC',
+                    },
+                  ]}
+                  onPress={
+                    supprimerDefinitivementDerniereSuppression
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.pendingNoButtonText,
+                      {
+                        color:
+                          '#A14B4B',
+                      },
+                    ]}
+                  >
+                    🗑️ Supprimer définitivement
                   </Text>
                 </Pressable>
               </View>
@@ -5176,47 +5362,7 @@ return (
           : null
       }
 
-      {souvenirEnCours && (
-        <View
-          style={
-            styles.processingContainer
-          }
-        >
-          <Text
-            style={
-              styles.thinkingTitle
-            }
-          >
-            🧠 Moment réfléchit…
-          </Text>
 
-          <Text
-            style={[
-              styles.processingText,
-              {
-                width: '100%',
-                textAlign: 'center',
-              },
-            ]}
-          >
-            {
-              etapeTraitement
-            }
-          </Text>
-
-          <Text
-            style={
-              styles.processingTime
-            }
-          >
-            ⏱️ Temps de traitement :{' '}
-            {tempsTraitement.toFixed(
-              1
-            )}{' '}
-            s
-          </Text>
-        </View>
-      )}
 
       <Pressable
         style={

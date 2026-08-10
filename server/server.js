@@ -138,13 +138,258 @@ const {
   redeemRechargeCode,
   getQuotaFeedbackSnapshot,
   recordTesterHeartbeat,
+  getTesterAdminSnapshot,
 } = require('./utils/openai-alpha-quota');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+/*
+ * =========================================================
+ * ADMIN — TESTEURS MOMENT
+ * =========================================================
+ */
 
+app.get(
+  '/admin/testeurs',
+  (req, res) => {
+    const adminKey =
+      String(
+        process.env
+          .MOMENT_ADMIN_KEY ||
+        'moment-admin'
+      );
+
+    const providedKey =
+      String(
+        req.query.key ||
+        ''
+      );
+
+    if (
+      providedKey !==
+      adminKey
+    ) {
+      return res
+        .status(403)
+        .send(
+          'Accès refusé'
+        );
+    }
+
+    const testers =
+      getTesterAdminSnapshot();
+
+    const formatDate =
+      value => {
+        if (!value) {
+          return 'Jamais';
+        }
+
+        try {
+          return new Intl
+            .DateTimeFormat(
+              'fr-FR',
+              {
+                timeZone:
+                  'Europe/Paris',
+                day:
+                  '2-digit',
+                month:
+                  '2-digit',
+                year:
+                  'numeric',
+                hour:
+                  '2-digit',
+                minute:
+                  '2-digit',
+                second:
+                  '2-digit',
+              }
+            )
+            .format(
+              new Date(
+                value
+              )
+            );
+        } catch {
+          return value;
+        }
+      };
+
+    const activeCount =
+      testers.filter(
+        tester =>
+          tester
+            .presence_status ===
+          'ACTIF'
+      ).length;
+
+    const recentCount =
+      testers.filter(
+        tester =>
+          tester
+            .presence_status ===
+          'RECENT'
+      ).length;
+const testerNames = {
+  '50e5003f': 'Nom du testeur 1',
+  'xxxxxxxx': 'Nom du testeur 2',
+  'yyyyyyyy': 'Nom du testeur 3',
+};
+    const rows =
+      testers
+        .map(
+          tester => {
+            const icon =
+              tester
+                .presence_status ===
+              'ACTIF'
+                ? '🟢'
+                : tester
+                      .presence_status ===
+                    'RECENT'
+                  ? '🟠'
+                  : '⚫';
+
+return `
+  <div class="tester">
+    <div class="title">
+      ${icon}
+${tester.tester_name}
+    </div>
+
+    <div>
+      ID : ${tester.short_id}
+    </div>
+
+    <div>
+      ${tester.presence_status}
+    </div>
+
+                <div>
+                  Dernière activité :
+                  <strong>
+                    ${formatDate(
+                      tester.last_seen_at
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  Crédits restants :
+                  <strong>
+                    ${tester.credits_remaining}
+                  </strong>
+                </div>
+
+                <div>
+                  Crédits utilisés :
+                  ${tester.credits_used}
+                </div>
+
+                <div class="device">
+                  ${tester.moment_device_id}
+                </div>
+              </div>
+            `;
+          }
+        )
+        .join('');
+
+    res.send(`
+      <!DOCTYPE html>
+
+      <html lang="fr">
+
+      <head>
+        <meta charset="UTF-8">
+
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1"
+        >
+
+        <title>
+          Moment — Testeurs
+        </title>
+
+        <style>
+          body {
+            margin: 0;
+            padding: 20px;
+            font-family:
+              -apple-system,
+              BlinkMacSystemFont,
+              "Segoe UI",
+              sans-serif;
+            background: #f4f4f4;
+            color: #222;
+          }
+
+          h1 {
+            margin-top: 0;
+          }
+
+          .summary {
+            background: white;
+            padding: 16px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+          }
+
+          .tester {
+            background: white;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 14px;
+            line-height: 1.6;
+          }
+
+          .title {
+            font-size: 21px;
+            font-weight: 700;
+          }
+
+          .device {
+            margin-top: 8px;
+            font-size: 11px;
+            opacity: 0.55;
+            word-break: break-all;
+          }
+        </style>
+      </head>
+
+      <body>
+
+        <h1>
+          🧠 Moment — Testeurs
+        </h1>
+
+        <div class="summary">
+          🟢 Actifs :
+          <strong>${activeCount}</strong>
+
+          <br>
+
+          🟠 Récents :
+          <strong>${recentCount}</strong>
+
+          <br>
+
+          👥 Total :
+          <strong>${testers.length}</strong>
+        </div>
+
+        ${rows || '<p>Aucun testeur enregistré.</p>'}
+
+      </body>
+
+      </html>
+    `);
+  }
+);
 
 /*
  * =========================================================
